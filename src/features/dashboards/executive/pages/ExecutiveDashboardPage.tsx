@@ -1,4 +1,5 @@
-import { Download, FileText, Mail, Pin } from "lucide-react";
+import { Download, FileText, Mail, Pin, Store } from "lucide-react";
+import { Link } from "react-router-dom";
 import AttendanceLeaveOverview from "../components/AttendanceLeaveOverview";
 import BenefitsOverview from "../components/BenefitsOverview";
 import BranchScopeSelector from "../components/BranchScopeSelector";
@@ -12,11 +13,16 @@ import PerformanceProductivity from "../components/PerformanceProductivity";
 import PredictiveInsights from "../components/PredictiveInsights";
 import TimeToXMetrics from "../components/TimeToXMetrics";
 import WorkforceOverview from "../components/WorkforceOverview";
-import { executiveScopeNote } from "../constants/executiveDashboard.constants";
+import { ALL_BRANCHES_VALUE, executiveScopeNote } from "../constants/executiveDashboard.constants";
 import { useExecutiveDashboard } from "../hooks/useExecutiveDashboard";
 
 export default function ExecutiveDashboardPage() {
   const { branches, data, selectedBranchId, setSelectedBranch } = useExecutiveDashboard();
+  const branchManagerBranchId =
+    selectedBranchId === ALL_BRANCHES_VALUE ? branches[0]?.id : selectedBranchId;
+  const branchManagerPath = branchManagerBranchId
+    ? `/dashboard/branch?branch_id=${branchManagerBranchId}`
+    : "/dashboard/branch";
 
   return (
     <div className="dashboard-page executive-dashboard">
@@ -36,6 +42,10 @@ export default function ExecutiveDashboardPage() {
             onBranchChange={setSelectedBranch}
           />
           <div className="action-row">
+            <Link className="button button-primary" to={branchManagerPath}>
+              <Store aria-hidden="true" size={15} />
+              Branch Manager
+            </Link>
             <button className="button button-secondary" type="button">
               <FileText aria-hidden="true" size={15} />
               Compare
@@ -126,3 +136,4 @@ export default function ExecutiveDashboardPage() {
     </div>
   );
 }
+

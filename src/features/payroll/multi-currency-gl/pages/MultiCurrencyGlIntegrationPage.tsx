@@ -1,5 +1,6 @@
-import ModulePlaceholderPage from "../../../../components/shared/ModulePlaceholderPage";
+import PayrollWorkspace from "../../shared/PayrollWorkspace";
 
 export default function MultiCurrencyGlIntegrationPage() {
-  return <ModulePlaceholderPage title="Multi-Currency & GL Integration" />;
+  return <PayrollWorkspace page="gl" />;
 }
+
