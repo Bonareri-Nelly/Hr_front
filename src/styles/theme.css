@@ -400,6 +400,12 @@ a {
   justify-items: end;
 }
 
+.finance-toolbar {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
 .field-control {
   display: grid;
   gap: 6px;
@@ -443,6 +449,59 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.finance-release-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  padding: 18px;
+}
+
+.finance-release-copy {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.finance-release-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.finance-release-copy h2 {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 1.22rem;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.finance-release-copy p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.79rem;
+  line-height: 1.45;
+}
+
+.finance-release-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 .mini-chart {
@@ -756,6 +815,73 @@ a {
   gap: 8px;
 }
 
+.finance-alert-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finance-alert-item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.finance-alert-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 7px;
+}
+
+.finance-alert-icon-success {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.finance-alert-icon-warning {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.finance-alert-icon-danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.finance-alert-icon-info {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.finance-progress-row,
+.finance-table-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.finance-table-progress .progress {
+  width: min(180px, 52vw);
+}
+
+.finance-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.finance-note svg {
+  flex: 0 0 auto;
+  color: var(--success);
+}
+
 .chat-fab {
   position: fixed;
   right: 22px;
@@ -897,7 +1023,8 @@ a {
     flex-direction: column;
   }
 
-  .executive-toolbar {
+  .executive-toolbar,
+  .finance-toolbar {
     justify-items: start;
     width: 100%;
   }
@@ -910,6 +1037,23 @@ a {
   .executive-scope-note {
     align-items: start;
     flex-direction: column;
+  }
+
+  .finance-release-band,
+  .finance-release-copy,
+  .finance-release-actions {
+    align-items: stretch;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .finance-alert-item {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+
+  .finance-alert-item .pill {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .chat-panel {

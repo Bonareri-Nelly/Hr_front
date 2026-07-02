@@ -1,12 +1,12 @@
-import { lazy, type LazyExoticComponent, type ReactElement } from "react";
+import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import { navigationItems } from "../../constants/navigation";
 import type { NavigationItem } from "../../types/navigation";
 
 export type AppRoute = NavigationItem & {
-  Component: LazyExoticComponent<() => ReactElement>;
+  Component: LazyExoticComponent<ComponentType>;
 };
 
-const routeComponents: Record<string, LazyExoticComponent<() => ReactElement>> = {
+const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "executive-dashboard": lazy(() => import("../../features/dashboards/executive")),
   "reports-analytics": lazy(() => import("../../features/reports")),
   "ai-assistant": lazy(() => import("../../features/ai-assistant")),

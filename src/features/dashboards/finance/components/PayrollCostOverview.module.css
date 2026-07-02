@@ -1,0 +1,140 @@
+.payrollCost {
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--border-radius-lg, 8px);
+  padding: 16px;
+  box-shadow: var(--shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
+}
+
+.summaryCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background: var(--color-background, #f8f9fa);
+  padding: 16px;
+  border-radius: var(--border-radius-md, 6px);
+}
+
+.cardLabel {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary, #7f8c8d);
+  margin-bottom: 4px;
+}
+
+.cardValue {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #2c3e50);
+}
+
+.cardChange {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-success, #2ecc71);
+  margin-top: 4px;
+}
+
+.chartSection {
+  margin-bottom: 24px;
+}
+
+.chartSection h4 {
+  margin-bottom: 12px;
+  color: var(--color-text-primary, #2c3e50);
+}
+
+.trendChart {
+  height: 200px;
+  padding: 16px 0;
+}
+
+.bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 100%;
+  gap: 8px;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  height: 100%;
+}
+
+.bar {
+  width: 100%;
+  max-width: 40px;
+  background: var(--color-primary, #3498db);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.3s ease;
+  min-height: 4px;
+}
+
+.barLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #7f8c8d);
+  margin-top: 4px;
+}
+
+.breakdownSection h4 {
+  margin-bottom: 12px;
+  color: var(--color-text-primary, #2c3e50);
+}
+
+.breakdownItems {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.breakdownItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.breakdownLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary, #2c3e50);
+}
+
+.colorDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.breakdownBar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-border, #e0e0e0);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.breakdownFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.breakdownValue {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary, #2c3e50);
+  min-width: 100px;
+  text-align: right;
+}
