@@ -1,5 +1,6 @@
-import ModulePlaceholderPage from "../../../../components/shared/ModulePlaceholderPage";
+import PayrollWorkspace from "../../shared/PayrollWorkspace";
 
 export default function TaxCompliancePage() {
-  return <ModulePlaceholderPage title="Tax & Compliance" />;
+  return <PayrollWorkspace page="tax" />;
 }
+

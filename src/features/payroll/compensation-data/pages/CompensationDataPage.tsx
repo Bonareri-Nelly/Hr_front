@@ -1,5 +1,6 @@
-import ModulePlaceholderPage from "../../../../components/shared/ModulePlaceholderPage";
+import PayrollWorkspace from "../../shared/PayrollWorkspace";
 
 export default function CompensationDataPage() {
-  return <ModulePlaceholderPage title="Compensation Data" />;
+  return <PayrollWorkspace page="compensation" />;
 }
+
