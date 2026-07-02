@@ -1,5 +1,72 @@
+import {
+  BadgeDollarSign,
+  Banknote,
+  BarChart3,
+  Bell,
+  BriefcaseBusiness,
+  Building2,
+  CalendarCheck,
+  CalendarClock,
+  ChartNoAxesCombined,
+  ClipboardCheck,
+  ClipboardList,
+  CreditCard,
+  FileCheck2,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  HandCoins,
+  Handshake,
+  Landmark,
+  LayoutDashboard,
+  MessageCircleQuestion,
+  Scale,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  UserCheck,
+  UserCog,
+  UserRound,
+  Users,
+  WalletCards,
+  type LucideIcon,
+} from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { moduleSections } from "../../modules/moduleRoutes";
+import { navigationSections } from "../../constants/navigation";
+import { canViewModule } from "../../services/permissions";
+
+const iconMap: Record<string, LucideIcon> = {
+  BadgeDollarSign,
+  Banknote,
+  BarChart3,
+  Bell,
+  BriefcaseBusiness,
+  Building2,
+  CalendarCheck,
+  CalendarClock,
+  ChartNoAxesCombined,
+  ClipboardCheck,
+  ClipboardList,
+  CreditCard,
+  FileCheck2,
+  FileText,
+  FolderOpen,
+  GraduationCap,
+  HandCoins,
+  Handshake,
+  Landmark,
+  LayoutDashboard,
+  MessageCircleQuestion,
+  Scale,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  UserCheck,
+  UserCog,
+  UserRound,
+  Users,
+  WalletCards,
+};
 
 export default function Sidebar() {
   return (
@@ -13,12 +80,12 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-sections">
-        {moduleSections.map((section) => (
+        {navigationSections.map((section) => (
           <section className="nav-section" key={section.label}>
             <div className="nav-section-label">{section.label}</div>
             <div className="nav-links">
-              {section.items.map((item) => {
-                const Icon = item.icon;
+              {section.items.filter((item) => canViewModule(item.id)).map((item) => {
+                const Icon = iconMap[item.icon] ?? LayoutDashboard;
 
                 return (
                   <NavLink
@@ -27,7 +94,7 @@ export default function Sidebar() {
                     to={item.path}
                   >
                     <Icon aria-hidden="true" size={17} strokeWidth={1.9} />
-                    <span>{item.title}</span>
+                    <span>{item.label}</span>
                   </NavLink>
                 );
               })}
