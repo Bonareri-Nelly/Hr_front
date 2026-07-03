@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 type Tone = "success" | "warning" | "danger" | "info";
@@ -35,6 +36,7 @@ type Metric = { label: string; value: string; meta: string; tone: Tone };
 type Action = { title: string; owner: string; due: string; tone: Tone };
 type Signal = { label: string; value: string; percent: number; tone: Tone };
 type TableRow = [string, string, string, string, string, Tone];
+type ClickTarget = { label: string; path?: string; message?: string };
 
 type PayrollConfig = {
   kicker: string;
@@ -424,9 +426,63 @@ function ActionIcon({ tone }: { tone: Tone }) {
   return <CalendarClock aria-hidden="true" size={16} />;
 }
 
+type PayrollTargetSlot = "primary" | "secondary" | "table" | "assign" | "checks" | "evidence";
+
+function getPayrollTarget(page: PayrollPageKey, slot: PayrollTargetSlot, label: string): ClickTarget {
+  const routes: Record<PayrollPageKey, Partial<Record<PayrollTargetSlot, string>>> = {
+    overview: { primary: "/payroll/creation", table: "/payroll/creation", assign: "/payroll/bank-integration", checks: "/payroll/approval", evidence: "/payroll/history" },
+    creation: { primary: "/payroll/approval", assign: "/payroll/compensation", checks: "/payroll/approval", evidence: "/payroll/history" },
+    approval: { primary: "/payroll/bank-integration", assign: "/dashboard/branch?branch_id=eldoret", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
+    history: { checks: "/payroll/bank-integration" },
+    tax: { primary: "/payroll/bank-integration", assign: "/payroll/compensation", checks: "/payroll/approval", evidence: "/payroll/history" },
+    bank: { primary: "/payroll/multi-currency-gl", assign: "/payroll/approval", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
+    compensation: { primary: "/payroll/creation", assign: "/dashboard/executive?branch_id=eldoret", checks: "/payroll/creation", evidence: "/payroll/history" },
+    gl: { assign: "/dashboard/finance", checks: "/payroll/bank-integration", evidence: "/payroll/history" },
+  };
+
+  const path = routes[page][slot];
+
+  if (path) {
+    return { label, path };
+  }
+
+  return { label, message: `${label} has been queued.` };
+}
+
+function ClickableAction({
+  target,
+  className,
+  icon,
+  onMessage,
+}: {
+  target: ClickTarget;
+  className: string;
+  icon?: ReactNode;
+  onMessage: (message: string) => void;
+}) {
+  if (target.path) {
+    return (
+      <Link className={className} to={target.path}>
+        {icon}
+        {target.label}
+      </Link>
+    );
+  }
+
+  return (
+    <button className={className} type="button" onClick={() => onMessage(target.message ?? `${target.label} selected.`)}>
+      {icon}
+      {target.label}
+    </button>
+  );
+}
+
 export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
   const config = payrollConfigs[page];
   const Icon = config.icon;
+  const [feedback, setFeedback] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const canCreatePayroll = page === "overview" || page === "creation";
 
   return (
     <div className="dashboard-page payroll-workspace">
@@ -438,18 +494,29 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         </div>
 
         <div className="action-row">
-          <Link className="button button-secondary" to="/reports-analytics">
-            <Download aria-hidden="true" size={15} />
-            {config.secondaryAction}
-          </Link>
-          <Link className="button button-primary" to={page === "creation" ? "/payroll/creation" : "/payroll/approval"}>
-            <Plus aria-hidden="true" size={15} />
-            {config.primaryAction}
-          </Link>
-        </div>
+          <ClickableAction
+            className="button button-secondary"
+            icon={<Download aria-hidden="true" size={15} />}
+            target={getPayrollTarget(page, "secondary", config.secondaryAction)}
+            onMessage={setFeedback}
+          />
+          {canCreatePayroll ? (
+            <button className="button button-primary" type="button" onClick={() => setIsCreateModalOpen(true)}>
+              <Plus aria-hidden="true" size={15} />
+              {config.primaryAction}
+            </button>
+          ) : (
+            <ClickableAction
+              className="button button-primary"
+              icon={<Plus aria-hidden="true" size={15} />}
+              target={getPayrollTarget(page, "primary", config.primaryAction)}
+              onMessage={setFeedback}
+            />
+          )}</div>
       </div>
 
-      <section className="metrics" aria-label={`${config.title} summary metrics`}>
+      {feedback ? <div className="note action-feedback">{feedback}</div> : null}
+<section className="metrics" aria-label={`${config.title} summary metrics`}>
         {config.metrics.map((metric) => (
           <div className="metric-cell" key={metric.label}>
             <div className="metric-label">{metric.label}</div>
@@ -486,7 +553,11 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">{config.tableTitle}</h3>
-            <Link className="panel-action" to={config.tableActionPath}>{config.tableAction}</Link>
+            <ClickableAction
+              className="panel-action"
+              target={getPayrollTarget(page, "table", config.tableAction)}
+              onMessage={setFeedback}
+            />
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -517,7 +588,11 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">{config.actionsTitle}</h3>
-            <Link className="panel-action" to="/payroll/approval">Assign</Link>
+            <ClickableAction
+              className="panel-action"
+              target={getPayrollTarget(page, "assign", "Assign")}
+              onMessage={setFeedback}
+            />
           </div>
           <div className="panel-body">
             <ul className="payroll-action-list">
@@ -542,7 +617,11 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">{config.signalsTitle}</h3>
-            <Link className="panel-action" to={config.tableActionPath}>Review checks</Link>
+            <ClickableAction
+              className="panel-action"
+              target={getPayrollTarget(page, "checks", "Review checks")}
+              onMessage={setFeedback}
+            />
           </div>
           <div className="panel-body">
             <ul className="run-list">
@@ -567,7 +646,11 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Audit Notes</h3>
-            <Link className="panel-action" to="/reports-analytics">Evidence</Link>
+            <ClickableAction
+              className="panel-action"
+              target={getPayrollTarget(page, "evidence", "Evidence")}
+              onMessage={setFeedback}
+            />
           </div>
           <div className="panel-body">
             <div className="note payroll-note">
@@ -594,6 +677,75 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
           </div>
         </section>
       </div>
-    </div>
+
+      {isCreateModalOpen ? (
+        <div className="modal-backdrop" role="presentation">
+          <form
+            className="payroll-modal"
+            aria-label="Create payroll run"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setFeedback("Payroll draft has been created and is ready for validation.");
+              setIsCreateModalOpen(false);
+            }}
+          >
+            <div className="payroll-modal-header">
+              <div>
+                <div className="page-kicker">New payroll run</div>
+                <h2>Create Payroll</h2>
+              </div>
+              <button className="panel-action" type="button" onClick={() => setIsCreateModalOpen(false)}>
+                Close
+              </button>
+            </div>
+
+            <div className="payroll-modal-grid">
+              <label className="field-control">
+                <span className="eyebrow">Payroll month</span>
+                <input className="select-control" defaultValue="July 2026" />
+              </label>
+              <label className="field-control">
+                <span className="eyebrow">Branch</span>
+                <select className="select-control" defaultValue="eldoret">
+                  <option value="eldoret">Eldoret Branch</option>
+                  <option value="all">All Branches</option>
+                </select>
+              </label>
+              <label className="field-control">
+                <span className="eyebrow">Run type</span>
+                <select className="select-control" defaultValue="regular">
+                  <option value="regular">Regular payroll</option>
+                  <option value="overtime">Overtime batch</option>
+                  <option value="allowance">Allowance batch</option>
+                </select>
+              </label>
+              <label className="field-control">
+                <span className="eyebrow">Pay date</span>
+                <input className="select-control" type="date" defaultValue="2026-07-31" />
+              </label>
+            </div>
+
+            <div className="note payroll-note">
+              <ShieldCheck aria-hidden="true" size={17} />
+              <span>The draft will pull attendance, compensation, benefits, tax, and bank data into payroll validation.</span>
+            </div>
+
+            <div className="action-row payroll-modal-actions">
+              <button className="button button-secondary" type="button" onClick={() => setIsCreateModalOpen(false)}>
+                Cancel
+              </button>
+              <button className="button button-primary" type="submit">
+                <Plus aria-hidden="true" size={15} />
+                Create Payroll
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}    </div>
   );
 }
+
+
+
+
+
