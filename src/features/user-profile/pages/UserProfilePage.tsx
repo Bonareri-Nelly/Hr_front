@@ -11,6 +11,7 @@
   ShieldCheck,
   UserCog,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type Tone = "success" | "warning" | "danger" | "info";
 
@@ -62,14 +63,14 @@ export default function UserProfilePage() {
           </div>
         </div>
         <div className="action-row">
-          <button className="button button-secondary" type="button">
+          <Link className="button button-secondary" to="/reports-analytics">
             <Download aria-hidden="true" size={15} />
             Export Profile
-          </button>
-          <button className="button button-primary" type="button">
+          </Link>
+          <Link className="button button-primary" to="/security-audit">
             <UserCog aria-hidden="true" size={15} />
             Edit Access
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -87,7 +88,7 @@ export default function UserProfilePage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Access & Permissions</h3>
-            <button className="panel-action" type="button">Review access</button>
+            <Link className="panel-action" to="/security-audit">Review access</Link>
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -114,7 +115,7 @@ export default function UserProfilePage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Employment Snapshot</h3>
-            <button className="panel-action" type="button">Open record</button>
+            <Link className="panel-action" to="/employees/lifecycle">Open record</Link>
           </div>
           <div className="panel-body profile-snapshot-list">
             <div className="profile-snapshot-item">
@@ -141,7 +142,7 @@ export default function UserProfilePage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Documents & Compliance</h3>
-            <button className="panel-action" type="button">Upload</button>
+            <Link className="panel-action" to="/self-service/documents">Upload</Link>
           </div>
           <div className="panel-body">
             <ul className="profile-document-list">
@@ -162,7 +163,7 @@ export default function UserProfilePage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Security Activity</h3>
-            <button className="panel-action" type="button">Audit log</button>
+            <Link className="panel-action" to="/security-audit">Audit log</Link>
           </div>
           <div className="panel-body">
             <div className="profile-security-note note">

@@ -1,13 +1,14 @@
 import { BranchMetricTable } from "./ExecutiveDashboardPrimitives";
 import type { ExecutiveDashboardData } from "../types/executiveDashboard.types";
 import { formatCurrency } from "../utils/formatters";
+import { Link } from "react-router-dom";
 
 export default function AttendanceLeaveOverview({ data }: { data: ExecutiveDashboardData }) {
   return (
     <section className="panel">
       <div className="panel-header">
         <h3 className="panel-title">Attendance & Leave</h3>
-        <button className="panel-action" type="button">View branch detail</button>
+        <Link className="panel-action" to="/attendance">View branch detail</Link>
       </div>
       <div className="panel-body section-stack">
         <div className="split-3">

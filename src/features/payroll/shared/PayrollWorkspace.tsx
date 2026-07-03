@@ -53,6 +53,7 @@ type PayrollConfig = {
   };
   tableTitle: string;
   tableAction: string;
+  tableActionPath: string;
   tableHeaders: [string, string, string, string, string];
   rows: TableRow[];
   actionsTitle: string;
@@ -83,6 +84,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Payroll Run Status",
     tableAction: "Open run",
+    tableActionPath: "/payroll/creation",
     tableHeaders: ["Run", "Branch", "Employees", "Amount", "Status"],
     rows: [
       ["July Regular", "Eldoret Branch", "248", "KES 18.6M", "Review", "warning"],
@@ -125,6 +127,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Input Sources",
     tableAction: "Validate",
+    tableActionPath: "/payroll/creation",
     tableHeaders: ["Source", "Owner", "Records", "Last sync", "Status"],
     rows: [
       ["Attendance", "Operations", "248", "08:10", "Ready", "success"],
@@ -167,6 +170,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Approval Chain",
     tableAction: "Route",
+    tableActionPath: "/payroll/approval",
     tableHeaders: ["Approver", "Role", "Items", "Submitted", "Status"],
     rows: [
       ["Mary Achieng", "Payroll Lead", "248", "08:05", "Approved", "success"],
@@ -209,6 +213,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Recent Runs",
     tableAction: "Open archive",
+    tableActionPath: "/payroll/history",
     tableHeaders: ["Run", "Period", "Employees", "Paid", "Status"],
     rows: [
       ["June Regular", "Jun 2026", "244", "KES 17.8M", "Paid", "success"],
@@ -251,6 +256,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Statutory Items",
     tableAction: "Review",
+    tableActionPath: "/payroll/tax-compliance",
     tableHeaders: ["Item", "Owner", "Amount", "Due", "Status"],
     rows: [
       ["PAYE", "Tax", "KES 3.4M", "9th", "Draft", "info"],
@@ -293,6 +299,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Bank Batches",
     tableAction: "Open bank file",
+    tableActionPath: "/payroll/bank-integration",
     tableHeaders: ["Batch", "Bank", "Employees", "Amount", "Status"],
     rows: [
       ["Batch A", "KCB", "112", "KES 6.8M", "Ready", "success"],
@@ -335,6 +342,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Compensation Changes",
     tableAction: "Review data",
+    tableActionPath: "/payroll/compensation",
     tableHeaders: ["Change", "Owner", "Employees", "Impact", "Status"],
     rows: [
       ["Annual increments", "HR", "18", "KES 620K", "Ready", "success"],
@@ -377,6 +385,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Posting Lines",
     tableAction: "Open journal",
+    tableActionPath: "/payroll/multi-currency-gl",
     tableHeaders: ["Line", "Account", "Cost center", "Amount", "Status"],
     rows: [
       ["Basic pay", "Staff costs", "Operations", "KES 12.4M", "Mapped", "success"],

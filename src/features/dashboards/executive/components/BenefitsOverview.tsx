@@ -1,12 +1,13 @@
 import { BranchMetricTable, ProgressStat, TrendBars } from "./ExecutiveDashboardPrimitives";
 import type { ExecutiveDashboardData } from "../types/executiveDashboard.types";
+import { Link } from "react-router-dom";
 
 export default function BenefitsOverview({ data }: { data: ExecutiveDashboardData }) {
   return (
     <section className="panel">
       <div className="panel-header">
         <h3 className="panel-title">Benefits</h3>
-        <button className="panel-action" type="button">Analyze cost</button>
+        <Link className="panel-action" to="/benefits">Analyze cost</Link>
       </div>
       <div className="panel-body section-stack">
         <ProgressStat label="Enrollment rate" value={data.benefits.enrollmentRate} />
