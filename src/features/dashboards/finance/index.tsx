@@ -1,4 +1,5 @@
 import { AlertTriangle, CheckCircle2, Download, FileCheck2, Landmark, RefreshCw, Send, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type Tone = "success" | "warning" | "danger" | "info";
 
@@ -68,14 +69,14 @@ export default function FinanceDashboard() {
 
         <div className="finance-toolbar">
           <div className="action-row">
-            <button className="button button-secondary" type="button">
+            <Link className="button button-secondary" to="/dashboard/finance">
               <RefreshCw aria-hidden="true" size={15} />
               Refresh
-            </button>
-            <button className="button button-primary" type="button">
+            </Link>
+            <Link className="button button-primary" to="/reports-analytics">
               <Download aria-hidden="true" size={15} />
               Export
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -117,14 +118,14 @@ export default function FinanceDashboard() {
           </div>
         </div>
         <div className="finance-release-actions">
-          <button className="button button-secondary" type="button">
+          <Link className="button button-secondary" to="/payroll/approval">
             <FileCheck2 aria-hidden="true" size={15} />
             Review packet
-          </button>
-          <button className="button button-success" type="button">
+          </Link>
+          <Link className="button button-success" to="/payroll/bank-integration">
             <Send aria-hidden="true" size={15} />
             Release ready batch
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -132,7 +133,7 @@ export default function FinanceDashboard() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Payroll Approval Queue</h3>
-            <button className="panel-action" type="button">Open payroll</button>
+            <Link className="panel-action" to="/payroll/approval">Open payroll</Link>
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -167,7 +168,7 @@ export default function FinanceDashboard() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Alerts & Exceptions</h3>
-            <button className="panel-action" type="button">Assign</button>
+            <Link className="panel-action" to="/payroll/approval">Assign</Link>
           </div>
           <div className="panel-body">
             <ul className="finance-alert-list">
@@ -196,7 +197,7 @@ export default function FinanceDashboard() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Compliance Tracker</h3>
-            <button className="panel-action" type="button">View filings</button>
+            <Link className="panel-action" to="/finance/tax-compliance">View filings</Link>
           </div>
           <div className="panel-body">
             <ul className="run-list">
@@ -221,7 +222,7 @@ export default function FinanceDashboard() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Payroll Cost Trend</h3>
-            <button className="panel-action" type="button">Forecast</button>
+            <Link className="panel-action" to="/payroll/multi-currency-gl">Forecast</Link>
           </div>
           <div className="panel-body">
             <div className="mini-chart" aria-label="Payroll cost trend index">
@@ -244,7 +245,7 @@ export default function FinanceDashboard() {
       <section className="panel">
         <div className="panel-header">
           <h3 className="panel-title">Budget Management</h3>
-          <button className="panel-action" type="button">Open budget</button>
+          <Link className="panel-action" to="/reports-analytics">Open budget</Link>
         </div>
         <div className="table-wrap">
           <table className="table">

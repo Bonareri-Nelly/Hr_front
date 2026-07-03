@@ -46,18 +46,18 @@ export default function ExecutiveDashboardPage() {
               <Store aria-hidden="true" size={15} />
               Branch Manager
             </Link>
-            <button className="button button-secondary" type="button">
+            <Link className="button button-secondary" to="/reports-analytics">
               <FileText aria-hidden="true" size={15} />
               Compare
-            </button>
-            <button className="button button-secondary" type="button">
+            </Link>
+            <Link className="button button-secondary" to="/ai-assistant">
               <Mail aria-hidden="true" size={15} />
               Digest
-            </button>
-            <button className="button button-secondary" type="button">
+            </Link>
+            <Link className="button button-secondary" to="/reports-analytics">
               <Download aria-hidden="true" size={15} />
               Export
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -122,7 +122,7 @@ export default function ExecutiveDashboardPage() {
       <section className="panel">
         <div className="panel-header">
           <h3 className="panel-title">Usability Controls</h3>
-          <button className="panel-action" type="button">Customize</button>
+          <Link className="panel-action" to="/user-profile">Customize</Link>
         </div>
         <div className="panel-body usability-grid">
           <div className="note">

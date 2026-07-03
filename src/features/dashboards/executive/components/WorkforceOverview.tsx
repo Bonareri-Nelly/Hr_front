@@ -1,12 +1,13 @@
 import { BranchMetricTable, TrendBars } from "./ExecutiveDashboardPrimitives";
 import type { ExecutiveDashboardData } from "../types/executiveDashboard.types";
+import { Link } from "react-router-dom";
 
 export default function WorkforceOverview({ data }: { data: ExecutiveDashboardData }) {
   return (
     <section className="panel">
       <div className="panel-header">
         <h3 className="panel-title">Workforce Overview</h3>
-        <button className="panel-action" type="button">Drill down</button>
+        <Link className="panel-action" to="/employees/lifecycle">Drill down</Link>
       </div>
       <div className="panel-body section-stack">
         <div className="split-3">
