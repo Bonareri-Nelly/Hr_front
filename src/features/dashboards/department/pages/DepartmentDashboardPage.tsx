@@ -104,7 +104,7 @@ export default function DepartmentDashboardPage() {
           <button className="button button-primary" type="button" onClick={() => setIsActionModalOpen(true)}>
             <Plus aria-hidden="true" size={15} />
             Add Action
-          </Link>
+          </button>
         </div>
       </div>
 
