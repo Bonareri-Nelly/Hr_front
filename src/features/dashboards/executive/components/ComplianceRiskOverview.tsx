@@ -1,12 +1,13 @@
 import { BranchMetricTable, TrendBars } from "./ExecutiveDashboardPrimitives";
 import type { ExecutiveDashboardData } from "../types/executiveDashboard.types";
+import { Link } from "react-router-dom";
 
 export default function ComplianceRiskOverview({ data }: { data: ExecutiveDashboardData }) {
   return (
     <section className="panel">
       <div className="panel-header">
         <h3 className="panel-title">Compliance & Risk</h3>
-        <button className="panel-action" type="button">Open audit map</button>
+        <Link className="panel-action" to="/security-audit">Open audit map</Link>
       </div>
       <div className="panel-body section-stack">
         <div>

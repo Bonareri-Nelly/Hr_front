@@ -120,14 +120,14 @@ export default function BranchDashboardPage() {
               <ArrowLeft aria-hidden="true" size={15} />
               Executive
             </Link>
-            <button className="button button-secondary" type="button">
+            <Link className="button button-secondary" to="/reports-analytics">
               <Download aria-hidden="true" size={15} />
               Export
-            </button>
-            <button className="button button-primary" type="button">
+            </Link>
+            <Link className="button button-primary" to="/leave/approvals">
               <Plus aria-hidden="true" size={15} />
               New Action
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function BranchDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Team Coverage</h3>
-            <button className="panel-action" type="button">Open roster</button>
+            <Link className="panel-action" to="/attendance">Open roster</Link>
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -236,7 +236,7 @@ export default function BranchDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Manager Actions</h3>
-            <button className="panel-action" type="button">Assign</button>
+            <Link className="panel-action" to="/leave/approvals">Assign</Link>
           </div>
           <div className="panel-body">
             <ul className="branch-action-list">
@@ -290,7 +290,7 @@ export default function BranchDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Approval Queue</h3>
-            <button className="panel-action" type="button">Review queue</button>
+            <Link className="panel-action" to="/leave/approvals">Review queue</Link>
           </div>
           <div className="panel-body">
             <div className="branch-approval-grid">
@@ -320,7 +320,7 @@ export default function BranchDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Compliance Readiness</h3>
-            <button className="panel-action" type="button">Review files</button>
+            <Link className="panel-action" to="/contracts">Review files</Link>
           </div>
           <div className="panel-body">
             <ul className="run-list">
@@ -346,7 +346,7 @@ export default function BranchDashboardPage() {
       <section className="panel">
         <div className="panel-header">
           <h3 className="panel-title">Shift Coverage</h3>
-          <button className="panel-action" type="button">Workforce plan</button>
+          <Link className="panel-action" to="/attendance">Workforce plan</Link>
         </div>
         <div className="panel-body">
           <div className="branch-shift-grid">

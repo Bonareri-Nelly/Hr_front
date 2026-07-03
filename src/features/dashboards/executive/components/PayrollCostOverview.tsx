@@ -1,5 +1,6 @@
 import { BranchMetricTable, ProgressStat, TrendBars } from "./ExecutiveDashboardPrimitives";
 import type { ExecutiveDashboardData } from "../types/executiveDashboard.types";
+import { Link } from "react-router-dom";
 
 export default function PayrollCostOverview({ data }: { data: ExecutiveDashboardData }) {
   const budgetUsage = Math.round((data.payroll.budgetActual.actual / data.payroll.budgetActual.budget) * 100);
@@ -8,7 +9,7 @@ export default function PayrollCostOverview({ data }: { data: ExecutiveDashboard
     <section className="panel">
       <div className="panel-header">
         <h3 className="panel-title">Payroll & Cost</h3>
-        <button className="panel-action" type="button">Export PDF</button>
+        <Link className="panel-action" to="/reports-analytics">Export PDF</Link>
       </div>
       <div className="panel-body section-stack">
         <div className="split-3">

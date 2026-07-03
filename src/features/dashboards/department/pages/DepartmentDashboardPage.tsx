@@ -7,6 +7,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type Tone = "success" | "warning" | "danger" | "info";
 
@@ -60,14 +61,14 @@ export default function DepartmentDashboardPage() {
         </div>
 
         <div className="action-row">
-          <button className="button button-secondary" type="button">
+          <Link className="button button-secondary" to="/reports-analytics">
             <Download aria-hidden="true" size={15} />
             Export
-          </button>
-          <button className="button button-primary" type="button">
+          </Link>
+          <Link className="button button-primary" to="/employees/lifecycle">
             <Plus aria-hidden="true" size={15} />
             Add Action
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -116,7 +117,7 @@ export default function DepartmentDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Department Health</h3>
-            <button className="panel-action" type="button">Open departments</button>
+            <Link className="panel-action" to="/employees/lifecycle">Open departments</Link>
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -149,7 +150,7 @@ export default function DepartmentDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Operational Actions</h3>
-            <button className="panel-action" type="button">Assign</button>
+            <Link className="panel-action" to="/performance">Assign</Link>
           </div>
           <div className="panel-body">
             <ul className="department-action-list">
@@ -180,7 +181,7 @@ export default function DepartmentDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Compliance & Readiness</h3>
-            <button className="panel-action" type="button">Review files</button>
+            <Link className="panel-action" to="/contracts">Review files</Link>
           </div>
           <div className="panel-body">
             <ul className="run-list">
@@ -205,7 +206,7 @@ export default function DepartmentDashboardPage() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Staffing Mix</h3>
-            <button className="panel-action" type="button">Workforce plan</button>
+            <Link className="panel-action" to="/performance">Workforce plan</Link>
           </div>
           <div className="panel-body">
             <div className="department-staffing-grid">

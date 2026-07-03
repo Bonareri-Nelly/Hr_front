@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   WalletCards,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 type Tone = "success" | "warning" | "danger" | "info";
 type PayrollPageKey =
@@ -50,6 +51,7 @@ type PayrollConfig = {
   };
   tableTitle: string;
   tableAction: string;
+  tableActionPath: string;
   tableHeaders: [string, string, string, string, string];
   rows: TableRow[];
   actionsTitle: string;
@@ -80,6 +82,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Payroll Run Status",
     tableAction: "Open run",
+    tableActionPath: "/payroll/creation",
     tableHeaders: ["Run", "Branch", "Employees", "Amount", "Status"],
     rows: [
       ["July Regular", "Eldoret Branch", "248", "KES 18.6M", "Review", "warning"],
@@ -122,6 +125,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Input Sources",
     tableAction: "Validate",
+    tableActionPath: "/payroll/creation",
     tableHeaders: ["Source", "Owner", "Records", "Last sync", "Status"],
     rows: [
       ["Attendance", "Operations", "248", "08:10", "Ready", "success"],
@@ -164,6 +168,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Approval Chain",
     tableAction: "Route",
+    tableActionPath: "/payroll/approval",
     tableHeaders: ["Approver", "Role", "Items", "Submitted", "Status"],
     rows: [
       ["Mary Achieng", "Payroll Lead", "248", "08:05", "Approved", "success"],
@@ -206,6 +211,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Recent Runs",
     tableAction: "Open archive",
+    tableActionPath: "/payroll/history",
     tableHeaders: ["Run", "Period", "Employees", "Paid", "Status"],
     rows: [
       ["June Regular", "Jun 2026", "244", "KES 17.8M", "Paid", "success"],
@@ -248,6 +254,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Statutory Items",
     tableAction: "Review",
+    tableActionPath: "/payroll/tax-compliance",
     tableHeaders: ["Item", "Owner", "Amount", "Due", "Status"],
     rows: [
       ["PAYE", "Tax", "KES 3.4M", "9th", "Draft", "info"],
@@ -290,6 +297,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Bank Batches",
     tableAction: "Open bank file",
+    tableActionPath: "/payroll/bank-integration",
     tableHeaders: ["Batch", "Bank", "Employees", "Amount", "Status"],
     rows: [
       ["Batch A", "KCB", "112", "KES 6.8M", "Ready", "success"],
@@ -332,6 +340,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Compensation Changes",
     tableAction: "Review data",
+    tableActionPath: "/payroll/compensation",
     tableHeaders: ["Change", "Owner", "Employees", "Impact", "Status"],
     rows: [
       ["Annual increments", "HR", "18", "KES 620K", "Ready", "success"],
@@ -374,6 +383,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Posting Lines",
     tableAction: "Open journal",
+    tableActionPath: "/payroll/multi-currency-gl",
     tableHeaders: ["Line", "Account", "Cost center", "Amount", "Status"],
     rows: [
       ["Basic pay", "Staff costs", "Operations", "KES 12.4M", "Mapped", "success"],
@@ -428,14 +438,14 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         </div>
 
         <div className="action-row">
-          <button className="button button-secondary" type="button">
+          <Link className="button button-secondary" to="/reports-analytics">
             <Download aria-hidden="true" size={15} />
             {config.secondaryAction}
-          </button>
-          <button className="button button-primary" type="button">
+          </Link>
+          <Link className="button button-primary" to={page === "creation" ? "/payroll/creation" : "/payroll/approval"}>
             <Plus aria-hidden="true" size={15} />
             {config.primaryAction}
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -476,7 +486,7 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">{config.tableTitle}</h3>
-            <button className="panel-action" type="button">{config.tableAction}</button>
+            <Link className="panel-action" to={config.tableActionPath}>{config.tableAction}</Link>
           </div>
           <div className="table-wrap">
             <table className="table">
@@ -507,7 +517,7 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">{config.actionsTitle}</h3>
-            <button className="panel-action" type="button">Assign</button>
+            <Link className="panel-action" to="/payroll/approval">Assign</Link>
           </div>
           <div className="panel-body">
             <ul className="payroll-action-list">
@@ -532,7 +542,7 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">{config.signalsTitle}</h3>
-            <button className="panel-action" type="button">Review checks</button>
+            <Link className="panel-action" to={config.tableActionPath}>Review checks</Link>
           </div>
           <div className="panel-body">
             <ul className="run-list">
@@ -557,7 +567,7 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Audit Notes</h3>
-            <button className="panel-action" type="button">Evidence</button>
+            <Link className="panel-action" to="/reports-analytics">Evidence</Link>
           </div>
           <div className="panel-body">
             <div className="note payroll-note">
