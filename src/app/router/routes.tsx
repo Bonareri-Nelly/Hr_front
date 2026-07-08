@@ -25,7 +25,7 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "disciplinary-cases": lazy(() => import("../../features/disciplinary/cases")),
   "disciplinary-management": lazy(() => import("../../features/disciplinary/management")),
   "announcements-training": lazy(() => import("../../features/training/announcements")),
-  "benefits-management": lazy(() => import("../../features/benefits/management")),
+  "benefits-management": lazy(() => import("../../features/benefits/management").then((module) => ({ default: module.default as ComponentType }))),
   "branch-dashboard": lazy(() => import("../../features/dashboards/branch")),
   "payroll": lazy(() => import("../../features/payroll/overview")),
   "payroll-creation": lazy(() => import("../../features/payroll/creation")),
@@ -47,7 +47,7 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "my-documents": lazy(() => import("../../features/employee-self-service/documents")),
   "my-announcements": lazy(() => import("../../features/employee-self-service/announcements")),
   "complaints": lazy(() => import("../../features/complaints")),
-};
+};  
 
 export const appRoutes: AppRoute[] = navigationItems.map((item) => ({
   ...item,
