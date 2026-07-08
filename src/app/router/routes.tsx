@@ -40,6 +40,7 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "tax-compliance-accounts": lazy(() => import("../../features/finance/tax-compliance")),
   "benefits-management-accounts": lazy(() => import("../../features/finance/benefits-management")),
   "employee-finance": lazy(() => import("../../features/finance/employee-finance")),
+  "finance-grievances": lazy(() => import("../../features/finance/finance-grievances")),
   "employee-dashboard": lazy(() => import("../../features/dashboards/employee")),
   "my-attendance": lazy(() => import("../../features/employee-self-service/attendance")),
   "my-performance": lazy(() => import("../../features/employee-self-service/performance")),
