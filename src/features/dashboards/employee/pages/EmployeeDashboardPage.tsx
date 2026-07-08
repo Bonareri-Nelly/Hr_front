@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { EmployeeDashboardData, AssignedTask } from '../types/dashboard';
+import type { EmployeeDashboardData } from '../types/dashboard';
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<EmployeeDashboardData>({
     user: {
