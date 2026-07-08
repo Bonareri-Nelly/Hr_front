@@ -1,20 +1,36 @@
-import { useMemo, useState } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { leavePolicies } from "../constants/leavePolicies";
 import { getMinimumStartDate } from "../utils/leaveDates";
+import { calculateEndDate } from "../utils/dateCalculator";
 
 type ApplyLeaveModalProps = {
     open: boolean;
     onClose: () => void;
+
+    setSelectedLeave: React.Dispatch<
+        React.SetStateAction<{
+            startDate: string;
+            endDate: string;
+            leaveType: string;
+            status: string;
+        }>
+    >;
 };
+
+function formatDate(date: Date) {
+    return date.toISOString().split("T")[0];
+}
 
 export default function ApplyLeaveModal({
     open,
     onClose,
+    setSelectedLeave,
 }: ApplyLeaveModalProps) {
     const [leaveType, setLeaveType] = useState("");
     const [reason, setReason] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
+    const [leaveDays, setLeaveDays] = useState("");
     const [step, setStep] = useState<
         "form" | "summary" | "success"
     >("form");
@@ -48,6 +64,28 @@ export default function ApplyLeaveModal({
         leaveType !== ""
             ? leavePolicies[leaveType as keyof typeof leavePolicies]
             : null;
+
+    useEffect(() => {
+        if (!policy) {
+            setLeaveDays("");
+            return;
+        }
+
+        if (policy.fixedDays !== null) {
+            setLeaveDays(policy.fixedDays.toString());
+
+            if (startDate) {
+                const calculatedEndDate = calculateEndDate(
+                    new Date(startDate),
+                    policy.fixedDays,
+                    policy.countsWeekends,
+                    policy.countsPublicHolidays
+                );
+
+                setEndDate(formatDate(calculatedEndDate));
+            }
+        }
+    }, [policy, startDate]);
 
     const minimumStartDate = policy
         ? getMinimumStartDate(policy.noticeDays)
@@ -116,6 +154,19 @@ export default function ApplyLeaveModal({
         setErrors(newErrors);
 
         return valid;
+    };
+
+    const syncSelectedLeave = (
+        newStartDate = startDate,
+        newEndDate = endDate,
+        newLeaveType = leaveType
+    ) => {
+        setSelectedLeave({
+            startDate: newStartDate,
+            endDate: newEndDate,
+            leaveType: newLeaveType,
+            status: "planned",
+        });
     };
 
     return (
@@ -203,6 +254,12 @@ export default function ApplyLeaveModal({
                                         value={leaveType}
                                         onChange={(e) => {
                                             handleLeaveTypeChange(e);
+
+                                            syncSelectedLeave(
+                                                startDate,
+                                                endDate,
+                                                e.target.value
+                                            );
 
                                             setErrors((prev) => ({
                                                 ...prev,
@@ -345,6 +402,12 @@ export default function ApplyLeaveModal({
                                         onChange={(e) => {
                                             setStartDate(e.target.value);
 
+                                            syncSelectedLeave(
+                                                e.target.value,
+                                                endDate,
+                                                leaveType
+                                            );
+
                                             setErrors((prev) => ({
                                                 ...prev,
                                                 startDate: "",
@@ -378,6 +441,12 @@ export default function ApplyLeaveModal({
                                         onChange={(e) => {
                                             setEndDate(e.target.value);
 
+                                            syncSelectedLeave(
+                                                startDate,
+                                                e.target.value,
+                                                leaveType
+                                            );
+
                                             setErrors((prev) => ({
                                                 ...prev,
                                                 endDate: "",
@@ -389,6 +458,50 @@ export default function ApplyLeaveModal({
                                         <p style={errorStyle}>
                                             {errors.endDate}
                                         </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>
+                                        Leave Days
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={leaveDays}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+
+                                            setLeaveDays(value);
+
+                                            const calculatedEndDate = calculateEndDate(
+                                                new Date(startDate),
+                                                Number(value),
+                                                policy?.countsWeekends ?? false,
+                                                policy?.countsPublicHolidays ?? false
+                                            );
+
+                                            setEndDate(formatDate(calculatedEndDate));
+                                        }}
+                                        disabled={!policy?.editableDays}
+                                        style={{
+                                            ...fieldStyle,
+                                            background: policy?.editableDays
+                                                ? "white"
+                                                : "var(--background-secondary)",
+                                        }}
+                                    />
+
+                                    {!policy?.editableDays && (
+                                        <small
+                                            style={{
+                                                color: "var(--text-secondary)",
+                                                marginTop: "4px",
+                                                display: "block",
+                                            }}
+                                        >
+                                            {policy?.fixedDays} calendar days (includes weekends and public holidays).
+                                        </small>
                                     )}
                                 </div>
 
@@ -503,7 +616,7 @@ export default function ApplyLeaveModal({
                     )}
                 </div>
 
-                
+
                 {/* Footer */}
 
                 <div

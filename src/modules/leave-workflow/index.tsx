@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import ApplyLeaveModal from "./components/ApplyLeaveModal";
+import LeaveCalendar from "./components/LeaveCalendar";
 
 const leaveBalances = [
   { type: "Annual Leave", value: "16 Days Remaining" },
@@ -32,6 +33,13 @@ const recentRequests = [
 export default function LeaveWorkflow() {
 
   const [openModal, setOpenModal] = useState(false);
+
+  const [selectedLeave, setSelectedLeave] = useState({
+    startDate: "",
+    endDate: "",
+    leaveType: "",
+    status: "planned",
+  });
 
   return (
     <div className="dashboard-page">
@@ -178,6 +186,8 @@ export default function LeaveWorkflow() {
           </div>
         </div>
 
+
+
         {/* LEAVE BALANCES */}
         <div className="panel">
           <div className="panel-header">
@@ -203,8 +213,15 @@ export default function LeaveWorkflow() {
             <ApplyLeaveModal
               open={openModal}
               onClose={() => setOpenModal(false)}
+              setSelectedLeave={setSelectedLeave}
             />
           </div>
+        </div>
+
+        <div style={{ marginTop: "32px" }}>
+          <LeaveCalendar
+            selectedLeave={selectedLeave}
+          />
         </div>
 
       </div>
