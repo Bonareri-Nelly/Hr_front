@@ -1,6 +1,5 @@
-import PayrollWorkspace from "../../shared/PayrollWorkspace";
+import ModulePlaceholderPage from "../../../../components/shared/ModulePlaceholderPage";
 
-export default function BankIntegrationPage() {
-  return <PayrollWorkspace page="bank" />;
+export default function BankIntegrationAccountsPage() {
+  return <ModulePlaceholderPage title="Bank Integration (Accounts)" />;
 }
-
