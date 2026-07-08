@@ -3,6 +3,13 @@ export const leavePolicies = {
     label: "Annual Leave",
     noticeDays: 7,
     emergency: false,
+
+    fixedDays: null,
+    editableDays: true,
+    countsWeekends: false,
+    countsPublicHolidays: false,
+    requiresSubstitute: true,
+
     reasons: [
       "Vacation",
       "Family Time",
@@ -17,6 +24,13 @@ export const leavePolicies = {
     label: "Sick Leave",
     noticeDays: 0,
     emergency: true,
+
+    fixedDays: null,
+    editableDays: true,
+    countsWeekends: false,
+    countsPublicHolidays: false,
+    requiresSubstitute: false,
+
     reasons: [
       "Illness",
       "Medical Appointment",
@@ -30,6 +44,13 @@ export const leavePolicies = {
     label: "Maternity Leave",
     noticeDays: 30,
     emergency: false,
+
+    fixedDays: 90,
+    editableDays: false,
+    countsWeekends: true,
+    countsPublicHolidays: true,
+    requiresSubstitute: true,
+
     reasons: [
       "Childbirth",
       "Prenatal Care",
@@ -41,6 +62,13 @@ export const leavePolicies = {
     label: "Paternity Leave",
     noticeDays: 14,
     emergency: false,
+
+    fixedDays: 21,
+    editableDays: false,
+    countsWeekends: true,
+    countsPublicHolidays: true,
+    requiresSubstitute: true,
+
     reasons: [
       "Birth of Child",
       "Family Support",
@@ -51,6 +79,13 @@ export const leavePolicies = {
     label: "Compassionate Leave",
     noticeDays: 0,
     emergency: true,
+
+    fixedDays: null,
+    editableDays: true,
+    countsWeekends: false,
+    countsPublicHolidays: false,
+    requiresSubstitute: false,
+
     reasons: [
       "Death of Immediate Family",
       "Funeral Arrangements",
@@ -61,8 +96,15 @@ export const leavePolicies = {
 
   study: {
     label: "Study Leave",
-    noticeDays: 14,
+    noticeDays: 30,
     emergency: false,
+
+    fixedDays: null,
+    editableDays: true,
+    countsWeekends: false,
+    countsPublicHolidays: false,
+    requiresSubstitute: true,
+
     reasons: [
       "Examination",
       "Research",
@@ -75,6 +117,13 @@ export const leavePolicies = {
     label: "Unpaid Leave",
     noticeDays: 7,
     emergency: false,
+
+    fixedDays: null,
+    editableDays: true,
+    countsWeekends: false,
+    countsPublicHolidays: false,
+    requiresSubstitute: true,
+
     reasons: [
       "Personal Commitment",
       "Extended Travel",
