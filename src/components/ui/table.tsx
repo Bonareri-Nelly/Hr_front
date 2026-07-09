@@ -1,7 +1,7 @@
 // src/components/ui/table.tsx
 import React from 'react';
 
-type TableElementProps<T extends HTMLElement> = React.HTMLAttributes<T> & {
+type TableElementProps<T extends HTMLElement> = React.TableHTMLAttributes<T> & {
   className?: string;
   children: React.ReactNode;
 };
@@ -30,13 +30,13 @@ export const TableRow: React.FC<TableElementProps<HTMLTableRowElement>> = ({
   ...props
 }) => <tr className={`border-b ${className}`} {...props}>{children}</tr>;
 
-export const TableHead: React.FC<TableElementProps<HTMLTableCellElement>> = ({
+export const TableHead: React.FC<React.ThHTMLAttributes<HTMLTableCellElement>> = ({
   className = '',
   children,
   ...props
 }) => <th className={className} {...props}>{children}</th>;
 
-export const TableCell: React.FC<TableElementProps<HTMLTableCellElement>> = ({
+export const TableCell: React.FC<React.TdHTMLAttributes<HTMLTableCellElement>> = ({
   className = '',
   children,
   ...props
