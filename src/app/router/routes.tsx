@@ -9,7 +9,8 @@ export type AppRoute = NavigationItem & {
 const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "executive-dashboard": lazy(() => import("../../features/dashboards/executive")),
   "reports-analytics": lazy(() => import("../../features/reports")),
-  "branch-reports": lazy(() => import("../../features/reports-branch")),  // 👈 ADD THIS LINE
+  "branch-reports": lazy(() => import("../../features/reports-branch")),  
+  
   "ai-assistant": lazy(() => import("../../features/ai-assistant")),
   "security-audit": lazy(() => import("../../features/security-audit")),
   "user-profile": lazy(() => import("../../features/user-profile")),
