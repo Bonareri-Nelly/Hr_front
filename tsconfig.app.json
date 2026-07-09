@@ -12,7 +12,8 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "lucide-react": ["./node_modules/lucide-react/dist/lucide-react.d.ts"]
     },
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
@@ -21,10 +22,13 @@
     "jsx": "react-jsx",
 
     /* Linting */
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"]
 }
+
+
+

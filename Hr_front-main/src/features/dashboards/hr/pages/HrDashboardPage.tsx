@@ -3,6 +3,10 @@ import { BranchTable } from '../components/BranchTable';
 import { ProgressSection } from '../components/ProgressSection';
 import { ActivityFeed } from '../components/ActivityFeed';
 import { ChatAssistant } from '../components/ChatAssistant';
+import { DistributionChart } from '../components/DistributionChart';
+import { UpcomingEvents } from '../components/UpcomingEvents';
+import { QuickActions } from '../components/QuickActions';
+import { QuickStats } from '../components/QuickStats';
 import { Users, DollarSign, Clock, ShieldCheck } from 'lucide-react';
 
 const metricsData = [
@@ -15,26 +19,28 @@ const metricsData = [
 export default function HrDashboardPage() {
   return (
     <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      {/* Page Header - Smaller Title */}
+      {/* Page Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-lg font-bold text-gray-900">HR Dashboard</h1>
-          
-          <p className="text-sm text-gray-500">Overview of payroll and employee metrics</p>
+          <p className="text-xs text-gray-500">Overview of payroll, employees, and HR metrics</p>
         </div>
-        <button className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition">
+        <button className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition">
           Export Report
         </button>
       </div>
 
-      {/* Metrics Grid - Smaller Numbers */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* 1. Quick Stats Row */}
+      <QuickStats />
+
+      {/* 2. Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metricsData.map((metric) => (
           <MetricCard key={metric.title} {...metric} />
         ))}
       </div>
 
-      {/* Main Grid: Table + Progress */}
+      {/* 3. Main Grid: Table + Progress + Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <BranchTable />
@@ -44,17 +50,24 @@ export default function HrDashboardPage() {
         </div>
       </div>
 
-      {/* Activity Feed + Access Scope */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2">
-          <ActivityFeed />
-        </div>
-        <div className="lg:col-span-1 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-          <h3 className="font-semibold text-gray-700 mb-2">Access Scope</h3>
-          <p className="text-sm text-gray-500">
-            You have full access to HR payroll data, employee records, and compliance reports.
-          </p>
-        </div>
+      {/* 4. Bottom Grid: Chart + Upcoming Events */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <DistributionChart />
+        <UpcomingEvents />
+      </div>
+
+      {/* 5. Activity Feed */}
+      <ActivityFeed />
+
+      {/* 6. Quick Actions - Now at the Bottom */}
+      <QuickActions />
+
+      {/* 7. Access Scope */}
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+        <h3 className="font-semibold text-gray-700 text-sm mb-2">Access Scope</h3>
+        <p className="text-xs text-gray-500">
+          You have full access to HR payroll data, employee records, and compliance reports.
+        </p>
       </div>
 
       <ChatAssistant />
