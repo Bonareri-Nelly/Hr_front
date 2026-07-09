@@ -34,6 +34,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "tax-compliance-accounts", label: "Tax & Compliance (Accounts)", path: "/finance/tax-compliance", section: "Finance", icon: "FileText" },
   { id: "benefits-management-accounts", label: "Benefits Management (Accounts)", path: "/finance/benefits", section: "Finance", icon: "HandCoins" },
   { id: "employee-finance", label: "Employee Finance", path: "/finance/employee", section: "Finance", icon: "BriefcaseBusiness" },
+  { id: "finance-grievances", label: "Finance Grievances", path: "/finance/finance-grievances", section: "Finance", icon: "MessageCircleQuestion" },
   { id: "employee-dashboard", label: "Employee Dashboard", path: "/dashboard/employee", section: "Employee", icon: "LayoutDashboard" },
   { id: "my-attendance", label: "My Attendance", path: "/self-service/attendance", section: "Employee", icon: "CalendarClock" },
   { id: "my-performance", label: "My Performance", path: "/self-service/performance", section: "Employee", icon: "TrendingUp" },
