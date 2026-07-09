@@ -1,1 +1,1 @@
-export { default } from "./pages/EmployeeLifecyclePage";
+export { default } from './pages/EmployeeLifecyclePage';
