@@ -10,7 +10,8 @@ import {
   UserX,
   Clock,
   ChevronRight,
-  Eye
+  Eye,
+  Building2
 } from 'lucide-react';
 import { MilestoneCard } from './MilestoneCard';
 import { MilestoneModal } from './MilestoneModal';
@@ -187,3 +188,4 @@ export const EmployeeTimeline = ({ employee }: EmployeeTimelineProps) => {
     </div>
   );
 };
+

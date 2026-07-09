@@ -1,6 +1,7 @@
 // src/app/router/routes.tsx
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import { navigationItems } from "../../constants/navigation";
+import ModulePlaceholderPage from "../../components/shared/ModulePlaceholderPage";
 import type { NavigationItem } from "../../types/navigation";
 
 export type AppRoute = NavigationItem & {
@@ -8,7 +9,7 @@ export type AppRoute = NavigationItem & {
 };
 
 // Fix the lazy loading for each module
-const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
+const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>>> = {
   "executive-dashboard": lazy(() => import("../../features/dashboards/executive")),
   "reports-analytics": lazy(() => import("../../features/reports")),
   "branch-reports": lazy(() => import("../../features/reports-branch")),  
@@ -66,11 +67,15 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "complaints": lazy(() => import("../../features/complaints")),
 };
 
+const createFallbackRoute = (item: NavigationItem): LazyExoticComponent<ComponentType> =>
+  lazy(async () => ({
+    default: () => <ModulePlaceholderPage title={item.label} />,
+  }));
+
 export const appRoutes: AppRoute[] = navigationItems.map((item) => ({
   ...item,
-  Component: routeComponents[item.id],
-}));
-}));
+  Component: routeComponents[item.id] ?? createFallbackRoute(item),
 }));
 
-main
+
+
