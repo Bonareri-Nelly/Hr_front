@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState } from "react";
 import {
   Building2,
@@ -844,3 +845,10 @@ export default function BankIntegrationPage() {
 
 
 
+=======
+import ModulePlaceholderPage from "../../../../components/shared/ModulePlaceholderPage";
+
+export default function BankIntegrationAccountsPage() {
+  return <ModulePlaceholderPage title="Bank Integration (Accounts)" />;
+}
+>>>>>>> 72d0d7946e4ebc46e832ea6538481baa3779a816
