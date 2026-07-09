@@ -240,7 +240,7 @@ export const useBenefitsData = ({
         };
 
         // Filter data based on role and branch
-        let filteredData = { ...mockData };
+        const filteredData = { ...mockData };
         
         if (role === 'Branch Manager' && branchId) {
           const branch = mockData.byBranch.find(b => b.branchId === branchId);
@@ -279,3 +279,4 @@ export const useBenefitsData = ({
 
   return { data, loading, error, refetch };
 };
+

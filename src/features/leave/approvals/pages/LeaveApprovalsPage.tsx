@@ -3,3 +3,4 @@ import ModulePlaceholderPage from "../../../../components/shared/ModulePlacehold
 export default function LeaveApprovalsPage() {
   return <ModulePlaceholderPage title="Leave Approvals" />;
 }
+

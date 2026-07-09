@@ -45,6 +45,7 @@ const activity = [
 export default function UserProfilePage() {
   return (
     <div className="dashboard-page profile-page">
+      {/* Hero Section */}
       <div className="profile-hero panel">
         <div className="profile-identity">
           <div className="profile-avatar">AN</div>
@@ -74,6 +75,7 @@ export default function UserProfilePage() {
         </div>
       </div>
 
+      {/* Metrics */}
       <section className="metrics" aria-label="User profile summary">
         {profileMetrics.map((metric) => (
           <div className="metric-cell" key={metric.label}>
@@ -84,6 +86,7 @@ export default function UserProfilePage() {
         ))}
       </section>
 
+      {/* Grid Main */}
       <div className="grid-main">
         <section className="panel">
           <div className="panel-header">
@@ -138,6 +141,7 @@ export default function UserProfilePage() {
         </section>
       </div>
 
+      {/* Grid 2 Col */}
       <div className="grid-2col">
         <section className="panel">
           <div className="panel-header">
