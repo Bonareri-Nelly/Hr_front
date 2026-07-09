@@ -9,6 +9,7 @@ export type AppRoute = NavigationItem & {
 const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "executive-dashboard": lazy(() => import("../../features/dashboards/executive")),
   "reports-analytics": lazy(() => import("../../features/reports")),
+  "branch-reports": lazy(() => import("../../features/reports-branch")),  // 👈 ADD THIS LINE
   "ai-assistant": lazy(() => import("../../features/ai-assistant")),
   "security-audit": lazy(() => import("../../features/security-audit")),
   "user-profile": lazy(() => import("../../features/user-profile")),
@@ -48,10 +49,9 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "my-documents": lazy(() => import("../../features/employee-self-service/documents")),
   "my-announcements": lazy(() => import("../../features/employee-self-service/announcements")),
   "complaints": lazy(() => import("../../features/complaints")),
-};  
+};
 
 export const appRoutes: AppRoute[] = navigationItems.map((item) => ({
   ...item,
   Component: routeComponents[item.id],
 }));
-
