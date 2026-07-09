@@ -43,16 +43,17 @@ export const SelectTrigger: React.FC<{
   );
 };
 
-export const SelectValue: React.FC<{ placeholder?: string }> = ({ placeholder }) => {
+export const SelectValue: React.FC<{ placeholder?: string; className?: string }> = ({ placeholder, className = '' }) => {
   const context = React.useContext(SelectContext);
-  return <span>{context?.value || placeholder}</span>;
+  const displayValue = context?.value && context.value !== 'all' ? context.value : placeholder;
+  return <span className={className}>{displayValue || 'Select an option'}</span>;
 };
 
-export const SelectContent: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const SelectContent: React.FC<{ children: ReactNode; className?: string }> = ({ children, className = '' }) => {
   const context = React.useContext(SelectContext);
   if (!context?.isOpen) return null;
   return (
-    <div className="ui-select-content">
+    <div className={`ui-select-content ${className}`}>
       {children}
     </div>
   );
@@ -61,7 +62,8 @@ export const SelectContent: React.FC<{ children: ReactNode }> = ({ children }) =
 export const SelectItem: React.FC<{
   value: string;
   children: ReactNode;
-}> = ({ value, children }) => {
+  className?: string;
+}> = ({ value, children, className = '' }) => {
   const context = React.useContext(SelectContext);
   return (
     <button
@@ -69,7 +71,7 @@ export const SelectItem: React.FC<{
         context?.onValueChange?.(value);
         context?.setIsOpen(false);
       }}
-      className="ui-select-item"
+      className={`ui-select-item ${className}`}
     >
       {children}
     </button>
