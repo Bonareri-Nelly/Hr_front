@@ -1,3 +1,4 @@
+// src/app/router/routes.tsx
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import { navigationItems } from "../../constants/navigation";
 import type { NavigationItem } from "../../types/navigation";
@@ -6,6 +7,7 @@ export type AppRoute = NavigationItem & {
   Component: LazyExoticComponent<ComponentType>;
 };
 
+// Fix the lazy loading for each module
 const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "executive-dashboard": lazy(() => import("../../features/dashboards/executive")),
   "reports-analytics": lazy(() => import("../../features/reports")),
@@ -19,7 +21,13 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "employee-lifecycle": lazy(() => import("../../features/employees/lifecycle")),
   "contract-management": lazy(() => import("../../features/contracts")),
   "performance-oversight": lazy(() => import("../../features/performance")),
-  "offboarding": lazy(() => import("../../features/employees/offboarding")),
+  
+  "offboarding": lazy(() => 
+    import("../../features/employees/offboarding").then((module) => ({
+      default: module.default || module.OffboardingDashboard
+    }))
+  ),
+  
   "onboarding": lazy(() => import("../../features/employees/onboarding")),
   "attendance-management": lazy(() => import("../../features/attendance/management")),
   "leave-workflow": lazy(() => import("../../modules/leave-workflow")),
@@ -27,7 +35,13 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "disciplinary-cases": lazy(() => import("../../features/disciplinary/cases")),
   "disciplinary-management": lazy(() => import("../../features/disciplinary/management")),
   "announcements-training": lazy(() => import("../../features/training/announcements")),
-  "benefits-management": lazy(() => import("../../features/benefits/management").then((module) => ({ default: module.default as ComponentType }))),
+  
+  "benefits-management": lazy(() => 
+    import("../../features/benefits/management").then((module) => ({
+      default: module.default || module.Dashboard
+    }))
+  ),
+  
   "branch-dashboard": lazy(() => import("../../features/dashboards/branch")),
   "payroll": lazy(() => import("../../features/payroll/overview")),
   "payroll-creation": lazy(() => import("../../features/payroll/creation")),
@@ -56,3 +70,7 @@ export const appRoutes: AppRoute[] = navigationItems.map((item) => ({
   ...item,
   Component: routeComponents[item.id],
 }));
+}));
+}));
+
+main

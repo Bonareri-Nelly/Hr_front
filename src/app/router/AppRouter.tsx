@@ -1,10 +1,11 @@
+// src/app/router/AppRouter.tsx
 import { Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import DashboardLayout from "../../layouts/DashboardLayout";
 import Login from "../../pages/login";
 import { appRoutes } from "./routes";
 
-export default function AppRouter() {
+export function AppRouter() {
   return (
     <BrowserRouter>
       <Suspense fallback={<div className="app-main">Loading...</div>}>
@@ -22,3 +23,6 @@ export default function AppRouter() {
     </BrowserRouter>
   );
 }
+
+// Add default export
+export default AppRouter;
