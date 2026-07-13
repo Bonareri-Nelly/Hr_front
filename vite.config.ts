@@ -9,6 +9,10 @@ export default defineConfig({
     tailwindcss(),
   ],
 
+  server: {
+    allowedHosts: true,
+  },
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
