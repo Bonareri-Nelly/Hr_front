@@ -1,4 +1,3 @@
-// src/app/router/routes.tsx
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import { navigationItems } from "../../constants/navigation";
 import type { NavigationItem } from "../../types/navigation";
@@ -34,7 +33,14 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "leave-approvals": lazy(() => import("../../features/leave/approvals")),
   "disciplinary-cases": lazy(() => import("../../features/disciplinary/cases")),
   "disciplinary-management": lazy(() => import("../../features/disciplinary/management")),
-  "announcements-training": lazy(() => import("../../features/training/announcements")),
+  
+  // FIX: Use the correct import path and ensure default export
+  "announcements-training": lazy(() => 
+    import("../../features/training/announcements/pages/AnnouncementsTrainingPage")
+      .then((module) => ({
+        default: module.default || module.AnnouncementsTrainingPage
+      }))
+  ),
   
   "benefits-management": lazy(() => 
     import("../../features/benefits/management").then((module) => ({
@@ -62,7 +68,15 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "my-performance": lazy(() => import("../../features/employee-self-service/performance")),
   "my-benefits": lazy(() => import("../../features/employee-self-service/benefits")),
   "my-documents": lazy(() => import("../../features/employee-self-service/documents")),
-  "my-announcements": lazy(() => import("../../features/employee-self-service/announcements")),
+  
+  // FIX: Employee self-service announcements
+  "my-announcements": lazy(() => 
+    import("../../features/employee-self-service/announcements/pages/MyAnnouncementsPage")
+      .then((module) => ({
+        default: module.default
+      }))
+  ),
+  
   "complaints": lazy(() => import("../../features/complaints")),
 };
 
@@ -70,7 +84,3 @@ export const appRoutes: AppRoute[] = navigationItems.map((item) => ({
   ...item,
   Component: routeComponents[item.id],
 }));
-}));
-}));
-
-main

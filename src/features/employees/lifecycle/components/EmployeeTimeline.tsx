@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   Calendar,
@@ -10,7 +11,8 @@ import {
   UserX,
   Clock,
   ChevronRight,
-  Eye
+  Eye,
+  Building2
 } from 'lucide-react';
 import { MilestoneCard } from './MilestoneCard';
 import { MilestoneModal } from './MilestoneModal';

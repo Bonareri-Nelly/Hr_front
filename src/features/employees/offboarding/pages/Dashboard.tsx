@@ -1,5 +1,5 @@
 // src/features/employees/offboarding/pages/Dashboard.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Users, 
   Clock, 
@@ -14,6 +14,13 @@ import {
   FileText,
   Laptop,
   Briefcase,
+  Upload,
+  X,
+  File,
+  Download,
+  Trash2,
+  TrendingUp,
+  MessageSquare
 } from 'lucide-react';
 import { 
   Card, 
@@ -56,7 +63,69 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { useOffboarding } from '../hooks/useOffboarding';
-import type { OffboardingCase } from '../types';
+import type { OffboardingCase, Employee, UploadedFile } from '../types';
+
+// Mock employees data for search
+const MOCK_EMPLOYEES: Employee[] = [
+  { id: 'emp-001', name: 'Jane Doe', email: 'jane.doe@optimum.com', department: 'Engineering', position: 'Senior Software Engineer', branchId: 'branch-1', branchName: 'Headquarters' },
+  { id: 'emp-002', name: 'John Smith', email: 'john.smith@optimum.com', department: 'Sales', position: 'Sales Manager', branchId: 'branch-2', branchName: 'North Region' },
+  { id: 'emp-003', name: 'Mary Johnson', email: 'mary.johnson@optimum.com', department: 'Marketing', position: 'Marketing Specialist', branchId: 'branch-3', branchName: 'South Region' },
+  { id: 'emp-004', name: 'Robert Wilson', email: 'robert.wilson@optimum.com', department: 'Finance', position: 'Accountant', branchId: 'branch-4', branchName: 'East Region' },
+  { id: 'emp-005', name: 'Sarah Brown', email: 'sarah.brown@optimum.com', department: 'Human Resources', position: 'HR Manager', branchId: 'branch-1', branchName: 'Headquarters' },
+  { id: 'emp-006', name: 'Michael Davis', email: 'michael.davis@optimum.com', department: 'IT', position: 'IT Support Specialist', branchId: 'branch-5', branchName: 'West Region' },
+  { id: 'emp-007', name: 'Emily Wilson', email: 'emily.wilson@optimum.com', department: 'Operations', position: 'Operations Manager', branchId: 'branch-2', branchName: 'North Region' },
+];
+
+// Mock Performance Data
+const mockPerformanceData = {
+  employeeId: 'emp-001',
+  currentRating: 4.2,
+  lastReviewDate: '2024-11-15',
+  averageRating: 4.0,
+  totalReviews: 3,
+  performanceHistory: [
+    {
+      id: 'perf-001',
+      employeeId: 'emp-001',
+      reviewPeriod: 'Q4 2024',
+      overallRating: 4.2,
+      ratings: [
+        { category: 'Technical Skills', score: 4, maxScore: 5, comments: 'Excellent technical abilities' },
+        { category: 'Communication', score: 4, maxScore: 5, comments: 'Good team communication' },
+        { category: 'Leadership', score: 3, maxScore: 5, comments: 'Developing leadership skills' },
+        { category: 'Problem Solving', score: 5, maxScore: 5, comments: 'Outstanding problem solver' },
+        { category: 'Teamwork', score: 4, maxScore: 5, comments: 'Great team player' },
+      ],
+      strengths: ['Technical expertise', 'Problem solving', 'Mentoring juniors'],
+      areasForImprovement: ['Public speaking', 'Strategic thinking'],
+      goalsAchieved: ['Completed AI project', 'Led sprint team', 'Improved code quality'],
+      managerComments: 'Excellent performer with great potential for growth.',
+      reviewerName: 'John Manager',
+      reviewDate: '2024-11-15',
+    },
+    {
+      id: 'perf-002',
+      employeeId: 'emp-001',
+      reviewPeriod: 'Q3 2024',
+      overallRating: 4.0,
+      ratings: [
+        { category: 'Technical Skills', score: 4, maxScore: 5, comments: 'Strong technical skills' },
+        { category: 'Communication', score: 3, maxScore: 5, comments: 'Good communication' },
+        { category: 'Leadership', score: 3, maxScore: 5, comments: 'Shows leadership potential' },
+        { category: 'Problem Solving', score: 4, maxScore: 5, comments: 'Good problem solver' },
+        { category: 'Teamwork', score: 4, maxScore: 5, comments: 'Works well with team' },
+      ],
+      strengths: ['Code quality', 'Team collaboration', 'Meeting deadlines'],
+      areasForImprovement: ['Documentation', 'Delegation'],
+      goalsAchieved: ['Delivered product features', 'Improved testing coverage'],
+      managerComments: 'Consistent performer with good results.',
+      reviewerName: 'John Manager',
+      reviewDate: '2024-08-15',
+    },
+  ],
+  recentStrengths: ['Technical expertise', 'Problem solving', 'Team collaboration'],
+  recentImprovements: ['Communication', 'Strategic thinking'],
+};
 
 // Stat Card Component
 const StatCard: React.FC<{
@@ -91,126 +160,311 @@ const StatCard: React.FC<{
   </Card>
 );
 
+// Employee Search Component
+const EmployeeSearch: React.FC<{
+  onSelect: (employee: Employee) => void;
+  selectedEmployee?: Employee | null;
+}> = ({ onSelect, selectedEmployee }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<Employee[]>([]);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    if (term.length > 0) {
+      const results = MOCK_EMPLOYEES.filter(emp =>
+        emp.name.toLowerCase().includes(term.toLowerCase()) ||
+        emp.email.toLowerCase().includes(term.toLowerCase()) ||
+        emp.id.toLowerCase().includes(term.toLowerCase())
+      );
+      setSearchResults(results);
+      setIsOpen(true);
+    } else {
+      setSearchResults([]);
+      setIsOpen(false);
+    }
+  };
+
+  const handleSelect = (employee: Employee) => {
+    onSelect(employee);
+    setSearchTerm(employee.name);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="relative" ref={searchRef}>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Input
+          placeholder="Search employee by name, email, or ID..."
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+          onFocus={() => searchTerm.length > 0 && setIsOpen(true)}
+          className="bg-navy-900/60 border-gold-500/20 pl-10 text-white placeholder:text-gray-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+        />
+        {selectedEmployee && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+            onClick={() => {
+              setSearchTerm('');
+              onSelect(null as any);
+              setIsOpen(false);
+            }}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      
+      {isOpen && searchResults.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full rounded-md border border-gold-500/20 bg-navy-800 shadow-lg max-h-60 overflow-y-auto">
+          {searchResults.map((employee) => (
+            <div
+              key={employee.id}
+              className="flex cursor-pointer items-center justify-between px-4 py-2 hover:bg-navy-700 transition-colors border-b border-gold-500/10 last:border-0"
+              onClick={() => handleSelect(employee)}
+            >
+              <div>
+                <p className="text-white font-medium">{employee.name}</p>
+                <p className="text-sm text-gray-400">{employee.email} • {employee.department}</p>
+              </div>
+              <Badge variant="outline" className="border-gold-500/20 text-gold-400">
+                {employee.position}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+      
+      {selectedEmployee && (
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-lg bg-navy-800/50 border border-gold-500/10">
+          <div>
+            <p className="text-xs text-gray-400">Name</p>
+            <p className="text-sm text-white font-medium">{selectedEmployee.name}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Email</p>
+            <p className="text-sm text-white">{selectedEmployee.email}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Department</p>
+            <p className="text-sm text-white">{selectedEmployee.department}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// File Upload Component
+const FileUpload: React.FC<{
+  files: UploadedFile[];
+  onFileUpload: (file: UploadedFile) => void;
+  onFileRemove: (fileId: string) => void;
+}> = ({ files, onFileUpload, onFileRemove }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFileUpload = (fileList: FileList | null) => {
+    if (!fileList) return;
+    
+    const file = fileList[0];
+    const uploadedFile: UploadedFile = {
+      id: `file-${Date.now()}`,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: URL.createObjectURL(file),
+      uploadDate: new Date().toISOString(),
+    };
+    onFileUpload(uploadedFile);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    handleFileUpload(e.dataTransfer.files);
+  };
+
+  const getFileIcon = (type: string) => {
+    if (type.includes('pdf')) return <FileText className="h-5 w-5 text-red-400" />;
+    if (type.includes('csv')) return <File className="h-5 w-5 text-green-400" />;
+    if (type.includes('word')) return <FileText className="h-5 w-5 text-blue-400" />;
+    return <File className="h-5 w-5 text-gray-400" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  return (
+    <div className="space-y-3">
+      <div
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${
+          isDragging
+            ? 'border-gold-500 bg-gold-500/10'
+            : 'border-gold-500/30 hover:border-gold-500/50'
+        }`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+        <p className="text-sm text-gray-400">
+          Drag & drop files here or <span className="text-gold-400 cursor-pointer hover:underline">browse</span>
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Supported formats: PDF, CSV, DOC, DOCX (Max 10MB)
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".pdf,.csv,.doc,.docx"
+          onChange={(e) => handleFileUpload(e.target.files)}
+        />
+      </div>
+
+      {files.length > 0 && (
+        <div className="space-y-2">
+          {files.map((file) => (
+            <div
+              key={file.id}
+              className="flex items-center justify-between rounded-lg bg-navy-800/50 p-3 border border-gold-500/10"
+            >
+              <div className="flex items-center gap-3">
+                {getFileIcon(file.type)}
+                <div>
+                  <p className="text-sm text-white font-medium">{file.name}</p>
+                  <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-gold-400"
+                  onClick={() => window.open(file.url, '_blank')}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-400 hover:text-red-400"
+                  onClick={() => onFileRemove(file.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Initiate Offboarding Modal
 const InitiateOffboardingModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onInitiate: (data: Partial<OffboardingCase>) => Promise<void> | void;
+  onInitiate: (data: any) => void;
 }> = ({ isOpen, onClose, onInitiate }) => {
-  const [formData, setFormData] = useState<Partial<OffboardingCase>>({
-    employeeName: '',
-    employeeEmail: '',
-    department: '',
-    position: '',
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [formData, setFormData] = useState({
     exitType: 'resignation',
     reason: '',
     lastWorkingDay: '',
   });
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
 
-  const departments = [
-    'Engineering', 'Sales', 'Marketing', 'Finance', 
-    'Human Resources', 'Operations', 'IT', 'Customer Support',
-    'Research & Development', 'Legal'
-  ];
+  const handleEmployeeSelect = (employee: Employee | null) => {
+    setSelectedEmployee(employee);
+  };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFileUpload = (file: UploadedFile) => {
+    setUploadedFiles([...uploadedFiles, file]);
+  };
+
+  const handleFileRemove = (fileId: string) => {
+    setUploadedFiles(uploadedFiles.filter(f => f.id !== fileId));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await onInitiate(formData);
+    if (!selectedEmployee) return;
+    
+    const data = {
+      employee: selectedEmployee,
+      ...formData,
+      attachments: uploadedFiles,
+    };
+    onInitiate(data);
     onClose();
+    setSelectedEmployee(null);
+    setFormData({ exitType: 'resignation', reason: '', lastWorkingDay: '' });
+    setUploadedFiles([]);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-white text-slate-900">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-2xl text-slate-900">
+          <DialogTitle className="flex items-center gap-3 text-2xl">
             <div className="rounded-full bg-gold-500/20 p-2.5">
               <User className="h-6 w-6 text-gold-400" />
             </div>
             <span>Initiate Offboarding</span>
           </DialogTitle>
-          <DialogDescription className="text-slate-600">
-            Start the offboarding process for an employee. All fields marked with <span className="text-red-400">*</span> are required.
+          <DialogDescription className="text-gray-400">
+            Search for an employee or upload supporting documents for the offboarding process.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Employee Name <span className="text-red-400">*</span>
-              </label>
-              <Input
-                required
-                placeholder="Enter employee name"
-                value={formData.employeeName}
-                onChange={(e) => setFormData({ ...formData, employeeName: e.target.value })}
-                className="border-gold-500/30 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Employee Email <span className="text-red-400">*</span>
-              </label>
-              <Input
-                required
-                type="email"
-                placeholder="employee@company.com"
-                value={formData.employeeEmail}
-                onChange={(e) => setFormData({ ...formData, employeeEmail: e.target.value })}
-                className="border-gold-500/30 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Department <span className="text-red-400">*</span>
-              </label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) => setFormData({ ...formData, department: value })}
-              >
-                <SelectTrigger className="border-gold-500/30 bg-slate-50 text-slate-900 focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
-                  <SelectValue placeholder="Select Department" />
-                </SelectTrigger>
-                <SelectContent className="border-gold-500/20 bg-white">
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept} className="text-slate-900 hover:bg-slate-100 focus:bg-slate-100">
-                      {dept}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                Position <span className="text-red-400">*</span>
-              </label>
-              <Input
-                required
-                placeholder="e.g., Senior Developer, Manager"
-                value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="border-gold-500/30 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Employee <span className="text-red-400">*</span>
+            </label>
+            <EmployeeSearch
+              onSelect={handleEmployeeSelect}
+              selectedEmployee={selectedEmployee}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Exit Type <span className="text-red-400">*</span>
               </label>
               <Select
                 value={formData.exitType}
-                onValueChange={(value) => setFormData({ ...formData, exitType: value as OffboardingCase['exitType'] })}
+                onValueChange={(value) => setFormData({ ...formData, exitType: value })}
               >
-                <SelectTrigger className="border-gold-500/30 bg-slate-50 text-slate-900 focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
+                <SelectTrigger className="bg-navy-900/60 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
                   <SelectValue placeholder="Select exit type" />
                 </SelectTrigger>
-                <SelectContent className="border-gold-500/20 bg-white">
-                  <SelectItem value="resignation" className="text-slate-900 hover:bg-slate-100">Resignation</SelectItem>
-                  <SelectItem value="termination" className="text-slate-900 hover:bg-slate-100">Termination</SelectItem>
-                  <SelectItem value="end-of-contract" className="text-slate-900 hover:bg-slate-100">End of Contract</SelectItem>
-                  <SelectItem value="retirement" className="text-slate-900 hover:bg-slate-100">Retirement</SelectItem>
+                <SelectContent className="bg-navy-800 border-gold-500/20">
+                  <SelectItem value="resignation" className="text-white hover:bg-navy-700">Resignation</SelectItem>
+                  <SelectItem value="termination" className="text-white hover:bg-navy-700">Termination</SelectItem>
+                  <SelectItem value="end-of-contract" className="text-white hover:bg-navy-700">End of Contract</SelectItem>
+                  <SelectItem value="retirement" className="text-white hover:bg-navy-700">Retirement</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -223,13 +477,13 @@ const InitiateOffboardingModal: React.FC<{
                 type="date"
                 value={formData.lastWorkingDay}
                 onChange={(e) => setFormData({ ...formData, lastWorkingDay: e.target.value })}
-                className="border-gold-500/30 bg-slate-50 text-slate-900 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+                className="bg-navy-900/60 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
               Reason for Exit <span className="text-red-400">*</span>
             </label>
             <Input
@@ -237,7 +491,18 @@ const InitiateOffboardingModal: React.FC<{
               placeholder="Enter reason for exit"
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-              className="border-gold-500/30 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+              className="bg-navy-900/60 border-gold-500/20 text-white placeholder:text-gray-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">
+              Supporting Documents
+            </label>
+            <FileUpload
+              files={uploadedFiles}
+              onFileUpload={handleFileUpload}
+              onFileRemove={handleFileRemove}
             />
           </div>
 
@@ -246,13 +511,14 @@ const InitiateOffboardingModal: React.FC<{
               type="button"
               variant="outline"
               onClick={onClose}
-              className="border-gold-500/20 text-slate-700 hover:text-slate-900 hover:bg-slate-100"
+              className="border-gold-500/20 text-gray-300 hover:text-white hover:bg-navy-700"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              className="bg-gold-500 text-navy-900 hover:bg-gold-400 font-semibold px-6"
+              disabled={!selectedEmployee}
+              className="bg-gold-500 text-navy-900 hover:bg-gold-400 font-semibold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="mr-2 h-4 w-4" />
               Initiate Offboarding
@@ -272,51 +538,57 @@ const EmployeeDetailsModal: React.FC<{
 }> = ({ isOpen, onClose, caseData }) => {
   if (!caseData) return null;
 
+  const mockDocuments: UploadedFile[] = [
+    { id: 'doc-1', name: 'resignation_letter.pdf', size: 245000, type: 'application/pdf', url: '#', uploadDate: '2024-12-01' },
+    { id: 'doc-2', name: 'exit_interview_form.csv', size: 12000, type: 'text/csv', url: '#', uploadDate: '2024-12-02' },
+  ];
+
+  const documents = caseData.attachments?.length ? caseData.attachments : mockDocuments;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-3 text-2xl">
-              <div className="rounded-full bg-gold-500/20 p-2.5 ring-1 ring-gold-400/30">
+              <div className="rounded-full bg-gold-500/20 p-2.5">
                 <User className="h-6 w-6 text-gold-400" />
               </div>
               <span>Offboarding Details</span>
             </DialogTitle>
             <div className="flex items-center gap-3">
-              <Badge className={`${caseData.status === 'completed' ? 'bg-green-500/20 text-green-300 border-green-400/30' : 'bg-blue-500/20 text-blue-300 border-blue-400/30'} px-4 py-1.5 text-sm`}>
+              <Badge className={`${caseData.status === 'completed' ? 'bg-green-500' : 'bg-blue-500'} px-4 py-1.5 text-sm`}>
                 {caseData.status.toUpperCase()}
               </Badge>
-              <Badge className="bg-purple-500/20 text-purple-300 border-purple-400/30 px-4 py-1.5 text-sm">
+              <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/20 px-4 py-1.5 text-sm">
                 {caseData.exitType.replace('-', ' ')}
               </Badge>
             </div>
           </div>
-          <DialogDescription className="mt-1 text-gray-300">
-            Complete offboarding information for <span className="font-semibold text-gold-300">{caseData.employeeName}</span>
+          <DialogDescription className="text-gray-400 mt-1">
+            Complete offboarding information for <span className="text-gold-300">{caseData.employeeName}</span>
           </DialogDescription>
         </DialogHeader>
 
-        {/* Employee Summary Cards */}
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
-          <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+          <Card className="bg-navy-800/60 border-gold-500/20">
             <CardContent className="pt-4">
-              <p className="text-sm font-medium text-gold-300">Employee</p>
-              <p className="font-semibold text-white">{caseData.employeeName}</p>
-              <p className="text-sm text-gray-300">{caseData.employeeEmail}</p>
+              <p className="text-sm text-gray-400">Employee</p>
+              <p className="text-white font-semibold">{caseData.employeeName}</p>
+              <p className="text-sm text-gray-400">{caseData.employeeEmail}</p>
             </CardContent>
           </Card>
-          <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+          <Card className="bg-navy-800/60 border-gold-500/20">
             <CardContent className="pt-4">
-              <p className="text-sm font-medium text-gold-300">Department</p>
-              <p className="font-semibold text-white">{caseData.department}</p>
-              <p className="text-sm text-gray-300">{caseData.position}</p>
+              <p className="text-sm text-gray-400">Department</p>
+              <p className="text-white font-semibold">{caseData.department}</p>
+              <p className="text-sm text-gray-400">{caseData.position}</p>
             </CardContent>
           </Card>
-          <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+          <Card className="bg-navy-800/60 border-gold-500/20">
             <CardContent className="pt-4">
-              <p className="text-sm font-medium text-gold-300">Last Working Day</p>
-              <p className="font-semibold text-white">
+              <p className="text-sm text-gray-400">Last Working Day</p>
+              <p className="text-white font-semibold">
                 {new Date(caseData.lastWorkingDay).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'long',
@@ -330,10 +602,10 @@ const EmployeeDetailsModal: React.FC<{
               </p>
             </CardContent>
           </Card>
-          <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+          <Card className="bg-navy-800/60 border-gold-500/20">
             <CardContent className="pt-4">
-              <p className="text-sm font-medium text-gold-300">Progress</p>
-              <p className="font-semibold text-white">
+              <p className="text-sm text-gray-400">Progress</p>
+              <p className="text-white font-semibold">
                 {caseData.progress.percentage}%
               </p>
               <div className="flex items-center gap-2">
@@ -365,15 +637,19 @@ const EmployeeDetailsModal: React.FC<{
               Settlement
             </TabsTrigger>
             <TabsTrigger value="exit-interview" className="data-[state=active]:bg-gold-500 data-[state=active]:text-navy-900 rounded-md px-4 py-1.5">
-              Exit Interview
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Exit Feedback & Performance
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="data-[state=active]:bg-gold-500 data-[state=active]:text-navy-900 rounded-md px-4 py-1.5">
+              Documents
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+              <Card className="bg-navy-800/60 border-gold-500/20">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm text-gold-300">
+                  <CardTitle className="text-white text-sm flex items-center gap-2">
                     <User className="h-4 w-4 text-gold-400" />
                     Personal Information
                   </CardTitle>
@@ -398,9 +674,9 @@ const EmployeeDetailsModal: React.FC<{
                 </CardContent>
               </Card>
 
-              <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+              <Card className="bg-navy-800/60 border-gold-500/20">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-sm text-gold-300">
+                  <CardTitle className="text-white text-sm flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 text-gold-400" />
                     Exit Information
                   </CardTitle>
@@ -436,9 +712,9 @@ const EmployeeDetailsModal: React.FC<{
               </Card>
             </div>
 
-            <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+            <Card className="bg-navy-800/60 border-gold-500/20">
               <CardHeader>
-                <CardTitle className="text-sm text-gold-300">Case Timeline</CardTitle>
+                <CardTitle className="text-white text-sm">Case Timeline</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -467,9 +743,9 @@ const EmployeeDetailsModal: React.FC<{
           </TabsContent>
 
           <TabsContent value="checklist">
-            <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+            <Card className="bg-navy-800/60 border-gold-500/20">
               <CardHeader>
-                <CardTitle className="text-gold-300">Offboarding Checklist</CardTitle>
+                <CardTitle className="text-white">Offboarding Checklist</CardTitle>
                 <CardDescription className="text-gray-400">
                   Track the progress of each offboarding task
                 </CardDescription>
@@ -477,11 +753,11 @@ const EmployeeDetailsModal: React.FC<{
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { item: 'Knowledge Transfer & Handover', status: 'in-progress', owner: 'John Manager', dueDate: '2024-12-10', description: 'Complete documentation and handover of responsibilities' },
-                    { item: 'Company Laptop Return', status: 'pending', owner: 'HR Admin', dueDate: '2024-12-14', description: 'Return laptop with all accessories' },
-                    { item: 'System Access Revocation', status: 'completed', owner: 'System Admin', dueDate: '2024-12-15', description: 'Revoke all system access and accounts' },
-                    { item: 'Final Settlement Calculation', status: 'pending', owner: 'Finance', dueDate: '2024-12-12', description: 'Calculate final pay and deductions' },
-                    { item: 'Exit Interview Completion', status: 'pending', owner: 'HR Admin', dueDate: '2024-12-13', description: 'Complete exit interview with employee' },
+                    { item: 'Knowledge Transfer & Handover', status: 'in-progress', owner: 'John Manager', dueDate: '2024-12-10' },
+                    { item: 'Company Laptop Return', status: 'pending', owner: 'HR Admin', dueDate: '2024-12-14' },
+                    { item: 'System Access Revocation', status: 'completed', owner: 'System Admin', dueDate: '2024-12-15' },
+                    { item: 'Final Settlement Calculation', status: 'pending', owner: 'Finance', dueDate: '2024-12-12' },
+                    { item: 'Exit Interview Completion', status: 'pending', owner: 'HR Admin', dueDate: '2024-12-13' },
                   ].map((task, index) => (
                     <div key={index} className="flex items-center justify-between border-b border-gold-500/10 pb-3 last:border-0">
                       <div className="flex items-start gap-3 flex-1">
@@ -500,9 +776,6 @@ const EmployeeDetailsModal: React.FC<{
                               {task.status}
                             </Badge>
                           </div>
-                          {task.description && (
-                            <p className="text-sm text-gray-400 mt-0.5">{task.description}</p>
-                          )}
                           <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                             <span>Owner: {task.owner}</span>
                             <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
@@ -517,9 +790,9 @@ const EmployeeDetailsModal: React.FC<{
           </TabsContent>
 
           <TabsContent value="assets">
-            <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+            <Card className="bg-navy-800/60 border-gold-500/20">
               <CardHeader>
-                <CardTitle className="text-gold-300">Assets & Access</CardTitle>
+                <CardTitle className="text-white">Assets & Access</CardTitle>
                 <CardDescription className="text-gray-400">
                   Track asset returns and access revocation status
                 </CardDescription>
@@ -559,9 +832,9 @@ const EmployeeDetailsModal: React.FC<{
           </TabsContent>
 
           <TabsContent value="settlement">
-            <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+            <Card className="bg-navy-800/60 border-gold-500/20">
               <CardHeader>
-                <CardTitle className="text-gold-300">Final Settlement</CardTitle>
+                <CardTitle className="text-white">Final Settlement</CardTitle>
                 <CardDescription className="text-gray-400">
                   Summary of final payment calculation
                 </CardDescription>
@@ -619,41 +892,259 @@ const EmployeeDetailsModal: React.FC<{
             </Card>
           </TabsContent>
 
+          {/* Exit Feedback & Performance Tab - Updated */}
           <TabsContent value="exit-interview">
-            <Card className="border border-gold-400/30 bg-gradient-to-br from-navy-800/95 to-navy-900/95 shadow-lg shadow-gold-500/10">
+            <Card className="bg-navy-800/60 border-gold-500/20">
               <CardHeader>
-                <CardTitle className="text-gold-300">Exit Interview</CardTitle>
-                <CardDescription className="text-gray-400">
-                  Employee feedback and exit reasons
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white flex items-center gap-2">
+                      <MessageSquare className="h-5 w-5 text-gold-400" />
+                      Exit Feedback & Performance Review
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Comprehensive exit feedback with performance linkage
+                    </CardDescription>
+                  </div>
+                  <Badge className="bg-gold-500/20 text-gold-400">
+                    Performance Linked
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-5">
+                <div className="space-y-6">
+                  {/* Performance Summary Cards */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-gray-400">Current Performance Rating</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-bold text-gold-400">
+                              {mockPerformanceData.currentRating}
+                            </span>
+                            <span className="text-sm text-gray-400">/ 5.0</span>
+                          </div>
+                        </div>
+                        <div className="rounded-full bg-gold-500/20 p-2">
+                          <TrendingUp className="h-5 w-5 text-gold-400" />
+                        </div>
+                      </div>
+                      <div className="mt-2 flex items-center gap-1">
+                        <span className="text-xs text-green-400">↑ 0.2</span>
+                        <span className="text-xs text-gray-400">from last review</span>
+                      </div>
+                    </div>
+                    <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
+                      <p className="text-xs text-gray-400">Last Performance Review</p>
+                      <p className="text-white font-semibold">
+                        {new Date(mockPerformanceData.lastReviewDate).toLocaleDateString('en-US', {
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </p>
+                      <p className="text-xs text-gray-400">Total Reviews: {mockPerformanceData.totalReviews}</p>
+                    </div>
+                    <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
+                      <p className="text-xs text-gray-400">Average Rating</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl font-bold text-white">
+                          {mockPerformanceData.averageRating}
+                        </span>
+                        <span className="text-sm text-gray-400">/ 5.0</span>
+                      </div>
+                      <p className="text-xs text-gray-400">across all reviews</p>
+                    </div>
+                  </div>
+
+                  {/* Exit Interview Section */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-navy-800/50 p-4 rounded-lg">
+                    <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                       <h4 className="text-sm font-medium text-gray-400 mb-1">Primary Reason</h4>
                       <p className="text-white">Career growth opportunity</p>
                     </div>
-                    <div className="bg-navy-800/50 p-4 rounded-lg">
+                    <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                       <h4 className="text-sm font-medium text-gray-400 mb-1">Would Recommend?</h4>
                       <Badge className="bg-green-500/20 text-green-400">Yes</Badge>
                     </div>
                   </div>
-                  <div className="bg-navy-800/50 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-400 mb-2">Overall Rating</h4>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star} className={`text-3xl ${star <= 4 ? 'text-gold-400' : 'text-gray-600'}`}>
-                          ★
-                        </span>
+
+                  {/* Performance vs Exit Rating Comparison */}
+                  <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">Performance vs Exit Rating</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-400">Average Performance Rating</p>
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-32 bg-navy-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-green-500 rounded-full" 
+                              style={{ width: `${(mockPerformanceData.averageRating / 5) * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-white">{mockPerformanceData.averageRating.toFixed(1)}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400">Exit Interview Rating</p>
+                        <div className="flex items-center gap-2">
+                          <div className="h-3 w-32 bg-navy-700 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gold-500 rounded-full" 
+                              style={{ width: '80%' }}
+                            />
+                          </div>
+                          <span className="text-sm text-white">4.0</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 p-3 bg-navy-700/50 rounded-lg">
+                      <p className="text-xs text-gray-400">Performance Linkage</p>
+                      <p className="text-sm text-white mt-1">
+                        Employee's exit rating (4.0) is consistent with their performance history (avg 4.0). 
+                        This suggests a positive correlation between performance and exit sentiment.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Performance History */}
+                  <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
+                    <h4 className="text-sm font-medium text-gray-400 mb-3">Performance History</h4>
+                    <div className="space-y-3">
+                      {mockPerformanceData.performanceHistory.map((review, index) => (
+                        <div key={index} className="border-b border-gold-500/10 pb-3 last:border-0">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-white font-medium">{review.reviewPeriod}</p>
+                              <p className="text-xs text-gray-400">Reviewed by {review.reviewerName}</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="flex gap-0.5">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <span key={star} className={`text-sm ${star <= Math.round(review.overallRating) ? 'text-gold-400' : 'text-gray-600'}`}>
+                                    ★
+                                  </span>
+                                ))}
+                              </div>
+                              <span className="text-sm text-white">{review.overallRating.toFixed(1)}</span>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <span className="text-xs px-2 py-1 bg-green-500/10 text-green-400 rounded-full">
+                              {review.ratings[0]?.score}/5 {review.ratings[0]?.category}
+                            </span>
+                            <span className="text-xs px-2 py-1 bg-blue-500/10 text-blue-400 rounded-full">
+                              {review.ratings[1]?.score}/5 {review.ratings[1]?.category}
+                            </span>
+                            <span className="text-xs px-2 py-1 bg-purple-500/10 text-purple-400 rounded-full">
+                              {review.ratings[2]?.score}/5 {review.ratings[2]?.category}
+                            </span>
+                          </div>
+                          {review.managerComments && (
+                            <p className="text-sm text-gray-400 mt-1 italic">"{review.managerComments}"</p>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <div className="bg-navy-800/50 p-4 rounded-lg">
+
+                  {/* Strengths & Areas for Improvement */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
+                      <h4 className="text-sm font-medium text-green-400 mb-2">Recent Strengths</h4>
+                      <ul className="space-y-1">
+                        {mockPerformanceData.recentStrengths.map((strength, index) => (
+                          <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
+                            <CheckCircle className="h-3 w-3 text-green-400" />
+                            {strength}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
+                      <h4 className="text-sm font-medium text-yellow-400 mb-2">Areas for Improvement</h4>
+                      <ul className="space-y-1">
+                        {mockPerformanceData.recentImprovements.map((item, index) => (
+                          <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
+                            <AlertCircle className="h-3 w-3 text-yellow-400" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Additional Comments */}
+                  <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                     <h4 className="text-sm font-medium text-gray-400 mb-1">Additional Comments</h4>
-                    <p className="text-white">Overall positive experience with the company.</p>
+                    <p className="text-white">Overall positive experience with the company. Good growth opportunities but limited in current role.</p>
+                  </div>
+
+                  {/* Meta Info */}
+                  <div className="flex items-center justify-between text-sm text-gray-400 border-t border-gold-500/10 pt-4">
+                    <span>Submitted by: <span className="text-white">Employee</span></span>
+                    <span>Date: <span className="text-white">December 10, 2024</span></span>
+                    <Badge className="bg-blue-500/20 text-blue-400">Confidential</Badge>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Documents Tab */}
+          <TabsContent value="documents">
+            <Card className="bg-navy-800/60 border-gold-500/20">
+              <CardHeader>
+                <CardTitle className="text-white">Supporting Documents</CardTitle>
+                <CardDescription className="text-gray-400">
+                  All uploaded documents related to this offboarding case
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {documents.length > 0 ? (
+                  <div className="space-y-3">
+                    {documents.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between rounded-lg bg-navy-800/50 p-4 border border-gold-500/10 hover:border-gold-500/30 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-lg bg-gold-500/10 p-2.5">
+                            {doc.type.includes('pdf') ? (
+                              <FileText className="h-6 w-6 text-red-400" />
+                            ) : doc.type.includes('csv') ? (
+                              <File className="h-6 w-6 text-green-400" />
+                            ) : (
+                              <FileText className="h-6 w-6 text-blue-400" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-white font-medium">{doc.name}</p>
+                            <p className="text-xs text-gray-400">
+                              Uploaded on {new Date(doc.uploadDate).toLocaleDateString()} • {(doc.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-gold-400 hover:text-gold-300 hover:bg-navy-700"
+                            onClick={() => window.open(doc.url, '_blank')}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="mx-auto h-12 w-12 text-gray-600" />
+                    <p className="mt-2 text-gray-400">No documents uploaded for this case</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -686,7 +1177,7 @@ const OffboardingDashboard: React.FC = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<OffboardingCase | null>(null);
 
-  const { cases, stats, loading, createCase } = useOffboarding({});
+  const { cases, stats, loading, refetch } = useOffboarding({});
 
   const departments = useMemo(() => {
     if (!cases) return [];
@@ -721,8 +1212,9 @@ const OffboardingDashboard: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleInitiateOffboarding = async (data: Partial<OffboardingCase>) => {
-    await createCase(data);
+  const handleInitiateOffboarding = (data: any) => {
+    console.log('Initiating offboarding for:', data);
+    refetch();
   };
 
   if (loading) {
@@ -738,7 +1230,7 @@ const OffboardingDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 p-6">
-      {/* Header Section - OFFBOARDING headline is here */}
+      {/* Header Section */}
       <div className="mb-8">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
@@ -764,8 +1256,6 @@ const OffboardingDashboard: React.FC = () => {
             Initiate Offboarding
           </Button>
         </div>
-        
-        {/* Decorative divider */}
         <div className="mt-4 h-0.5 w-full bg-gradient-to-r from-gold-500/20 via-gold-500/40 to-gold-500/20"></div>
       </div>
 
@@ -793,7 +1283,7 @@ const OffboardingDashboard: React.FC = () => {
         </div>
         <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
           <SelectTrigger className="w-[180px] bg-navy-900/50 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
-            <SelectValue placeholder="All Departments" />
+            <SelectValue placeholder="Department" />
           </SelectTrigger>
           <SelectContent className="bg-navy-800 border-gold-500/20">
             <SelectItem value="all" className="text-white hover:bg-navy-700">All Departments</SelectItem>
@@ -806,7 +1296,7 @@ const OffboardingDashboard: React.FC = () => {
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[150px] bg-navy-900/50 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
-            <SelectValue placeholder="All Status" />
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent className="bg-navy-800 border-gold-500/20">
             <SelectItem value="all" className="text-white hover:bg-navy-700">All Status</SelectItem>

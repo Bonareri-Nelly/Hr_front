@@ -4,6 +4,25 @@ export type OffboardingStatus = 'pending' | 'in-progress' | 'completed' | 'overd
 export type ChecklistItemStatus = 'pending' | 'in-progress' | 'completed' | 'waived';
 export type AssetCondition = 'good' | 'fair' | 'poor' | 'damaged' | 'missing';
 
+export interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  department: string;
+  position: string;
+  branchId: string;
+  branchName: string;
+}
+
+export interface UploadedFile {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  uploadDate: string;
+}
+
 export interface OffboardingCase {
   id: string;
   employeeId: string;
@@ -33,7 +52,7 @@ export interface OffboardingCase {
   hasOverdueItems: boolean;
   daysUntilLastDay: number;
   notes?: string;
-  attachments?: string[];
+  attachments?: UploadedFile[];
 }
 
 export interface ChecklistItem {
@@ -139,7 +158,7 @@ export interface OffboardingFilter {
   branchId?: string;
   department?: string;
   exitType?: ExitType;
-  status?: OffboardingStatus | 'all';
+  status?: OffboardingStatus;
   dateFrom?: string;
   dateTo?: string;
   searchTerm?: string;

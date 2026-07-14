@@ -1,3 +1,7 @@
+// ==========================================
+// TYPES
+// ==========================================
+
 export type UserRole = 
   | 'employee' 
   | 'department_head' 
@@ -27,14 +31,14 @@ export interface Announcement {
   category: string;
   audience: {
     type: AudienceType;
-    targets: string[];
+    targets: string[]; // branch names, department names, or employee IDs
   };
   priority: Priority;
   requiresAck: boolean;
   postedBy: string;
-  postedAt: string;
+  postedAt: string; // ISO date
   expiresAt: string | null;
-  acknowledgedBy: string[];
+  acknowledgedBy: string[]; // employee IDs
 }
 
 export interface Training {
@@ -52,7 +56,7 @@ export interface Training {
     targets: string[];
   };
   deadline: string | null;
-  status: Record<string, TrainingStatus>;
+  status: Record<string, TrainingStatus>; // employeeId -> status
 }
 
 export interface Employee {

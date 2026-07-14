@@ -33,7 +33,7 @@ export const DialogContent: React.FC<{
   className?: string;
   children: React.ReactNode;
 }> = ({ className = '', children }) => (
-  <div className={`p-6 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white shadow-[0_0_35px_rgba(234,179,8,0.15)] ${className}`}>
+  <div className={`p-6 bg-white text-slate-900 shadow-[0_0_35px_rgba(234,179,8,0.15)] ${className}`}>
     {children}
   </div>
 );
@@ -51,7 +51,7 @@ export const DialogTitle: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className = '' }) => (
-  <h2 className={`text-xl font-bold text-white ${className}`}>
+  <h2 className={`text-xl font-bold text-slate-900 ${className}`}>
     {children}
   </h2>
 );
@@ -60,7 +60,7 @@ export const DialogDescription: React.FC<{
   children: React.ReactNode;
   className?: string;
 }> = ({ children, className = '' }) => (
-  <p className={`text-sm text-gray-400 mt-1 ${className}`}>
+  <p className={`text-sm text-slate-600 mt-1 ${className}`}>
     {children}
   </p>
 );
