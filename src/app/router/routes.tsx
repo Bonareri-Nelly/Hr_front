@@ -25,8 +25,21 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "leave-approvals": lazy(() => import("../../features/leave/approvals")),
   "disciplinary-cases": lazy(() => import("../../features/disciplinary/cases")),
   "disciplinary-management": lazy(() => import("../../features/disciplinary/management")),
-  "announcements-training": lazy(() => import("../../features/training/announcements")),
-  "benefits-management": lazy(() => import("../../features/benefits/management").then((module) => ({ default: module.default as ComponentType }))),
+  
+  // FIX: Use the correct import path and ensure default export
+  "announcements-training": lazy(() => 
+    import("../../features/training/announcements/pages/AnnouncementsTrainingPage")
+      .then((module) => ({
+        default: module.default || module.AnnouncementsTrainingPage
+      }))
+  ),
+  
+  "benefits-management": lazy(() => 
+    import("../../features/benefits/management").then((module) => ({
+      default: module.default || module.Dashboard
+    }))
+  ),
+  
   "branch-dashboard": lazy(() => import("../../features/dashboards/branch")),
   "payroll": lazy(() => import("../../features/payroll/overview")),
   "payroll-creation": lazy(() => import("../../features/payroll/creation")),
@@ -47,7 +60,15 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "my-performance": lazy(() => import("../../features/employee-self-service/performance")),
   "my-benefits": lazy(() => import("../../features/employee-self-service/benefits")),
   "my-documents": lazy(() => import("../../features/employee-self-service/documents")),
-  "my-announcements": lazy(() => import("../../features/employee-self-service/announcements")),
+  
+  // FIX: Employee self-service announcements
+  "my-announcements": lazy(() => 
+    import("../../features/employee-self-service/announcements/pages/MyAnnouncementsPage")
+      .then((module) => ({
+        default: module.default
+      }))
+  ),
+  
   "complaints": lazy(() => import("../../features/complaints")),
 };
 

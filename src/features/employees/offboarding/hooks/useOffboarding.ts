@@ -1,6 +1,6 @@
 // src/features/employees/offboarding/hooks/useOffboarding.ts
 import { useState, useEffect } from 'react';
-import type { OffboardingCase, OffboardingStats, OffboardingFilter } from '../types';
+import type { OffboardingCase, OffboardingStats, OffboardingFilter, UploadedFile } from '../types';
 import { offboardingService } from '../services/offboarding.service';
 
 export const useOffboarding = (initialFilters?: OffboardingFilter) => {
@@ -27,17 +27,6 @@ export const useOffboarding = (initialFilters?: OffboardingFilter) => {
     }
   };
 
-  const createCase = async (data: Partial<OffboardingCase>) => {
-    try {
-      await offboardingService.initiateOffboarding(data);
-      await fetchData();
-      return true;
-    } catch (err) {
-      setError(err as Error);
-      return false;
-    }
-  };
-
   useEffect(() => {
     fetchData();
   }, [filters]);
@@ -50,6 +39,38 @@ export const useOffboarding = (initialFilters?: OffboardingFilter) => {
     fetchData();
   };
 
+  // FIXED: Updated to match the service's initiateOffboarding signature
+  const initiateOffboarding = async (data: {
+    employee: {
+      id: string;
+      name: string;
+      email: string;
+      department: string;
+      position: string;
+      branchId: string;
+      branchName: string;
+    };
+    exitType: string;
+    reason: string;
+    lastWorkingDay: string;
+    attachments?: UploadedFile[];
+  }) => {
+    try {
+      setLoading(true);
+      const newCase = await offboardingService.initiateOffboarding(data);
+      setCases(prev => [newCase, ...prev]);
+      // Refresh stats
+      const newStats = await offboardingService.getStats(filters);
+      setStats(newStats);
+      return newCase;
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     cases,
     stats,
@@ -58,7 +79,7 @@ export const useOffboarding = (initialFilters?: OffboardingFilter) => {
     filters,
     updateFilters,
     refetch,
-    createCase,
+    initiateOffboarding,
   };
 };
 
