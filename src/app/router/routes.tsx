@@ -6,12 +6,10 @@ export type AppRoute = NavigationItem & {
   Component: LazyExoticComponent<ComponentType>;
 };
 
-// Fix the lazy loading for each module
 const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "executive-dashboard": lazy(() => import("../../features/dashboards/executive")),
   "reports-analytics": lazy(() => import("../../features/reports")),
-  "branch-reports": lazy(() => import("../../features/reports-branch")),  
-  
+  "branch-reports": lazy(() => import("../../features/reports-branch")),
   "ai-assistant": lazy(() => import("../../features/ai-assistant")),
   "security-audit": lazy(() => import("../../features/security-audit")),
   "user-profile": lazy(() => import("../../features/user-profile")),
@@ -20,13 +18,7 @@ const routeComponents: Record<string, LazyExoticComponent<ComponentType>> = {
   "employee-lifecycle": lazy(() => import("../../features/employees/lifecycle")),
   "contract-management": lazy(() => import("../../features/contracts")),
   "performance-oversight": lazy(() => import("../../features/performance")),
-  
-  "offboarding": lazy(() => 
-    import("../../features/employees/offboarding").then((module) => ({
-      default: module.default || module.OffboardingDashboard
-    }))
-  ),
-  
+  "offboarding": lazy(() => import("../../features/employees/offboarding")),
   "onboarding": lazy(() => import("../../features/employees/onboarding")),
   "attendance-management": lazy(() => import("../../features/attendance/management")),
   "leave-workflow": lazy(() => import("../../modules/leave-workflow")),

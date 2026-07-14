@@ -1,4 +1,4 @@
-import { Filter, ChevronDown, Calendar } from 'lucide-react';
+import { Filter, Calendar } from 'lucide-react';
 
 interface FilterBarProps {
   timeRange: 'monthly' | 'quarterly' | 'annual';
@@ -34,7 +34,6 @@ export const FilterBar = ({
           <span>Filters:</span>
         </div>
 
-        {/* Time Range */}
         <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-1">
           {(['monthly', 'quarterly', 'annual'] as const).map((option) => (
             <button
@@ -42,7 +41,7 @@ export const FilterBar = ({
               onClick={() => setTimeRange(option)}
               className={`px-3 py-1.5 text-xs rounded-lg transition capitalize ${
                 timeRange === option
-                  ? 'bg-blue-700 text-white'  // Changed to blue-700
+                  ? 'bg-blue-700 text-white'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
@@ -51,7 +50,6 @@ export const FilterBar = ({
           ))}
         </div>
 
-        {/* Branch Filter */}
         <select
           value={selectedBranch}
           onChange={(e) => setSelectedBranch(e.target.value)}
@@ -65,7 +63,6 @@ export const FilterBar = ({
           ))}
         </select>
 
-        {/* Department Filter */}
         <select
           value={selectedDepartment}
           onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -79,7 +76,6 @@ export const FilterBar = ({
           ))}
         </select>
 
-        {/* Date Range Picker */}
         <div className="flex items-center gap-2 ml-auto">
           <input
             type="date"
@@ -97,7 +93,6 @@ export const FilterBar = ({
         </div>
       </div>
 
-      {/* Active Filters Display */}
       <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
         <span className="text-xs text-gray-400">Active Filters:</span>
         {selectedBranch !== 'all' && (
@@ -106,7 +101,7 @@ export const FilterBar = ({
           </span>
         )}
         {selectedDepartment !== 'all' && (
-          <span className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full">
+          <span className="text-xs bg-purple-50 text-purple-700 px-2 py-1 rounded-full">
             Dept: {selectedDepartment}
           </span>
         )}

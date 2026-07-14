@@ -1,19 +1,16 @@
-const branches = [
-  { name: 'Nairobi HQ', employees: 420, amount: 'KES 28.4M', status: 'Ready' },
-  { name: 'Mombasa', employees: 310, amount: 'KES 21.2M', status: 'Pending' },
-  { name: 'Kisumu', employees: 280, amount: 'KES 19.1M', status: 'Ready' },
-  { name: 'Remote Units', employees: 238, amount: 'KES 15.9M', status: 'In Review' },
-];
+interface BranchTableProps {
+  branches: { name: string; employees: number; amount: string; status: string }[];
+}
 
-export const BranchTable = () => {
+export const BranchTable = ({ branches }: BranchTableProps) => {
   return (
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
       <div className="flex justify-between items-center mb-3">
-        <h3 className="font-semibold text-gray-800 text-sm">Branch Payroll Readiness</h3>  {/* was default */}
-        <button className="text-xs text-blue-600 hover:underline">View all</button>  {/* was text-sm */}
+        <h3 className="font-semibold text-gray-800 text-sm">Branch Payroll Readiness</h3>
+        <button className="text-xs text-blue-600 hover:underline">View all</button>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full text-xs">  {/* was text-sm */}
+        <table className="w-full text-xs">
           <thead>
             <tr className="text-left text-gray-500 border-b">
               <th className="pb-2 font-medium">Branch</th>
@@ -25,7 +22,7 @@ export const BranchTable = () => {
           <tbody>
             {branches.map((b) => (
               <tr key={b.name} className="border-b last:border-0">
-                <td className="py-2 font-medium text-gray-800">{b.name}</td>  {/* was py-3 */}
+                <td className="py-2 font-medium text-gray-800">{b.name}</td>
                 <td className="py-2 text-gray-600">{b.employees}</td>
                 <td className="py-2 text-gray-600">{b.amount}</td>
                 <td className="py-2">
