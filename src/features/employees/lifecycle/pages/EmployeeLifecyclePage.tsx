@@ -29,204 +29,49 @@ import {
   Plus,
   Filter,
   Activity,
-  MapPin,
   Mail,
-  Phone
+  Phone,
+  Wallet
 } from 'lucide-react';
 
-// ============================================
-// MOCK DATA
-// ============================================
+type LifecycleStage = 'onboarding' | 'active' | 'notice_period' | 'offboarded';
+type MilestoneType = 
+  | 'hire' 
+  | 'probation' 
+  | 'promotion' 
+  | 'transfer' 
+  | 'performance' 
+  | 'benefits' 
+  | 'salary' 
+  | 'leave' 
+  | 'offboarding'
+  | 'payroll';
 
-const mockEmployees = [
-  {
-    id: '1',
-    name: 'Sarah Kimani',
-    email: 'sarah.kimani@optimum.com',
-    phone: '+254 712 345 678',
-    department: 'Engineering',
-    branch: 'Nairobi HQ',
-    role: 'Senior Software Engineer',
-    stage: 'active' as const,
-    startDate: '2024-01-15',
-    employmentType: 'Permanent',
-    milestones: [
-      {
-        id: 'm1',
-        type: 'hire' as const,
-        date: '2024-01-15',
-        title: 'Hired as Software Engineer',
-        description: 'Onboarding completed successfully',
-        moduleLink: '/employees/onboarding/1',
-        details: { department: 'Engineering', manager: 'John Doe' },
-      },
-      {
-        id: 'm2',
-        type: 'probation' as const,
-        date: '2024-04-15',
-        title: 'Probation Completed',
-        description: 'Successfully completed 3-month probation',
-        moduleLink: '/employees/performance/1',
-        details: { rating: 'Exceeds Expectations' },
-      },
-      {
-        id: 'm3',
-        type: 'promotion' as const,
-        date: '2025-01-15',
-        title: 'Promoted to Senior Software Engineer',
-        description: 'Promotion after 1 year of service',
-        moduleLink: '/employees/promotions/1',
-        details: { new_role: 'Senior Software Engineer', increment: '15%' },
-      },
-      {
-        id: 'm4',
-        type: 'performance' as const,
-        date: '2025-06-01',
-        title: 'Performance Review - Q2 2025',
-        description: 'Annual performance review completed',
-        moduleLink: '/performance/reviews/1',
-        details: { rating: '4.5', cycle: 'Q2 2025' },
-      },
-      {
-        id: 'm5',
-        type: 'benefits' as const,
-        date: '2025-07-01',
-        title: 'Enrolled in Medical Insurance',
-        description: 'Company medical insurance enrollment',
-        moduleLink: '/benefits/1',
-        details: { plan: 'Family Plan', provider: 'Jubilee Insurance' },
-      },
-    ],
-    upcomingMilestones: [
-      { id: 'u1', type: 'performance', date: '2025-09-01', title: 'Performance Review - Q3 2025' },
-      { id: 'u2', type: 'benefits', date: '2025-10-01', title: 'Benefits Renewal' },
-    ],
-    activity: [
-      { date: '2025-06-15', text: 'Profile updated', icon: User },
-      { date: '2025-06-10', text: 'Leave request submitted', icon: Calendar },
-      { date: '2025-06-05', text: 'Performance review completed', icon: TrendingUp },
-    ],
-  },
-  {
-    id: '2',
-    name: 'James Ochieng',
-    email: 'james.ochieng@optimum.com',
-    phone: '+254 723 456 789',
-    department: 'Finance',
-    branch: 'Nairobi HQ',
-    role: 'Finance Manager',
-    stage: 'notice_period' as const,
-    startDate: '2020-03-01',
-    employmentType: 'Permanent',
-    milestones: [
-      {
-        id: 'm6',
-        type: 'hire' as const,
-        date: '2020-03-01',
-        title: 'Hired as Finance Analyst',
-        description: 'Onboarding completed',
-        moduleLink: '/employees/onboarding/2',
-        details: { department: 'Finance', manager: 'CEO' },
-      },
-      {
-        id: 'm7',
-        type: 'promotion' as const,
-        date: '2022-03-01',
-        title: 'Promoted to Finance Manager',
-        description: 'Promotion after 2 years',
-        moduleLink: '/employees/promotions/2',
-        details: { new_role: 'Finance Manager', increment: '20%' },
-      },
-      {
-        id: 'm8',
-        type: 'offboarding' as const,
-        date: '2024-07-15',
-        title: 'Offboarding Initiated',
-        description: 'Notice period started. Last day: 2024-08-15',
-        moduleLink: '/employees/offboarding/2',
-        details: { reason: 'Resignation', last_day: '2024-08-15' },
-      },
-    ],
-    upcomingMilestones: [
-      { id: 'u3', type: 'offboarding', date: '2024-08-15', title: 'Last Working Day' },
-    ],
-    activity: [
-      { date: '2024-07-15', text: 'Offboarding initiated', icon: UserX },
-      { date: '2024-07-10', text: 'Resignation submitted', icon: AlertCircle },
-    ],
-  },
-  {
-    id: '3',
-    name: 'Grace Wanjiku',
-    email: 'grace.wanjiku@optimum.com',
-    phone: '+254 734 567 890',
-    department: 'HR',
-    branch: 'Nairobi HQ',
-    role: 'HR Business Partner',
-    stage: 'active' as const,
-    startDate: '2021-06-01',
-    employmentType: 'Permanent',
-    milestones: [
-      {
-        id: 'm9',
-        type: 'hire' as const,
-        date: '2021-06-01',
-        title: 'Hired as HR Coordinator',
-        description: 'Onboarding completed',
-        moduleLink: '/employees/onboarding/3',
-        details: { department: 'HR', manager: 'HR Director' },
-      },
-      {
-        id: 'm10',
-        type: 'promotion' as const,
-        date: '2023-06-01',
-        title: 'Promoted to HR Business Partner',
-        description: 'Promotion after 2 years',
-        moduleLink: '/employees/promotions/3',
-        details: { new_role: 'HR Business Partner', increment: '12%' },
-      },
-      {
-        id: 'm11',
-        type: 'performance' as const,
-        date: '2025-03-01',
-        title: 'Performance Review - Q1 2025',
-        description: 'Quarterly performance review',
-        moduleLink: '/performance/reviews/3',
-        details: { rating: '4.8', cycle: 'Q1 2025' },
-      },
-    ],
-    upcomingMilestones: [
-      { id: 'u4', type: 'promotion', date: '2025-12-01', title: 'Potential promotion review' },
-    ],
-    activity: [
-      { date: '2025-05-20', text: 'Department head meeting attended', icon: Users },
-      { date: '2025-05-15', text: 'Training session completed', icon: Calendar },
-    ],
-  },
-];
+interface Milestone {
+  id: string;
+  type: MilestoneType;
+  date: string;
+  title: string;
+  description: string;
+  moduleLink: string;
+  details?: Record<string, any>;
+}
 
-const mockAnalytics = {
-  avgTimeToPromotion: '1.2 years',
-  avgTenure: '3.8 years',
-  attritionByStage: [
-    { stage: '0-6 months', percentage: 15 },
-    { stage: '6-12 months', percentage: 25 },
-    { stage: '1-3 years', percentage: 35 },
-    { stage: '3+ years', percentage: 25 },
-  ],
-  onboardingCompletionRate: 92,
-  timeToProductivity: '3 months',
-  stageDistribution: [
-    { stage: 'Onboarding', count: 8 },
-    { stage: 'Active', count: 42 },
-    { stage: 'Notice Period', count: 3 },
-    { stage: 'Offboarding Complete', count: 5 },
-  ],
-};
-
-// ============================================
-// STAGE CONFIG
-// ============================================
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  department: string;
+  branch: string;
+  role: string;
+  stage: LifecycleStage;
+  startDate: string;
+  employmentType: string;
+  milestones: Milestone[];
+  upcomingMilestones: { id: string; type: MilestoneType; date: string; title: string }[];
+  activity: { date: string; text: string; icon: React.ElementType }[];
+}
 
 const stageConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   onboarding: {
@@ -261,6 +106,7 @@ const milestoneIcons: Record<string, React.ElementType> = {
   salary: DollarSign,
   leave: CalendarDays,
   offboarding: UserX,
+  payroll: Wallet,
 };
 
 const milestoneColors: Record<string, string> = {
@@ -273,13 +119,232 @@ const milestoneColors: Record<string, string> = {
   salary: 'bg-emerald-50 border-emerald-200 text-emerald-700',
   leave: 'bg-orange-50 border-orange-200 text-orange-700',
   offboarding: 'bg-red-50 border-red-200 text-red-700',
+  payroll: 'bg-cyan-50 border-cyan-200 text-cyan-700',
 };
 
-// ============================================
-// COMPONENTS
-// ============================================
+const mockEmployees: Employee[] = [
+  {
+    id: '1',
+    name: 'Sarah Kimani',
+    email: 'sarah.kimani@optimum.com',
+    phone: '+254 712 345 678',
+    department: 'Engineering',
+    branch: 'Nairobi HQ',
+    role: 'Senior Software Engineer',
+    stage: 'active',
+    startDate: '2024-01-15',
+    employmentType: 'Permanent',
+    milestones: [
+      {
+        id: 'm1',
+        type: 'hire',
+        date: '2024-01-15',
+        title: 'Hired as Software Engineer',
+        description: 'Onboarding completed successfully',
+        moduleLink: '/employees/onboarding/1',
+        details: { department: 'Engineering', manager: 'John Doe' },
+      },
+      {
+        id: 'm2',
+        type: 'probation',
+        date: '2024-04-15',
+        title: 'Probation Completed',
+        description: 'Successfully completed 3-month probation',
+        moduleLink: '/employees/performance/1',
+        details: { rating: 'Exceeds Expectations' },
+      },
+      {
+        id: 'm3',
+        type: 'promotion',
+        date: '2025-01-15',
+        title: 'Promoted to Senior Software Engineer',
+        description: 'Promotion after 1 year of service',
+        moduleLink: '/employees/promotions/1',
+        details: { new_role: 'Senior Software Engineer', increment: '15%' },
+      },
+      {
+        id: 'm4',
+        type: 'performance',
+        date: '2025-06-01',
+        title: 'Performance Review - Q2 2025',
+        description: 'Annual performance review completed',
+        moduleLink: '/performance/reviews/1',
+        details: { rating: '4.5', cycle: 'Q2 2025' },
+      },
+      {
+        id: 'm5',
+        type: 'benefits',
+        date: '2025-07-01',
+        title: 'Enrolled in Medical Insurance',
+        description: 'Company medical insurance enrollment',
+        moduleLink: '/benefits/1',
+        details: { plan: 'Family Plan', provider: 'Jubilee Insurance' },
+      },
+      {
+        id: 'm6',
+        type: 'payroll',
+        date: '2025-05-25',
+        title: 'Payroll Processed - May 2025',
+        description: 'Monthly salary of KES 850,000 processed successfully',
+        moduleLink: '/payroll/history/1',
+        details: { amount: 'KES 850,000', period: 'May 2025', status: 'Success' },
+      },
+      {
+        id: 'm7',
+        type: 'payroll',
+        date: '2025-04-25',
+        title: 'Payroll Failed - April 2025',
+        description: 'Salary processing failed due to bank integration error. Retried and resolved.',
+        moduleLink: '/payroll/history/1',
+        details: { amount: 'KES 850,000', period: 'April 2025', status: 'Failed - Retried' },
+      },
+      {
+        id: 'm8',
+        type: 'salary',
+        date: '2025-06-01',
+        title: 'Salary Adjustment',
+        description: 'Annual increment of 5% applied',
+        moduleLink: '/payroll/history/1',
+        details: { previous: 'KES 810,000', new: 'KES 850,000', reason: 'Annual review' },
+      },
+    ],
+    upcomingMilestones: [
+      { id: 'u1', type: 'performance', date: '2025-09-01', title: 'Performance Review - Q3 2025' },
+      { id: 'u2', type: 'benefits', date: '2025-10-01', title: 'Benefits Renewal' },
+      { id: 'u3', type: 'payroll', date: '2025-06-25', title: 'Payroll Processing - June 2025' },
+    ],
+    activity: [
+      { date: '2025-06-15', text: 'Profile updated', icon: User },
+      { date: '2025-06-10', text: 'Leave request submitted', icon: Calendar },
+      { date: '2025-06-05', text: 'Performance review completed', icon: TrendingUp },
+    ],
+  },
+  {
+    id: '2',
+    name: 'James Ochieng',
+    email: 'james.ochieng@optimum.com',
+    phone: '+254 723 456 789',
+    department: 'Finance',
+    branch: 'Nairobi HQ',
+    role: 'Finance Manager',
+    stage: 'notice_period',
+    startDate: '2020-03-01',
+    employmentType: 'Permanent',
+    milestones: [
+      {
+        id: 'm9',
+        type: 'hire',
+        date: '2020-03-01',
+        title: 'Hired as Finance Analyst',
+        description: 'Onboarding completed',
+        moduleLink: '/employees/onboarding/2',
+        details: { department: 'Finance', manager: 'CEO' },
+      },
+      {
+        id: 'm10',
+        type: 'promotion',
+        date: '2022-03-01',
+        title: 'Promoted to Finance Manager',
+        description: 'Promotion after 2 years',
+        moduleLink: '/employees/promotions/2',
+        details: { new_role: 'Finance Manager', increment: '20%' },
+      },
+      {
+        id: 'm11',
+        type: 'offboarding',
+        date: '2024-07-15',
+        title: 'Offboarding Initiated',
+        description: 'Notice period started. Last day: 2024-08-15',
+        moduleLink: '/employees/offboarding/2',
+        details: { reason: 'Resignation', last_day: '2024-08-15' },
+      },
+      {
+        id: 'm12',
+        type: 'payroll',
+        date: '2024-07-25',
+        title: 'Final Payroll Processed',
+        description: 'Final settlement and last salary processed',
+        moduleLink: '/payroll/history/2',
+        details: { amount: 'KES 950,000', period: 'July 2024', status: 'Final Settlement' },
+      },
+    ],
+    upcomingMilestones: [
+      { id: 'u4', type: 'offboarding', date: '2024-08-15', title: 'Last Working Day' },
+    ],
+    activity: [
+      { date: '2024-07-15', text: 'Offboarding initiated', icon: UserX },
+      { date: '2024-07-10', text: 'Resignation submitted', icon: AlertCircle },
+    ],
+  },
+  {
+    id: '3',
+    name: 'Grace Wanjiku',
+    email: 'grace.wanjiku@optimum.com',
+    phone: '+254 734 567 890',
+    department: 'HR',
+    branch: 'Nairobi HQ',
+    role: 'HR Business Partner',
+    stage: 'active',
+    startDate: '2021-06-01',
+    employmentType: 'Permanent',
+    milestones: [
+      {
+        id: 'm13',
+        type: 'hire',
+        date: '2021-06-01',
+        title: 'Hired as HR Coordinator',
+        description: 'Onboarding completed',
+        moduleLink: '/employees/onboarding/3',
+        details: { department: 'HR', manager: 'HR Director' },
+      },
+      {
+        id: 'm14',
+        type: 'promotion',
+        date: '2023-06-01',
+        title: 'Promoted to HR Business Partner',
+        description: 'Promotion after 2 years',
+        moduleLink: '/employees/promotions/3',
+        details: { new_role: 'HR Business Partner', increment: '12%' },
+      },
+      {
+        id: 'm15',
+        type: 'performance',
+        date: '2025-03-01',
+        title: 'Performance Review - Q1 2025',
+        description: 'Quarterly performance review',
+        moduleLink: '/performance/reviews/3',
+        details: { rating: '4.8', cycle: 'Q1 2025' },
+      },
+    ],
+    upcomingMilestones: [
+      { id: 'u5', type: 'promotion', date: '2025-12-01', title: 'Potential promotion review' },
+    ],
+    activity: [
+      { date: '2025-05-20', text: 'Department head meeting attended', icon: Users },
+      { date: '2025-05-15', text: 'Training session completed', icon: Calendar },
+    ],
+  },
+];
 
-// 1. Employee List
+const mockAnalytics = {
+  avgTimeToPromotion: '1.2 years',
+  avgTenure: '3.8 years',
+  attritionByStage: [
+    { stage: '0-6 months', percentage: 15 },
+    { stage: '6-12 months', percentage: 25 },
+    { stage: '1-3 years', percentage: 35 },
+    { stage: '3+ years', percentage: 25 },
+  ],
+  onboardingCompletionRate: 92,
+  timeToProductivity: '3 months',
+  stageDistribution: [
+    { stage: 'Onboarding', count: 8 },
+    { stage: 'Active', count: 42 },
+    { stage: 'Notice Period', count: 3 },
+    { stage: 'Offboarding Complete', count: 5 },
+  ],
+};
+
 function EmployeeList({ employees, onSelect }: any) {
   if (!employees || employees.length === 0) {
     return (
@@ -305,7 +370,7 @@ function EmployeeList({ employees, onSelect }: any) {
             </tr>
           </thead>
           <tbody>
-            {employees.map((emp: any) => {
+            {employees.map((emp: Employee) => {
               const config = stageConfig[emp.stage];
               const Icon = config?.icon || Clock;
               return (
@@ -347,7 +412,6 @@ function EmployeeList({ employees, onSelect }: any) {
   );
 }
 
-// 2. Milestone Modal
 function MilestoneModal({ isOpen, onClose, milestone }: any) {
   if (!isOpen || !milestone) return null;
 
@@ -395,7 +459,6 @@ function MilestoneModal({ isOpen, onClose, milestone }: any) {
   );
 }
 
-// 3. Employee Timeline
 function EmployeeTimeline({ employee, onBack }: any) {
   const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -516,7 +579,6 @@ function EmployeeTimeline({ employee, onBack }: any) {
   );
 }
 
-// 4. Lifecycle Analytics
 function LifecycleAnalytics({ data }: any) {
   const metrics = [
     { label: 'Avg Time to Promotion', value: data?.avgTimeToPromotion || 'N/A', icon: TrendingUp },
@@ -568,8 +630,7 @@ function LifecycleAnalytics({ data }: any) {
   );
 }
 
-// 5. Employee Profile Card (Enhanced)
-function EmployeeProfileCard({ employee }: { employee: any }) {
+function EmployeeProfileCard({ employee }: { employee: Employee }) {
   if (!employee) return null;
 
   return (
@@ -628,7 +689,6 @@ function EmployeeProfileCard({ employee }: { employee: any }) {
   );
 }
 
-// 6. Upcoming Milestones
 function UpcomingMilestones({ milestones }: { milestones: any[] }) {
   if (!milestones || milestones.length === 0) {
     return (
@@ -676,7 +736,6 @@ function UpcomingMilestones({ milestones }: { milestones: any[] }) {
   );
 }
 
-// 7. Activity Feed
 function ActivityFeed({ activities }: { activities: any[] }) {
   if (!activities || activities.length === 0) {
     return (
@@ -710,7 +769,6 @@ function ActivityFeed({ activities }: { activities: any[] }) {
   );
 }
 
-// 8. Stage Distribution
 function StageDistribution({ data }: { data: any[] }) {
   const total = data.reduce((sum, d) => sum + d.count, 0);
   const colors: Record<string, string> = {
@@ -750,7 +808,6 @@ function StageDistribution({ data }: { data: any[] }) {
   );
 }
 
-// 9. Export Dropdown
 function ExportDropdown({ data }: { data: any }) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -794,7 +851,6 @@ function ExportDropdown({ data }: { data: any }) {
   );
 }
 
-// 10. Advanced Filters
 function AdvancedFilters({
   searchTerm,
   setSearchTerm,
@@ -865,10 +921,6 @@ function AdvancedFilters({
     </div>
   );
 }
-
-// ============================================
-// MAIN PAGE
-// ============================================
 
 export default function EmployeeLifecyclePage() {
   const [viewMode, setViewMode] = useState<'list' | 'timeline' | 'analytics'>('list');
