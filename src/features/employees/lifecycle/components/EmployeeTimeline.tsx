@@ -189,3 +189,4 @@ export const EmployeeTimeline = ({ employee }: EmployeeTimelineProps) => {
     </div>
   );
 };
+

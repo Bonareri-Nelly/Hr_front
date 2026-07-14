@@ -69,7 +69,10 @@ export default function EmployeeFinancialProfile() {
       text: newNoteText.trim()
     };
 
-    activeProfile.notes = [newNote, ...activeProfile.notes];
+    setActiveProfile({
+      ...activeProfile,
+      notes: [newNote, ...activeProfile.notes],
+    });
     setNewNoteText('');
   };
 
@@ -336,3 +339,5 @@ export default function EmployeeFinancialProfile() {
 
 
               
+
+
