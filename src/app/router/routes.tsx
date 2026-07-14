@@ -1,4 +1,3 @@
-// src/app/router/routes.tsx
 import { lazy, type ComponentType, type LazyExoticComponent } from "react";
 import { navigationItems } from "../../constants/navigation";
 import ModulePlaceholderPage from "../../components/shared/ModulePlaceholderPage";
@@ -12,8 +11,7 @@ export type AppRoute = NavigationItem & {
 const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>>> = {
   "executive-dashboard": lazy(() => import("../../features/dashboards/executive")),
   "reports-analytics": lazy(() => import("../../features/reports")),
-  "branch-reports": lazy(() => import("../../features/reports-branch")),  
-  
+  "branch-reports": lazy(() => import("../../features/reports-branch")),
   "ai-assistant": lazy(() => import("../../features/ai-assistant")),
   "security-audit": lazy(() => import("../../features/security-audit")),
   "user-profile": lazy(() => import("../../features/user-profile")),
@@ -22,20 +20,21 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "employee-lifecycle": lazy(() => import("../../features/employees/lifecycle")),
   "contract-management": lazy(() => import("../../features/contracts")),
   "performance-oversight": lazy(() => import("../../features/performance")),
-  
-  "offboarding": lazy(() => 
-    import("../../features/employees/offboarding").then((module) => ({
-      default: module.default || module.OffboardingDashboard
-    }))
-  ),
-  
+  "offboarding": lazy(() => import("../../features/employees/offboarding")),
   "onboarding": lazy(() => import("../../features/employees/onboarding")),
   "attendance-management": lazy(() => import("../../features/attendance/management")),
   "leave-workflow": lazy(() => import("../../modules/leave-workflow")),
   "leave-approvals": lazy(() => import("../../features/leave/approvals")),
   "disciplinary-cases": lazy(() => import("../../features/disciplinary/cases")),
   "disciplinary-management": lazy(() => import("../../features/disciplinary/management")),
-  "announcements-training": lazy(() => import("../../features/training/announcements")),
+  
+  // FIX: Use the correct import path and ensure default export
+  "announcements-training": lazy(() => 
+    import("../../features/training/announcements/pages/AnnouncementsTrainingPage")
+      .then((module) => ({
+        default: module.default || module.AnnouncementsTrainingPage
+      }))
+  ),
   
   "benefits-management": lazy(() => 
     import("../../features/benefits/management").then((module) => ({
@@ -63,7 +62,15 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "my-performance": lazy(() => import("../../features/employee-self-service/performance")),
   "my-benefits": lazy(() => import("../../features/employee-self-service/benefits")),
   "my-documents": lazy(() => import("../../features/employee-self-service/documents")),
-  "my-announcements": lazy(() => import("../../features/employee-self-service/announcements")),
+  
+  // FIX: Employee self-service announcements
+  "my-announcements": lazy(() => 
+    import("../../features/employee-self-service/announcements/pages/MyAnnouncementsPage")
+      .then((module) => ({
+        default: module.default
+      }))
+  ),
+  
   "complaints": lazy(() => import("../../features/complaints")),
 };
 

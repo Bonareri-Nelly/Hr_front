@@ -1,8 +1,8 @@
-import type { ElementType } from 'react';
+import { ElementType } from 'react';
 
 interface MetricCardProps {
   title: string;
-  value: string;
+  value: string | number;
   change: string;
   icon: ElementType;
   color: 'blue' | 'green' | 'orange' | 'purple';
@@ -21,11 +21,11 @@ export const MetricCard = ({ title, value, change, icon: Icon, color }: MetricCa
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
       <div className="flex justify-between items-start">
         <div>
-          <p className="text-xs font-medium text-gray-500">{title}</p>  {/* was text-sm */}
-          <p className="text-xl font-bold text-gray-900 mt-1">{value}</p>  {/* was text-2xl */}
+          <p className="text-xs font-medium text-gray-500">{title}</p>
+          <p className="text-xl font-bold text-gray-900 mt-1">{value}</p>
         </div>
-        <div className={`p-2 rounded-full ${colorMap[color]}`}>  {/* was p-3 */}
-          <Icon className="w-4 h-4" />  {/* was w-5 h-5 */}
+        <div className={`p-2 rounded-full ${colorMap[color]}`}>
+          <Icon className="w-4 h-4" />
         </div>
       </div>
       <p className={`text-xs font-medium mt-2 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>

@@ -1,10 +1,8 @@
-export const ProgressSection = () => {
-  const steps = [
-    { label: 'Gross payroll validation', value: 86 },
-    { label: 'Statutory deductions', value: 72 },
-    { label: 'Payslip publishing', value: 41 },
-  ];
+interface ProgressSectionProps {
+  steps: { label: string; value: number }[];
+}
 
+export const ProgressSection = ({ steps }: ProgressSectionProps) => {
   return (
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm h-full">
       <h3 className="font-semibold text-gray-800 text-sm mb-3">Current Run</h3>
@@ -15,7 +13,7 @@ export const ProgressSection = () => {
               <span className="text-gray-600">{step.label}</span>
               <span className="font-medium text-gray-800">{step.value}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">  {/* was h-2 */}
+            <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
               <div
                 className="bg-blue-600 h-1.5 rounded-full transition-all duration-500"
                 style={{ width: `${step.value}%` }}
