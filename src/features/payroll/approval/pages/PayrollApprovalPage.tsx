@@ -27,7 +27,80 @@ import {
   Edit,
   Award,
   Zap,
+  Plus,
+  UserPlus,
+  UserMinus,
+  Briefcase,
+  Building2,
+  Trash2,
+  Copy,
+  Save,
+  X,
+  Filter,
+  LayoutGrid,
+  List,
+  BarChart3,
+  PieChart,
+  CalendarDays,
+  Clock as ClockIcon,
+  User,
+  Globe,
+  Link,
+  Shield,
+  Settings2,
+  Users2,
+  TrendingDown,
+  BadgeCheck,
+  Sparkles,
+  Receipt,
+  History,
+  GitBranch,
+  GitCommit,
+  GitPullRequest,
+  UserCheck,
+  UserX,
+  FileCheck,
+  FileX,
+  ClockArrowUp,
+  ClockArrowDown,
+  Timer,
+  Workflow,
+  Pencil,
+  MoreHorizontal,
 } from "lucide-react";
+
+// ==================== INTERFACES ====================
+interface DeductionType {
+  id: string;
+  name: string;
+  code: string;
+  category: "Mandatory" | "Voluntary" | "Statutory" | "Benefit";
+  description: string;
+  isPercentage: boolean;
+  rate: number;
+  cap?: number;
+  isActive: boolean;
+  isPredefined: boolean;
+  applicableTo: ("All" | "Full-time" | "Part-time" | "Contract" | "Intern")[];
+  calculationMethod: "Percentage" | "Fixed" | "Slab";
+  taxTreatment: "Pre-tax" | "Post-tax" | "Taxable";
+  effectiveDate: string;
+  expiryDate?: string;
+}
+
+interface EmployeeDeduction {
+  id: string;
+  employeeId: string;
+  deductionTypeId: string;
+  amount: number;
+  isFixed: boolean;
+  customRate?: number;
+  startDate: string;
+  endDate?: string;
+  isActive: boolean;
+  notes?: string;
+  isMandatory: boolean;
+}
 
 interface Employee {
   id: string;
@@ -36,9 +109,28 @@ interface Employee {
   department: string;
   position: string;
   joinDate: string;
+  employmentType: "Full-time" | "Part-time" | "Contract" | "Intern";
+  salary: number;
   avatar?: string;
   phone?: string;
   location?: string;
+  deductions?: EmployeeDeduction[];
+}
+
+interface PayrollHistory {
+  id: string;
+  payrollId: string;
+  action: "Created" | "Submitted" | "Approved" | "Rejected" | "Paid" | "Cancelled" | "Modified" | "Reviewed";
+  timestamp: string;
+  user: string;
+  userRole: string;
+  notes?: string;
+  changes?: {
+    field: string;
+    oldValue: any;
+    newValue: any;
+  }[];
+  status: string;
 }
 
 interface PayrollItem {
@@ -67,6 +159,8 @@ interface PayrollItem {
     loan: number;
     other: number;
   };
+  employeeDeductions: EmployeeDeduction[];
+  totalEmployeeDeductions: number;
   overtime: {
     hours: number;
     rate: number;
@@ -99,34 +193,151 @@ interface PayrollItem {
   reviewedBy?: string;
   reviewDate?: string;
   attachments?: string[];
-  history: {
-    action: string;
-    date: string;
-    user: string;
-    note?: string;
-  }[];
+  history: PayrollHistory[];
 }
 
-interface PayrollSummary {
-  totalEmployees: number;
-  totalGrossPay: number;
-  totalNetPay: number;
-  totalDeductions: number;
-  totalBonuses: number;
-  averageSalary: number;
-  departments: {
-    name: string;
-    count: number;
-    totalPay: number;
-  }[];
-  statusBreakdown: {
-    status: string;
-    count: number;
-    amount: number;
-  }[];
-}
+// ==================== PREDEFINED DEDUCTIONS ====================
+const PREDEFINED_DEDUCTIONS: DeductionType[] = [
+  {
+    id: "ded1",
+    name: "Federal Income Tax",
+    code: "FIT",
+    category: "Statutory",
+    description: "Federal income tax withholding based on IRS guidelines",
+    isPercentage: true,
+    rate: 15,
+    isActive: true,
+    isPredefined: true,
+    applicableTo: ["All"],
+    calculationMethod: "Percentage",
+    taxTreatment: "Pre-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded2",
+    name: "State Income Tax",
+    code: "SIT",
+    category: "Statutory",
+    description: "State income tax withholding",
+    isPercentage: true,
+    rate: 5,
+    isActive: true,
+    isPredefined: true,
+    applicableTo: ["All"],
+    calculationMethod: "Percentage",
+    taxTreatment: "Pre-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded3",
+    name: "Social Security (FICA)",
+    code: "SS",
+    category: "Statutory",
+    description: "Social Security and Medicare contributions",
+    isPercentage: true,
+    rate: 6.2,
+    cap: 160200,
+    isActive: true,
+    isPredefined: true,
+    applicableTo: ["All"],
+    calculationMethod: "Slab",
+    taxTreatment: "Pre-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded4",
+    name: "Medicare",
+    code: "MED",
+    category: "Statutory",
+    description: "Medicare contribution",
+    isPercentage: true,
+    rate: 1.45,
+    cap: 200000,
+    isActive: true,
+    isPredefined: true,
+    applicableTo: ["All"],
+    calculationMethod: "Slab",
+    taxTreatment: "Pre-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded5",
+    name: "Pension Plan",
+    code: "PENS",
+    category: "Benefit",
+    description: "Company pension plan contribution",
+    isPercentage: true,
+    rate: 7,
+    isActive: true,
+    isPredefined: true,
+    applicableTo: ["Full-time", "Contract"],
+    calculationMethod: "Percentage",
+    taxTreatment: "Pre-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded6",
+    name: "Health Insurance",
+    code: "HI",
+    category: "Benefit",
+    description: "Health insurance premium",
+    isPercentage: false,
+    rate: 350,
+    isActive: true,
+    isPredefined: true,
+    applicableTo: ["Full-time"],
+    calculationMethod: "Fixed",
+    taxTreatment: "Pre-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded7",
+    name: "Life Insurance",
+    code: "LIFE",
+    category: "Benefit",
+    description: "Group life insurance",
+    isPercentage: false,
+    rate: 75,
+    isActive: true,
+    isPredefined: false,
+    applicableTo: ["All"],
+    calculationMethod: "Fixed",
+    taxTreatment: "Post-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded8",
+    name: "Union Dues",
+    code: "UNION",
+    category: "Voluntary",
+    description: "Labor union membership dues",
+    isPercentage: false,
+    rate: 50,
+    isActive: true,
+    isPredefined: false,
+    applicableTo: ["All"],
+    calculationMethod: "Fixed",
+    taxTreatment: "Post-tax",
+    effectiveDate: "2024-01-01",
+  },
+  {
+    id: "ded9",
+    name: "Charitable Contributions",
+    code: "CHAR",
+    category: "Voluntary",
+    description: "Employee charitable donations",
+    isPercentage: true,
+    rate: 1,
+    isActive: true,
+    isPredefined: false,
+    applicableTo: ["All"],
+    calculationMethod: "Percentage",
+    taxTreatment: "Post-tax",
+    effectiveDate: "2024-01-01",
+  },
+];
 
-export default function PayrollApprovalPage() {
+export default function EnhancedPayrollApprovalPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [filterDepartment, setFilterDepartment] = useState("All");
@@ -141,7 +352,20 @@ export default function PayrollApprovalPage() {
     direction: "asc" | "desc";
   } | null>(null);
 
-  // Sample employees data
+  const [showDeductionManager, setShowDeductionManager] = useState(false);
+  const [showEmployeeDeductionModal, setShowEmployeeDeductionModal] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
+  const [deductionTypes] = useState<DeductionType[]>(PREDEFINED_DEDUCTIONS);
+  const [editingEmployeeDeductions, setEditingEmployeeDeductions] = useState<EmployeeDeduction[]>([]);
+  
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedHistoryPayrollId, setSelectedHistoryPayrollId] = useState<string | null>(null);
+  const [historyFilter, setHistoryFilter] = useState("All");
+  
+  // Toast notification state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  // ==================== SAMPLE EMPLOYEES WITH DEDUCTIONS ====================
   const employees: Employee[] = [
     {
       id: "emp1",
@@ -150,8 +374,42 @@ export default function PayrollApprovalPage() {
       department: "Engineering",
       position: "Senior Developer",
       joinDate: "2020-03-15",
+      employmentType: "Full-time",
+      salary: 7500,
       phone: "+1 (555) 123-4567",
       location: "San Francisco, CA",
+      deductions: [
+        {
+          id: "ed1",
+          employeeId: "emp1",
+          deductionTypeId: "ded1",
+          amount: 1125,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed2",
+          employeeId: "emp1",
+          deductionTypeId: "ded5",
+          amount: 525,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed3",
+          employeeId: "emp1",
+          deductionTypeId: "ded7",
+          amount: 75,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
     {
       id: "emp2",
@@ -160,8 +418,52 @@ export default function PayrollApprovalPage() {
       department: "Engineering",
       position: "Team Lead",
       joinDate: "2019-06-20",
+      employmentType: "Full-time",
+      salary: 8500,
       phone: "+1 (555) 234-5678",
       location: "New York, NY",
+      deductions: [
+        {
+          id: "ed4",
+          employeeId: "emp2",
+          deductionTypeId: "ded1",
+          amount: 1275,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed5",
+          employeeId: "emp2",
+          deductionTypeId: "ded6",
+          amount: 350,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed6",
+          employeeId: "emp2",
+          deductionTypeId: "ded7",
+          amount: 75,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+        {
+          id: "ed7",
+          employeeId: "emp2",
+          deductionTypeId: "ded8",
+          amount: 50,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
     {
       id: "emp3",
@@ -170,8 +472,32 @@ export default function PayrollApprovalPage() {
       department: "Marketing",
       position: "Marketing Manager",
       joinDate: "2021-01-10",
+      employmentType: "Full-time",
+      salary: 6200,
       phone: "+1 (555) 345-6789",
       location: "Austin, TX",
+      deductions: [
+        {
+          id: "ed8",
+          employeeId: "emp3",
+          deductionTypeId: "ded1",
+          amount: 930,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed9",
+          employeeId: "emp3",
+          deductionTypeId: "ded7",
+          amount: 75,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
     {
       id: "emp4",
@@ -180,8 +506,32 @@ export default function PayrollApprovalPage() {
       department: "Sales",
       position: "Sales Executive",
       joinDate: "2022-07-05",
+      employmentType: "Full-time",
+      salary: 5500,
       phone: "+1 (555) 456-7890",
       location: "Chicago, IL",
+      deductions: [
+        {
+          id: "ed10",
+          employeeId: "emp4",
+          deductionTypeId: "ded1",
+          amount: 825,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed11",
+          employeeId: "emp4",
+          deductionTypeId: "ded9",
+          amount: 55,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
     {
       id: "emp5",
@@ -190,8 +540,32 @@ export default function PayrollApprovalPage() {
       department: "HR",
       position: "HR Coordinator",
       joinDate: "2021-09-12",
+      employmentType: "Full-time",
+      salary: 4800,
       phone: "+1 (555) 567-8901",
       location: "Seattle, WA",
+      deductions: [
+        {
+          id: "ed12",
+          employeeId: "emp5",
+          deductionTypeId: "ded1",
+          amount: 720,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed13",
+          employeeId: "emp5",
+          deductionTypeId: "ded7",
+          amount: 75,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
     {
       id: "emp6",
@@ -200,8 +574,32 @@ export default function PayrollApprovalPage() {
       department: "Finance",
       position: "Accountant",
       joinDate: "2020-11-03",
+      employmentType: "Full-time",
+      salary: 6000,
       phone: "+1 (555) 678-9012",
       location: "Boston, MA",
+      deductions: [
+        {
+          id: "ed14",
+          employeeId: "emp6",
+          deductionTypeId: "ded1",
+          amount: 900,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed15",
+          employeeId: "emp6",
+          deductionTypeId: "ded8",
+          amount: 50,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
     {
       id: "emp7",
@@ -210,8 +608,42 @@ export default function PayrollApprovalPage() {
       department: "Design",
       position: "UI/UX Designer",
       joinDate: "2022-02-28",
+      employmentType: "Full-time",
+      salary: 5800,
       phone: "+1 (555) 789-0123",
       location: "Los Angeles, CA",
+      deductions: [
+        {
+          id: "ed16",
+          employeeId: "emp7",
+          deductionTypeId: "ded1",
+          amount: 870,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed17",
+          employeeId: "emp7",
+          deductionTypeId: "ded7",
+          amount: 75,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+        {
+          id: "ed18",
+          employeeId: "emp7",
+          deductionTypeId: "ded9",
+          amount: 58,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
     {
       id: "emp8",
@@ -220,15 +652,65 @@ export default function PayrollApprovalPage() {
       department: "Operations",
       position: "Operations Manager",
       joinDate: "2018-08-14",
+      employmentType: "Full-time",
+      salary: 7200,
       phone: "+1 (555) 890-1234",
       location: "Denver, CO",
+      deductions: [
+        {
+          id: "ed19",
+          employeeId: "emp8",
+          deductionTypeId: "ded1",
+          amount: 1080,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed20",
+          employeeId: "emp8",
+          deductionTypeId: "ded5",
+          amount: 504,
+          isFixed: false,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: true,
+        },
+        {
+          id: "ed21",
+          employeeId: "emp8",
+          deductionTypeId: "ded7",
+          amount: 75,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+        {
+          id: "ed22",
+          employeeId: "emp8",
+          deductionTypeId: "ded8",
+          amount: 50,
+          isFixed: true,
+          startDate: "2024-01-01",
+          isActive: true,
+          isMandatory: false,
+        },
+      ],
     },
   ];
 
-  // Generate payroll records
+  // ==================== GENERATE PAYROLL RECORDS ====================
   const generatePayrollRecords = (): PayrollItem[] => {
     return employees.map((emp, index) => {
-      const baseSalary = [7500, 8500, 6200, 5500, 4800, 6000, 5800, 7200][index % 8];
+      const baseSalary = emp.salary;
+      
+      const empDeductions = emp.deductions || [];
+      const totalEmpDeductions = empDeductions
+        .filter(d => d.isActive)
+        .reduce((sum, d) => sum + d.amount, 0);
+
       const housing = baseSalary * 0.2;
       const transport = baseSalary * 0.08;
       const medical = baseSalary * 0.05;
@@ -249,7 +731,13 @@ export default function PayrollApprovalPage() {
 
       const allowances = { housing, transport, medical, education, others };
       const bonuses = { performance, attendance, project, holiday, other: 0 };
-      const deductions = { tax, pension, insurance, loan, other: otherDed };
+      const deductions = { 
+        tax, 
+        pension, 
+        insurance, 
+        loan, 
+        other: otherDed + totalEmpDeductions
+      };
       const grossPay = baseSalary + Object.values(allowances).reduce((a, b) => a + b, 0) +
         Object.values(bonuses).reduce((a, b) => a + b, 0) + overtimeAmount;
       const totalDeductions = Object.values(deductions).reduce((a, b) => a + b, 0);
@@ -264,6 +752,62 @@ export default function PayrollApprovalPage() {
         "Bank Transfer", "Bank Transfer", "Bank Transfer", "Check"
       ];
 
+      const history: PayrollHistory[] = [
+        {
+          id: `hist${index}1`,
+          payrollId: `pay${String(index + 1).padStart(3, '0')}`,
+          action: "Created",
+          timestamp: `2026-03-${String(28 - index % 5).padStart(2, '0')}T10:00:00`,
+          user: "System",
+          userRole: "System",
+          status: "Draft",
+        },
+        ...(statuses[index % statuses.length] !== "Draft" ? [{
+          id: `hist${index}2`,
+          payrollId: `pay${String(index + 1).padStart(3, '0')}`,
+          action: "Submitted" as const,
+          timestamp: `2026-03-${String(29 - index % 4).padStart(2, '0')}T10:30:00`,
+          user: emp.name,
+          userRole: "Employee",
+          status: "Pending",
+          notes: "Payroll submitted for approval",
+        }] : []),
+        ...(statuses[index % statuses.length] === "Approved" ? [{
+          id: `hist${index}3`,
+          payrollId: `pay${String(index + 1).padStart(3, '0')}`,
+          action: "Approved" as const,
+          timestamp: `2026-03-${String(30 - index % 3).padStart(2, '0')}T14:30:00`,
+          user: "John Manager",
+          userRole: "Manager",
+          status: "Approved",
+          notes: "Approved with standard deductions",
+          changes: [
+            {
+              field: "status",
+              oldValue: "Pending",
+              newValue: "Approved",
+            },
+          ],
+        }] : []),
+        ...(statuses[index % statuses.length] === "Rejected" ? [{
+          id: `hist${index}3`,
+          payrollId: `pay${String(index + 1).padStart(3, '0')}`,
+          action: "Rejected" as const,
+          timestamp: `2026-03-${String(30 - index % 3).padStart(2, '0')}T14:30:00`,
+          user: "John Manager",
+          userRole: "Manager",
+          status: "Rejected",
+          notes: "Needs review of overtime calculations",
+          changes: [
+            {
+              field: "status",
+              oldValue: "Pending",
+              newValue: "Rejected",
+            },
+          ],
+        }] : []),
+      ];
+
       return {
         id: `pay${String(index + 1).padStart(3, '0')}`,
         employeeId: emp.id,
@@ -272,6 +816,8 @@ export default function PayrollApprovalPage() {
         allowances,
         bonuses,
         deductions,
+        employeeDeductions: empDeductions,
+        totalEmployeeDeductions: totalEmpDeductions,
         overtime: {
           hours: overtimeHours,
           rate: overtimeRate,
@@ -303,38 +849,27 @@ export default function PayrollApprovalPage() {
         notes: index % 3 === 0 ? "Special consideration for performance bonus" : undefined,
         reviewedBy: index % 2 === 0 ? "HR Manager" : undefined,
         reviewDate: index % 2 === 0 ? `2026-03-${String(27 - index % 4).padStart(2, '0')}T11:00:00` : undefined,
-        history: [
-          {
-            action: "Created",
-            date: `2026-03-${String(28 - index % 5).padStart(2, '0')}T10:00:00`,
-            user: "System",
-          },
-          ...(statuses[index % statuses.length] !== "Draft" ? [{
-            action: "Submitted",
-            date: `2026-03-${String(29 - index % 4).padStart(2, '0')}T10:30:00`,
-            user: emp.name,
-          }] : []),
-          ...(statuses[index % statuses.length] === "Approved" ? [{
-            action: "Approved",
-            date: `2026-03-${String(30 - index % 3).padStart(2, '0')}T14:30:00`,
-            user: "John Manager",
-            note: "Approved with standard deductions",
-          }] : []),
-        ],
+        history,
       };
     });
   };
 
   const [payrollData, setPayrollData] = useState<PayrollItem[]>(generatePayrollRecords());
 
-  // Calculate summary statistics
-  const getSummary = (): PayrollSummary => {
+  // ==================== TOAST NOTIFICATION ====================
+  const showToast = (message: string, type: "success" | "error" | "info") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // ==================== SUMMARY CALCULATIONS ====================
+  const getSummary = () => {
     const totalEmployees = payrollData.length;
     const totalGrossPay = payrollData.reduce((sum, r) => sum + r.grossPay, 0);
     const totalNetPay = payrollData.reduce((sum, r) => sum + r.netPay, 0);
     const totalDeductions = payrollData.reduce((sum, r) => sum + Object.values(r.deductions).reduce((a, b) => a + b, 0), 0);
     const totalBonuses = payrollData.reduce((sum, r) => sum + Object.values(r.bonuses).reduce((a, b) => a + b, 0), 0);
-    const averageSalary = totalGrossPay / totalEmployees;
+    const totalEmployeeDeductions = payrollData.reduce((sum, r) => sum + r.totalEmployeeDeductions, 0);
 
     const deptMap = new Map<string, { count: number; totalPay: number }>();
     payrollData.forEach(r => {
@@ -375,7 +910,7 @@ export default function PayrollApprovalPage() {
       totalNetPay,
       totalDeductions,
       totalBonuses,
-      averageSalary,
+      totalEmployeeDeductions,
       departments,
       statusBreakdown,
     };
@@ -383,9 +918,11 @@ export default function PayrollApprovalPage() {
 
   const summary = getSummary();
 
+  // ==================== HELPER FUNCTIONS ====================
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Approved":
+      case "Paid":
         return "bg-green-100 text-green-800 border-green-200";
       case "Rejected":
         return "bg-red-100 text-red-800 border-red-200";
@@ -395,8 +932,6 @@ export default function PayrollApprovalPage() {
         return "bg-blue-100 text-blue-800 border-blue-200";
       case "Draft":
         return "bg-gray-100 text-gray-800 border-gray-200";
-      case "Paid":
-        return "bg-purple-100 text-purple-800 border-purple-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -417,6 +952,25 @@ export default function PayrollApprovalPage() {
         return <Edit className="w-4 h-4" />;
       default:
         return null;
+    }
+  };
+
+  const getActionIcon = (action: string) => {
+    switch (action) {
+      case "Approved":
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
+      case "Rejected":
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case "Submitted":
+        return <Send className="w-4 h-4 text-blue-600" />;
+      case "Created":
+        return <Plus className="w-4 h-4 text-slate-600" />;
+      case "Paid":
+        return <DollarSign className="w-4 h-4 text-purple-600" />;
+      case "Modified":
+        return <Edit className="w-4 h-4 text-orange-600" />;
+      default:
+        return <Clock className="w-4 h-4 text-slate-600" />;
     }
   };
 
@@ -446,8 +1000,13 @@ export default function PayrollApprovalPage() {
     });
   };
 
+  const getStatusCount = (status: string) => {
+    return payrollData.filter(r => r.status === status).length;
+  };
+
   const departments = ["All", ...new Set(payrollData.map((r) => r.employee.department))];
 
+  // ==================== FILTER AND SORT ====================
   const filteredRecords = payrollData.filter((record) => {
     const matchesSearch = record.employee.name
       .toLowerCase()
@@ -461,7 +1020,6 @@ export default function PayrollApprovalPage() {
     return matchesSearch && matchesStatus && matchesDepartment;
   });
 
-  // Sort records
   const sortedRecords = [...filteredRecords];
   if (sortConfig) {
     sortedRecords.sort((a, b) => {
@@ -505,50 +1063,232 @@ export default function PayrollApprovalPage() {
     });
   };
 
+  // ==================== APPROVAL HANDLERS ====================
   const handleApprove = (id: string) => {
     setSelectedForAction(id);
+    setApprovalNote("");
     setShowApprovalModal(true);
   };
 
   const handleConfirmApproval = (approved: boolean) => {
     if (selectedForAction) {
-      setPayrollData(prev =>
-        prev.map(record =>
-          record.id === selectedForAction
-            ? {
-                ...record,
-                status: approved ? "Approved" : "Rejected",
-                approvedDate: approved ? new Date().toISOString() : undefined,
-                approvedBy: approved ? "Current User" : undefined,
-                history: [
-                  ...record.history,
-                  {
-                    action: approved ? "Approved" : "Rejected",
-                    date: new Date().toISOString(),
-                    user: "Current User",
-                    note: approvalNote || undefined,
-                  },
-                ],
-              }
-            : record
-        )
-      );
+      const record = payrollData.find(r => r.id === selectedForAction);
+      if (record) {
+        const newStatus = approved ? "Approved" : "Rejected";
+        const newHistory: PayrollHistory = {
+          id: `hist${Date.now()}`,
+          payrollId: selectedForAction,
+          action: approved ? "Approved" : "Rejected",
+          timestamp: new Date().toISOString(),
+          user: "Current User",
+          userRole: "Approver",
+          status: newStatus,
+          notes: approvalNote || undefined,
+          changes: [
+            {
+              field: "status",
+              oldValue: record.status,
+              newValue: newStatus,
+            },
+          ],
+        };
+
+        setPayrollData(prev =>
+          prev.map(r =>
+            r.id === selectedForAction
+              ? {
+                  ...r,
+                  status: newStatus,
+                  approvedDate: approved ? new Date().toISOString() : undefined,
+                  approvedBy: approved ? "Current User" : undefined,
+                  history: [...r.history, newHistory],
+                }
+              : r
+          )
+        );
+        
+        showToast(
+          `Payroll ${approved ? "approved" : "rejected"} successfully for ${record.employee.name}`,
+          approved ? "success" : "error"
+        );
+      }
       setShowApprovalModal(false);
       setApprovalNote("");
       setSelectedForAction(null);
     }
   };
 
-  const getStatusCount = (status: string) => {
-    return payrollData.filter(r => r.status === status).length;
+  // ==================== DEDUCTION HANDLERS ====================
+  const getEmployeeTotalDeductions = (employeeId: string): number => {
+    const emp = employees.find(e => e.id === employeeId);
+    if (!emp || !emp.deductions) return 0;
+    return emp.deductions
+      .filter(d => d.isActive)
+      .reduce((sum, d) => sum + d.amount, 0);
   };
 
-  // Selected record for detail view
-  const selectedRecordData = payrollData.find(r => r.id === selectedRecord);
+  const getEmployeeDeductionDetails = (employeeId: string): EmployeeDeduction[] => {
+    const emp = employees.find(e => e.id === employeeId);
+    return emp?.deductions?.filter(d => d.isActive) || [];
+  };
 
+  const handleOpenEmployeeDeductions = (employeeId: string) => {
+    setSelectedEmployeeId(employeeId);
+    const emp = employees.find(e => e.id === employeeId);
+    setEditingEmployeeDeductions(emp?.deductions || []);
+    setShowEmployeeDeductionModal(true);
+  };
+
+  const handleSaveEmployeeDeductions = () => {
+    if (selectedEmployeeId) {
+      // Update the employee's deductions
+      const updatedEmployees = employees.map(emp => {
+        if (emp.id === selectedEmployeeId) {
+          return { ...emp, deductions: editingEmployeeDeductions };
+        }
+        return emp;
+      });
+      // Regenerate payroll data with new deductions
+      const newPayrollData = generatePayrollRecords();
+      setPayrollData(newPayrollData);
+      setShowEmployeeDeductionModal(false);
+      showToast("Employee deductions saved successfully!", "success");
+    }
+  };
+
+  const handleToggleDeductionForEmployee = (deductionTypeId: string, checked: boolean) => {
+    const deductionType = deductionTypes.find(d => d.id === deductionTypeId);
+    if (!deductionType) return;
+
+    setEditingEmployeeDeductions(prev => {
+      const existing = prev.find(d => d.deductionTypeId === deductionTypeId);
+      if (existing) {
+        return prev.map(d =>
+          d.deductionTypeId === deductionTypeId
+            ? { ...d, isActive: checked }
+            : d
+        );
+      } else {
+        if (checked) {
+          const emp = employees.find(e => e.id === selectedEmployeeId);
+          const newDeduction: EmployeeDeduction = {
+            id: `ed_${Date.now()}`,
+            employeeId: selectedEmployeeId!,
+            deductionTypeId: deductionTypeId,
+            amount: deductionType.isPercentage
+              ? (emp?.salary || 0) * (deductionType.rate / 100)
+              : deductionType.rate,
+            isFixed: !deductionType.isPercentage,
+            startDate: new Date().toISOString().split('T')[0],
+            isActive: true,
+            isMandatory: deductionType.isPredefined,
+          };
+          return [...prev, newDeduction];
+        }
+        return prev;
+      }
+    });
+  };
+
+  const handleUpdateDeductionAmount = (deductionTypeId: string, amount: number) => {
+    setEditingEmployeeDeductions(prev =>
+      prev.map(d =>
+        d.deductionTypeId === deductionTypeId
+          ? { ...d, amount }
+          : d
+      )
+    );
+  };
+
+  // ==================== HISTORY HANDLERS ====================
+  const handleViewHistory = (payrollId: string) => {
+    setSelectedHistoryPayrollId(payrollId);
+    setHistoryFilter("All");
+    setShowHistoryModal(true);
+  };
+
+  const getFilteredHistory = () => {
+    if (!selectedHistoryPayrollId) return [];
+    const record = payrollData.find(r => r.id === selectedHistoryPayrollId);
+    if (!record) return [];
+    if (historyFilter === "All") return record.history;
+    return record.history.filter(h => h.action === historyFilter);
+  };
+
+  // ==================== EXPORT HANDLER ====================
+  const handleExport = () => {
+    showToast("Payroll data exported successfully!", "success");
+  };
+
+  // ==================== PRINT HANDLER ====================
+  const handlePrint = () => {
+    window.print();
+  };
+
+  // ==================== PROCESS PAYROLL HANDLER ====================
+  const handleProcessPayroll = () => {
+    const pendingCount = getStatusCount("Pending");
+    if (pendingCount === 0) {
+      showToast("No pending payroll items to process!", "info");
+      return;
+    }
+    showToast(`Processing ${pendingCount} pending payroll items...`, "success");
+  };
+
+  // ==================== REFRESH HANDLER ====================
+  const handleRefresh = () => {
+    const newData = generatePayrollRecords();
+    setPayrollData(newData);
+    showToast("Payroll data refreshed!", "success");
+  };
+
+  // ==================== GENERATE REPORT HANDLER ====================
+  const handleGenerateReport = () => {
+    showToast("Generating payroll report...", "info");
+    setTimeout(() => {
+      showToast("Report generated successfully!", "success");
+    }, 1500);
+  };
+
+  // ==================== SEND REMINDERS HANDLER ====================
+  const handleSendReminders = () => {
+    const pendingCount = getStatusCount("Pending");
+    if (pendingCount === 0) {
+      showToast("No pending approvals to remind!", "info");
+      return;
+    }
+    showToast(`Sending reminders to ${pendingCount} pending approvals...`, "success");
+  };
+
+  // ==================== CONFIGURE SETTINGS HANDLER ====================
+  const handleConfigureSettings = () => {
+    setShowDeductionManager(true);
+  };
+
+  // ==================== VIEW DOCUMENTATION ====================
+  const handleViewDocumentation = () => {
+    window.open("/docs/payroll", "_blank");
+    showToast("Opening documentation...", "info");
+  };
+
+  // ==================== RENDER ====================
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Toast Notification */}
+        {toast && (
+          <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-in ${
+            toast.type === "success" ? "bg-green-100 border border-green-200 text-green-800" :
+            toast.type === "error" ? "bg-red-100 border border-red-200 text-red-800" :
+            "bg-blue-100 border border-blue-200 text-blue-800"
+          }`}>
+            {toast.type === "success" && <CheckCircle className="w-5 h-5" />}
+            {toast.type === "error" && <XCircle className="w-5 h-5" />}
+            {toast.type === "info" && <Info className="w-5 h-5" />}
+            <span>{toast.message}</span>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -557,29 +1297,41 @@ export default function PayrollApprovalPage() {
                 <div className="p-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-200">
                   <DollarSign className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-3xl font-bold text-slate-900">Payroll Approval</h1>
+                <h1 className="text-3xl font-bold text-slate-900">Payroll Management</h1>
                 <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                   {selectedPeriod}
                 </span>
               </div>
               <p className="text-slate-600 ml-1">
-                Review and manage employee payroll for the current period
+                Review, approve, and manage employee payroll with deduction tracking
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
-                <RefreshCw className="w-4 h-4" />
-                Refresh
+              <button
+                onClick={handleConfigureSettings}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
+              >
+                <Settings2 className="w-4 h-4" />
+                Deduction Types
               </button>
-              <button className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+              <button
+                onClick={handleExport}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
+              >
                 <Download className="w-4 h-4" />
                 Export
               </button>
-              <button className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+              <button
+                onClick={handlePrint}
+                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
+              >
                 <Printer className="w-4 h-4" />
                 Print
               </button>
-              <button className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200">
+              <button
+                onClick={handleProcessPayroll}
+                className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200"
+              >
                 <Send className="w-4 h-4" />
                 Process Payroll
               </button>
@@ -588,7 +1340,7 @@ export default function PayrollApprovalPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -601,15 +1353,12 @@ export default function PayrollApprovalPage() {
                 <Users className="w-5 h-5 text-blue-600" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-slate-500">
-              {summary.departments.length} departments
-            </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 font-medium">Total Gross Pay</p>
+                <p className="text-sm text-slate-600 font-medium">Total Gross</p>
                 <p className="text-2xl font-bold text-slate-900 mt-1">
                   {formatCurrency(summary.totalGrossPay)}
                 </p>
@@ -618,16 +1367,12 @@ export default function PayrollApprovalPage() {
                 <TrendingUp className="w-5 h-5 text-purple-600" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-green-600 flex items-center gap-1">
-              <ArrowUpRight className="w-3 h-3" />
-              <span>↑ 8.5% from last period</span>
-            </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-slate-600 font-medium">Total Net Pay</p>
+                <p className="text-sm text-slate-600 font-medium">Total Net</p>
                 <p className="text-2xl font-bold text-green-600 mt-1">
                   {formatCurrency(summary.totalNetPay)}
                 </p>
@@ -635,9 +1380,6 @@ export default function PayrollApprovalPage() {
               <div className="bg-green-100 p-2.5 rounded-xl">
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
-            </div>
-            <div className="mt-2 text-xs text-slate-500">
-              After all deductions
             </div>
           </div>
 
@@ -653,10 +1395,6 @@ export default function PayrollApprovalPage() {
                 <Clock className="w-5 h-5 text-yellow-600" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-yellow-600 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" />
-              <span>Requires your review</span>
-            </div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
@@ -671,9 +1409,19 @@ export default function PayrollApprovalPage() {
                 <Award className="w-5 h-5 text-blue-600" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-blue-600 flex items-center gap-1">
-              <Zap className="w-3 h-3" />
-              <span>Ready for processing</span>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-600 font-medium">Employee Deductions</p>
+                <p className="text-2xl font-bold text-purple-600 mt-1">
+                  {formatCurrency(summary.totalEmployeeDeductions)}
+                </p>
+              </div>
+              <div className="bg-purple-100 p-2.5 rounded-xl">
+                <Receipt className="w-5 h-5 text-purple-600" />
+              </div>
             </div>
           </div>
         </div>
@@ -722,6 +1470,12 @@ export default function PayrollApprovalPage() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
               </div>
+              <button
+                onClick={handleRefresh}
+                className="px-3 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
               <div className="flex bg-slate-100 rounded-xl p-1">
                 <button
                   onClick={() => setViewMode("table")}
@@ -731,7 +1485,7 @@ export default function PayrollApprovalPage() {
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  Table
+                  <List className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode("cards")}
@@ -741,7 +1495,23 @@ export default function PayrollApprovalPage() {
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  Cards
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    if (selectedRecord) {
+                      setViewMode("detail");
+                    } else {
+                      showToast("Please select a record first", "info");
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                    viewMode === "detail"
+                      ? "bg-white shadow-sm text-slate-900"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <Eye className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -755,10 +1525,8 @@ export default function PayrollApprovalPage() {
               <table className="w-full">
                 <thead className="bg-slate-50/80 border-b border-slate-200">
                   <tr>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
-                      onClick={() => handleSort("name")}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
+                      onClick={() => handleSort("name")}>
                       <div className="flex items-center gap-1">
                         Employee
                         {sortConfig?.key === "name" && (
@@ -766,10 +1534,8 @@ export default function PayrollApprovalPage() {
                         )}
                       </div>
                     </th>
-                    <th
-                      className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
-                      onClick={() => handleSort("department")}
-                    >
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
+                      onClick={() => handleSort("department")}>
                       <div className="flex items-center gap-1">
                         Department
                         {sortConfig?.key === "department" && (
@@ -777,32 +1543,29 @@ export default function PayrollApprovalPage() {
                         )}
                       </div>
                     </th>
-                    <th
-                      className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
-                      onClick={() => handleSort("grossPay")}
-                    >
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
+                      onClick={() => handleSort("grossPay")}>
                       <div className="flex items-center justify-end gap-1">
-                        Gross Pay
+                        Gross
                         {sortConfig?.key === "grossPay" && (
                           <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
                         )}
                       </div>
                     </th>
-                    <th
-                      className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
-                      onClick={() => handleSort("netPay")}
-                    >
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      Deductions
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
+                      onClick={() => handleSort("netPay")}>
                       <div className="flex items-center justify-end gap-1">
-                        Net Pay
+                        Net
                         {sortConfig?.key === "netPay" && (
                           <span>{sortConfig.direction === "asc" ? "↑" : "↓"}</span>
                         )}
                       </div>
                     </th>
-                    <th
-                      className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
-                      onClick={() => handleSort("status")}
-                    >
+                    <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider cursor-pointer hover:text-slate-900"
+                      onClick={() => handleSort("status")}>
                       <div className="flex items-center justify-center gap-1">
                         Status
                         {sortConfig?.key === "status" && (
@@ -818,7 +1581,7 @@ export default function PayrollApprovalPage() {
                 <tbody className="divide-y divide-slate-100">
                   {sortedRecords.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                      <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                         <div className="flex flex-col items-center gap-3">
                           <FileText className="w-14 h-14 text-slate-300" />
                           <p className="text-lg font-medium">No payroll records found</p>
@@ -860,6 +1623,25 @@ export default function PayrollApprovalPage() {
                           {formatCurrency(record.grossPay)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEmployeeDeductions(record.employeeId);
+                            }}
+                            className="text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center gap-1 ml-auto"
+                          >
+                            <Receipt className="w-3 h-3" />
+                            {record.totalEmployeeDeductions > 0 
+                              ? formatCurrency(record.totalEmployeeDeductions)
+                              : "Configure"}
+                          </button>
+                          {record.totalEmployeeDeductions > 0 && (
+                            <div className="text-xs text-slate-400 mt-1">
+                              {record.employeeDeductions.filter(d => d.isActive).length} deduction(s)
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
                           <span className="font-bold text-blue-600">
                             {formatCurrency(record.netPay)}
                           </span>
@@ -876,6 +1658,16 @@ export default function PayrollApprovalPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
                           <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleViewHistory(record.id);
+                              }}
+                              className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                              title="View History"
+                            >
+                              <History className="w-4 h-4" />
+                            </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -908,9 +1700,6 @@ export default function PayrollApprovalPage() {
                                 </button>
                               </>
                             )}
-                            <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -920,14 +1709,13 @@ export default function PayrollApprovalPage() {
               </table>
             </div>
 
-            {/* Pagination */}
             <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
               <p className="text-sm text-slate-600">
                 Showing <span className="font-medium">{sortedRecords.length}</span> of{" "}
                 <span className="font-medium">{payrollData.length}</span> records
               </p>
               <div className="flex gap-2">
-                <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all disabled:opacity-50">
+                <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all">
                   Previous
                 </button>
                 <button className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-all shadow-sm shadow-blue-200">
@@ -1002,7 +1790,24 @@ export default function PayrollApprovalPage() {
                         {formatCurrency(record.grossPay)}
                       </p>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-3 col-span-2">
+                    <div className="bg-slate-50 rounded-xl p-3">
+                      <p className="text-xs text-slate-500">Deductions</p>
+                      <button
+                        onClick={() => handleOpenEmployeeDeductions(record.employeeId)}
+                        className="text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center gap-1"
+                      >
+                        <Receipt className="w-3 h-3" />
+                        {record.totalEmployeeDeductions > 0 
+                          ? formatCurrency(record.totalEmployeeDeductions)
+                          : "Configure"}
+                      </button>
+                      {record.totalEmployeeDeductions > 0 && (
+                        <div className="text-xs text-slate-400">
+                          {record.employeeDeductions.filter(d => d.isActive).length} deduction(s)
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-3">
                       <p className="text-xs text-slate-500">Net Pay</p>
                       <p className="font-bold text-blue-600 text-lg">
                         {formatCurrency(record.netPay)}
@@ -1016,6 +1821,13 @@ export default function PayrollApprovalPage() {
                       <span>{formatDate(record.submittedDate)}</span>
                     </div>
                     <div className="flex gap-1">
+                      <button
+                        onClick={() => handleViewHistory(record.id)}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                        title="View History"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => {
                           setSelectedRecord(record.id);
@@ -1049,293 +1861,456 @@ export default function PayrollApprovalPage() {
           </div>
         ) : (
           // Detail View
-          selectedRecordData && (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setViewMode("table")}
-                    className="p-2 hover:bg-white rounded-lg transition-all"
-                  >
-                    <ChevronLeft className="w-5 h-5 text-slate-600" />
-                  </button>
-                  <h2 className="text-lg font-semibold text-slate-900">
-                    Payroll Detail
-                  </h2>
-                  <span className="text-sm text-slate-500">
-                    #{selectedRecordData.id}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  {selectedRecordData.status === "Pending" && (
-                    <>
-                      <button
-                        onClick={() => handleApprove(selectedRecordData.id)}
-                        className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all flex items-center gap-2"
-                      >
-                        <CheckCircle className="w-4 h-4" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleApprove(selectedRecordData.id)}
-                        className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all flex items-center gap-2"
-                      >
-                        <XCircle className="w-4 h-4" />
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  <button className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2">
-                    <Download className="w-4 h-4" />
-                    Download
-                  </button>
-                </div>
+          selectedRecord && (() => {
+            const selectedRecordData = payrollData.find(r => r.id === selectedRecord);
+            if (!selectedRecordData) return (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-12 text-center">
+                <p className="text-slate-500">Record not found</p>
+                <button
+                  onClick={() => setViewMode("table")}
+                  className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"
+                >
+                  Back to List
+                </button>
               </div>
-
-              <div className="p-6">
-                {/* Employee Info */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xl shadow-sm">
-                    {selectedRecordData.employee.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+            );
+            return (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => setViewMode("table")}
+                      className="p-2 hover:bg-white rounded-lg transition-all"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-slate-600" />
+                    </button>
+                    <h2 className="text-lg font-semibold text-slate-900">
+                      Payroll Detail
+                    </h2>
+                    <span className="text-sm text-slate-500">
+                      #{selectedRecordData.id}
+                    </span>
                   </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">
-                      {selectedRecordData.employee.name}
-                    </h3>
-                    <p className="text-slate-600">
-                      {selectedRecordData.employee.position} •{" "}
-                      {selectedRecordData.employee.department}
-                    </p>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
-                      <span>{selectedRecordData.employee.email}</span>
-                      <span>•</span>
-                      <span>{selectedRecordData.employee.phone}</span>
-                      <span>•</span>
-                      <span>Joined {formatDate(selectedRecordData.employee.joinDate)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                  {/* Earnings */}
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                      Earnings
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Base Salary</span>
-                        <span className="font-medium">{formatCurrency(selectedRecordData.baseSalary)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Housing Allowance</span>
-                        <span className="font-medium">{formatCurrency(selectedRecordData.allowances.housing)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Transport Allowance</span>
-                        <span className="font-medium">{formatCurrency(selectedRecordData.allowances.transport)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Medical Allowance</span>
-                        <span className="font-medium">{formatCurrency(selectedRecordData.allowances.medical)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Education Allowance</span>
-                        <span className="font-medium">{formatCurrency(selectedRecordData.allowances.education)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Overtime ({selectedRecordData.overtime.hours}h)</span>
-                        <span className="font-medium">{formatCurrency(selectedRecordData.overtime.amount)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-2">
-                        <span className="text-slate-900">Total Gross Pay</span>
-                        <span className="text-slate-900">{formatCurrency(selectedRecordData.grossPay)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bonuses & Deductions */}
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <Award className="w-4 h-4 text-purple-600" />
-                      Bonuses & Deductions
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="text-sm font-medium text-slate-700 mb-1">Bonuses</div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Performance Bonus</span>
-                        <span className="font-medium text-green-600">{formatCurrency(selectedRecordData.bonuses.performance)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Attendance Bonus</span>
-                        <span className="font-medium text-green-600">{formatCurrency(selectedRecordData.bonuses.attendance)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Project Bonus</span>
-                        <span className="font-medium text-green-600">{formatCurrency(selectedRecordData.bonuses.project)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Holiday Bonus</span>
-                        <span className="font-medium text-green-600">{formatCurrency(selectedRecordData.bonuses.holiday)}</span>
-                      </div>
-                      <div className="text-sm font-medium text-slate-700 mt-3 mb-1">Deductions</div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Tax</span>
-                        <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.tax)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Pension</span>
-                        <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.pension)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Insurance</span>
-                        <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.insurance)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Loan</span>
-                        <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.loan)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-2">
-                        <span className="text-slate-900">Net Pay</span>
-                        <span className="text-blue-600">{formatCurrency(selectedRecordData.netPay)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Payment Details */}
-                  <div className="bg-slate-50 rounded-xl p-4">
-                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <CreditCard className="w-4 h-4 text-blue-600" />
-                      Payment Details
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Status</span>
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
-                            selectedRecordData.status
-                          )}`}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleViewHistory(selectedRecordData.id)}
+                      className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2"
+                    >
+                      <History className="w-4 h-4" />
+                      History
+                    </button>
+                    {selectedRecordData.status === "Pending" && (
+                      <>
+                        <button
+                          onClick={() => handleApprove(selectedRecordData.id)}
+                          className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all flex items-center gap-2"
                         >
-                          {getStatusIcon(selectedRecordData.status)}
-                          {selectedRecordData.status}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Payment Method</span>
-                        <span className="font-medium">{selectedRecordData.paymentMethod}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Bank</span>
-                        <span className="font-medium">{selectedRecordData.bankDetails.bankName}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-600">Account</span>
-                        <span className="font-medium">{selectedRecordData.bankDetails.accountNumber}</span>
-                      </div>
-                      {selectedRecordData.approvedDate && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Approved</span>
-                          <span className="font-medium">{formatDateTime(selectedRecordData.approvedDate)}</span>
-                        </div>
-                      )}
-                      {selectedRecordData.approvedBy && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Approved By</span>
-                          <span className="font-medium">{selectedRecordData.approvedBy}</span>
-                        </div>
-                      )}
-                      {selectedRecordData.paymentDate && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-600">Payment Date</span>
-                          <span className="font-medium">{formatDate(selectedRecordData.paymentDate)}</span>
-                        </div>
-                      )}
-                    </div>
+                          <CheckCircle className="w-4 h-4" />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleApprove(selectedRecordData.id)}
+                          className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all flex items-center gap-2"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={handleExport}
+                      className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download
+                    </button>
                   </div>
                 </div>
 
-                {/* History Timeline */}
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-slate-600" />
-                    History
-                  </h4>
-                  <div className="space-y-3">
-                    {selectedRecordData.history.map((item, index) => (
-                      <div key={index} className="flex items-start gap-3">
-                        <div className="relative">
-                          <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5"></div>
-                          {index < selectedRecordData.history.length - 1 && (
-                            <div className="absolute top-3 left-1 w-0.5 h-full bg-slate-200"></div>
-                          )}
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold text-xl shadow-sm">
+                      {selectedRecordData.employee.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">
+                        {selectedRecordData.employee.name}
+                      </h3>
+                      <p className="text-slate-600">
+                        {selectedRecordData.employee.position} •{" "}
+                        {selectedRecordData.employee.department}
+                      </p>
+                      <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
+                        <span>{selectedRecordData.employee.email}</span>
+                        <span>•</span>
+                        <span>{selectedRecordData.employee.phone}</span>
+                        <span>•</span>
+                        <span>Joined {formatDate(selectedRecordData.employee.joinDate)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <div className="bg-slate-50 rounded-xl p-4">
+                      <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-green-600" />
+                        Earnings
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Base Salary</span>
+                          <span className="font-medium">{formatCurrency(selectedRecordData.baseSalary)}</span>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium text-slate-900">{item.action}</p>
-                            <span className="text-sm text-slate-500">{formatDateTime(item.date)}</span>
-                          </div>
-                          <p className="text-sm text-slate-600">By {item.user}</p>
-                          {item.note && (
-                            <p className="text-sm text-slate-500 mt-1">{item.note}</p>
-                          )}
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Housing Allowance</span>
+                          <span className="font-medium">{formatCurrency(selectedRecordData.allowances.housing)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Transport Allowance</span>
+                          <span className="font-medium">{formatCurrency(selectedRecordData.allowances.transport)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Medical Allowance</span>
+                          <span className="font-medium">{formatCurrency(selectedRecordData.allowances.medical)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Overtime ({selectedRecordData.overtime.hours}h)</span>
+                          <span className="font-medium">{formatCurrency(selectedRecordData.overtime.amount)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-2">
+                          <span className="text-slate-900">Total Gross Pay</span>
+                          <span className="text-slate-900">{formatCurrency(selectedRecordData.grossPay)}</span>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-4">
+                      <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                        <Award className="w-4 h-4 text-purple-600" />
+                        Bonuses & Deductions
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-slate-700 mb-1">Bonuses</div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Performance Bonus</span>
+                          <span className="font-medium text-green-600">{formatCurrency(selectedRecordData.bonuses.performance)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Attendance Bonus</span>
+                          <span className="font-medium text-green-600">{formatCurrency(selectedRecordData.bonuses.attendance)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Project Bonus</span>
+                          <span className="font-medium text-green-600">{formatCurrency(selectedRecordData.bonuses.project)}</span>
+                        </div>
+                        <div className="text-sm font-medium text-slate-700 mt-3 mb-1">Deductions</div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Tax</span>
+                          <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.tax)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Pension</span>
+                          <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.pension)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Insurance</span>
+                          <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.insurance)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Loan</span>
+                          <span className="font-medium text-red-600">{formatCurrency(selectedRecordData.deductions.loan)}</span>
+                        </div>
+                        {selectedRecordData.totalEmployeeDeductions > 0 && (
+                          <div className="flex justify-between text-sm bg-purple-50 p-2 rounded-lg">
+                            <span className="text-purple-700 font-medium">Employee Deductions</span>
+                            <span className="font-bold text-purple-700">{formatCurrency(selectedRecordData.totalEmployeeDeductions)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-semibold border-t border-slate-200 pt-2">
+                          <span className="text-slate-900">Net Pay</span>
+                          <span className="text-blue-600">{formatCurrency(selectedRecordData.netPay)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 rounded-xl p-4">
+                      <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                        <CreditCard className="w-4 h-4 text-blue-600" />
+                        Payment Details
+                      </h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Status</span>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                              selectedRecordData.status
+                            )}`}
+                          >
+                            {getStatusIcon(selectedRecordData.status)}
+                            {selectedRecordData.status}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Payment Method</span>
+                          <span className="font-medium">{selectedRecordData.paymentMethod}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Bank</span>
+                          <span className="font-medium">{selectedRecordData.bankDetails.bankName}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-600">Account</span>
+                          <span className="font-medium">{selectedRecordData.bankDetails.accountNumber}</span>
+                        </div>
+                        {selectedRecordData.approvedDate && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-600">Approved</span>
+                            <span className="font-medium">{formatDateTime(selectedRecordData.approvedDate)}</span>
+                          </div>
+                        )}
+                        {selectedRecordData.approvedBy && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-slate-600">Approved By</span>
+                            <span className="font-medium">{selectedRecordData.approvedBy}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )
+            );
+          })()
         )}
 
-        {/* Quick Actions */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-slate-900">Generate Report</p>
-              <p className="text-xs text-slate-500">Export payroll summary</p>
-            </div>
-          </button>
+        {/* ==================== HISTORY MODAL ==================== */}
+        {showHistoryModal && selectedHistoryPayrollId && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <History className="w-5 h-5 text-blue-600" />
+                    Payroll History
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Complete audit trail for payroll #{selectedHistoryPayrollId}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
 
-          <button className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Bell className="w-5 h-5 text-green-600" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-slate-900">Send Reminders</p>
-              <p className="text-xs text-slate-500">Notify pending approvals</p>
-            </div>
-          </button>
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {["All", "Created", "Submitted", "Approved", "Rejected", "Paid"].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setHistoryFilter(filter)}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-all ${
+                      historyFilter === filter
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
 
-          <button className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Settings className="w-5 h-5 text-purple-600" />
-            </div>
-            <div className="text-left">
-              <p className="font-medium text-slate-900">Configure</p>
-              <p className="text-xs text-slate-500">Payroll settings</p>
-            </div>
-          </button>
+              <div className="space-y-4">
+                {getFilteredHistory().length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    No history records found for this filter.
+                  </div>
+                ) : (
+                  getFilteredHistory().map((item) => (
+                    <div key={item.id} className="relative pl-8 pb-4 border-l-2 border-slate-200 last:border-0">
+                      <div className="absolute left-[-9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-blue-500 flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      </div>
+                      <div className="bg-slate-50 rounded-xl p-4 hover:shadow-sm transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-white shadow-sm">
+                              {getActionIcon(item.action)}
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-slate-900">
+                                {item.action}
+                              </h4>
+                              <p className="text-sm text-slate-600">
+                                By {item.user} • {item.userRole}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="text-sm text-slate-500">
+                            {formatDateTime(item.timestamp)}
+                          </span>
+                        </div>
+                        {item.notes && (
+                          <p className="mt-2 text-sm text-slate-600 bg-white p-2 rounded-lg border border-slate-100">
+                            {item.notes}
+                          </p>
+                        )}
+                        {item.changes && item.changes.length > 0 && (
+                          <div className="mt-2 text-xs text-slate-500 bg-white p-2 rounded-lg border border-slate-100">
+                            <span className="font-medium">Changes:</span>
+                            {item.changes.map((change, idx) => (
+                              <span key={idx} className="ml-2">
+                                {change.field}:{" "}
+                                <span className="text-red-600 line-through">{String(change.oldValue)}</span>
+                                {" → "}
+                                <span className="text-green-600">{String(change.newValue)}</span>
+                                {idx < item.changes!.length - 1 && ", "}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="mt-2 flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                            {item.status}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
-          <button className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <BookOpen className="w-5 h-5 text-yellow-600" />
+              <div className="mt-6 pt-4 border-t border-slate-200 flex justify-end">
+                <button
+                  onClick={() => setShowHistoryModal(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"
+                >
+                  Close
+                </button>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="font-medium text-slate-900">Documentation</p>
-              <p className="text-xs text-slate-500">View guides</p>
-            </div>
-          </button>
-        </div>
+          </div>
+        )}
 
-        {/* Approval Modal */}
+        {/* ==================== EMPLOYEE DEDUCTION MODAL ==================== */}
+        {showEmployeeDeductionModal && selectedEmployeeId && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-4xl w-full p-6 shadow-2xl max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                    <Settings2 className="w-5 h-5 text-purple-600" />
+                    Configure Deductions
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Manage mandatory and voluntary deductions for {employees.find(e => e.id === selectedEmployeeId)?.name}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowEmployeeDeductionModal(false)}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-all"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {deductionTypes
+                  .filter(d => d.isActive)
+                  .map(deductionType => {
+                    const existing = editingEmployeeDeductions.find(d => d.deductionTypeId === deductionType.id);
+                    const isActive = existing?.isActive || false;
+                    const isMandatory = deductionType.isPredefined;
+
+                    return (
+                      <div key={deductionType.id} className={`border rounded-lg p-4 transition-all ${
+                        isActive ? "border-purple-300 bg-purple-50/30" : "border-slate-200"
+                      }`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-slate-900">{deductionType.name}</h4>
+                              {isMandatory ? (
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                  Mandatory
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                  Voluntary
+                                </span>
+                              )}
+                              {isActive && (
+                                <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-600">{deductionType.description}</p>
+                            <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
+                              <span>Rate: {deductionType.isPercentage ? `${deductionType.rate}%` : `$${deductionType.rate}`}</span>
+                              <span>Category: {deductionType.category}</span>
+                              {deductionType.cap && <span>Cap: ${deductionType.cap.toLocaleString()}</span>}
+                            </div>
+                            {isActive && existing && (
+                              <div className="mt-1 text-xs text-purple-600">
+                                Current amount: {formatCurrency(existing.amount)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 ml-4">
+                            {!isMandatory ? (
+                              <input
+                                type="checkbox"
+                                checked={isActive}
+                                onChange={(e) => handleToggleDeductionForEmployee(deductionType.id, e.target.checked)}
+                                className="rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                              />
+                            ) : (
+                              <div className="text-blue-600">
+                                <BadgeCheck className="w-5 h-5" />
+                              </div>
+                            )}
+                            {isActive && (
+                              <input
+                                type="number"
+                                value={existing?.amount || 0}
+                                onChange={(e) => handleUpdateDeductionAmount(deductionType.id, parseFloat(e.target.value) || 0)}
+                                className="w-24 px-2 py-1 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                placeholder="Amount"
+                                step="0.01"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-slate-200">
+                <button
+                  onClick={() => setShowEmployeeDeductionModal(false)}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEmployeeDeductions}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all shadow-lg shadow-purple-200 flex items-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Deductions
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== APPROVAL MODAL ==================== */}
         {showApprovalModal && selectedForAction && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
@@ -1401,8 +2376,62 @@ export default function PayrollApprovalPage() {
             </div>
           </div>
         )}
+
+        {/* ==================== QUICK ACTIONS ==================== */}
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <button
+            onClick={handleGenerateReport}
+            className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3"
+          >
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-slate-900">Generate Report</p>
+              <p className="text-xs text-slate-500">Export payroll summary</p>
+            </div>
+          </button>
+
+          <button
+            onClick={handleSendReminders}
+            className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3"
+          >
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Bell className="w-5 h-5 text-green-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-slate-900">Send Reminders</p>
+              <p className="text-xs text-slate-500">Notify pending approvals</p>
+            </div>
+          </button>
+
+          <button
+            onClick={handleConfigureSettings}
+            className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3"
+          >
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Settings className="w-5 h-5 text-purple-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-slate-900">Configure</p>
+              <p className="text-xs text-slate-500">Payroll settings</p>
+            </div>
+          </button>
+
+          <button
+            onClick={handleViewDocumentation}
+            className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3"
+          >
+            <div className="p-2 bg-yellow-100 rounded-lg">
+              <BookOpen className="w-5 h-5 text-yellow-600" />
+            </div>
+            <div className="text-left">
+              <p className="font-medium text-slate-900">Documentation</p>
+              <p className="text-xs text-slate-500">View guides</p>
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-
