@@ -27,6 +27,7 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "leave-approvals": lazy(() => import("../../features/leave-approvals")),
   "disciplinary-cases": lazy(() => import("../../features/disciplinary-cases")),
   "disciplinary-management": lazy(() => import("../../features/disciplinary-management")),
+
   
   // FIX: Use the correct import path and ensure default export
   "announcements-training": lazy(() => 
