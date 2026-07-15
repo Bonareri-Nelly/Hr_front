@@ -68,6 +68,7 @@ import {
   Pencil,
   MoreHorizontal,
 } from "lucide-react";
+import PayrollBatchApprovalModal from "../components/PayrollBatchApprovalModal";
 
 // ==================== INTERFACES ====================
 interface DeductionType {
@@ -346,6 +347,7 @@ export default function EnhancedPayrollApprovalPage() {
   const [selectedPeriod] = useState("March 2026");
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [selectedForAction, setSelectedForAction] = useState<string | null>(null);
+  const [showBatchApprovalModal, setShowBatchApprovalModal] = useState(false);
   const [approvalNote, setApprovalNote] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -1070,6 +1072,63 @@ export default function EnhancedPayrollApprovalPage() {
     setShowApprovalModal(true);
   };
 
+  const handleConfirmBatchApproval = (ids: string[]) => {
+    const approvedAt = new Date().toISOString();
+    setPayrollData((prev) =>
+      prev.map((record) =>
+        ids.includes(record.id)
+          ? {
+              ...record,
+              status: "Approved",
+              approvedDate: approvedAt,
+              approvedBy: "Payroll Manager",
+              history: [
+                ...record.history,
+                {
+                  id: `batch-${record.id}-${Date.now()}`,
+                  payrollId: record.id,
+                  action: "Approved",
+                  timestamp: approvedAt,
+                  user: "Payroll Manager",
+                  userRole: "Payroll",
+                  notes: "Approved in batch approval workflow",
+                  status: "Approved",
+                },
+              ],
+            }
+          : record,
+      ),
+    );
+    showToast(`${ids.length} payroll record${ids.length === 1 ? "" : "s"} approved successfully`, "success");
+  };
+
+  const handleBatchReject = (id: string, reason: string) => {
+    const rejectedAt = new Date().toISOString();
+    setPayrollData((prev) =>
+      prev.map((record) =>
+        record.id === id
+          ? {
+              ...record,
+              status: "Rejected",
+              history: [
+                ...record.history,
+                {
+                  id: `batch-reject-${record.id}-${Date.now()}`,
+                  payrollId: record.id,
+                  action: "Rejected",
+                  timestamp: rejectedAt,
+                  user: "Payroll Manager",
+                  userRole: "Payroll",
+                  notes: reason,
+                  status: "Rejected",
+                },
+              ],
+            }
+          : record,
+      ),
+    );
+    showToast("Payroll record rejected with a reason", "info");
+  };
   const handleConfirmApproval = (approved: boolean) => {
     if (selectedForAction) {
       const record = payrollData.find(r => r.id === selectedForAction);
@@ -1470,6 +1529,14 @@ export default function EnhancedPayrollApprovalPage() {
                 </select>
                 <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
               </div>
+              <button
+                onClick={() => setShowBatchApprovalModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-sm"
+                aria-label="Open batch payroll approval"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Batch Approval
+              </button>
               <button
                 onClick={handleRefresh}
                 className="px-3 py-2.5 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all flex items-center gap-2"
@@ -2310,6 +2377,13 @@ export default function EnhancedPayrollApprovalPage() {
           </div>
         )}
 
+        <PayrollBatchApprovalModal
+          open={showBatchApprovalModal}
+          records={payrollData}
+          onClose={() => setShowBatchApprovalModal(false)}
+          onApprove={handleConfirmBatchApproval}
+          onReject={handleBatchReject}
+        />
         {/* ==================== APPROVAL MODAL ==================== */}
         {showApprovalModal && selectedForAction && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

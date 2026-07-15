@@ -1,0 +1,15 @@
+export const executiveTheme = {
+  page: "min-h-screen bg-[#0d1624] text-[#f8f4ea] p-6 lg:p-8",
+  shell: "max-w-7xl mx-auto space-y-6",
+  eyebrow: "text-[11px] uppercase tracking-[0.28em] text-[#c8a45d] font-semibold",
+  title: "text-3xl lg:text-4xl font-bold tracking-tight text-[#fffaf0]",
+  subtitle: "text-sm text-[#c9d3df] max-w-3xl",
+  card: "rounded-2xl border border-white/10 bg-[#121f31] shadow-xl shadow-black/20",
+  cardSoft: "rounded-2xl border border-white/10 bg-[#17263b] shadow-lg shadow-black/10",
+  panelPad: "p-5 lg:p-6",
+  buttonPrimary: "inline-flex items-center justify-center gap-2 rounded-xl bg-[#c8a45d] px-4 py-2.5 text-sm font-bold text-[#111827] shadow-lg shadow-[#c8a45d]/20 transition hover:bg-[#d9b86f] disabled:cursor-not-allowed disabled:opacity-50",
+  buttonSecondary: "inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-[#f8f4ea] transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50",
+  input: "rounded-xl border border-white/10 bg-[#0d1624] px-3 py-2 text-sm text-[#fffaf0] outline-none transition placeholder:text-[#7f8ca3] focus:border-[#c8a45d]",
+  badge: "inline-flex items-center rounded-full border border-[#c8a45d]/30 bg-[#c8a45d]/10 px-2.5 py-1 text-xs font-semibold text-[#f1d99b]",
+  dangerButton: "inline-flex items-center justify-center gap-2 rounded-xl bg-[#b94a48] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#cf5d5b]",
+};
