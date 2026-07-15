@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import ReviewLeaveModal from "./components/ReviewLeaveModal";
+import LeaveReportsAuditModal from "./components/LeaveReportsAuditModal";
 
 import { ROLES } from "../../constants/roles";
 import {
@@ -12,6 +13,7 @@ import { LEAVE_STATUS } from "../../constants/leaveStatus";
 export default function LeaveApprovals() {
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [reportsOpen, setReportsOpen] = useState(false);
 
   const [selectedLeaveType, setSelectedLeaveType] =
     useState("All");
@@ -234,11 +236,9 @@ export default function LeaveApprovals() {
 
   return (
     <div className="dashboard-page">
-      <div>
-        <h1 className="page-title">Leave Approvals</h1>
-        <p className="page-subtitle">
-          Review leave requests assigned to you.
-        </p>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div><h1 className="page-title">Leave Approvals</h1><p className="page-subtitle">Review leave requests assigned to you.</p></div>
+        <button className="button button-secondary" onClick={() => setReportsOpen(true)}>Reports &amp; Audit</button>
       </div>
 
       <div
@@ -687,6 +687,7 @@ export default function LeaveApprovals() {
         onApprove={() => handleApprove()}
         onReject={() => handleReject()}
       />
+      <LeaveReportsAuditModal open={reportsOpen} onClose={() => setReportsOpen(false)} />
     </div>
   );
 }

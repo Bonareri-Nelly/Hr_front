@@ -1,5 +1,5 @@
-import ModulePlaceholder from "../ModulePlaceholder";
+import Dashboard from "./pages/Dashboard";
 
 export default function DisciplinaryCases() {
-  return <ModulePlaceholder title="Disciplinary Cases" />;
+  return <Dashboard />;
 }
