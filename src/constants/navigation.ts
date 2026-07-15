@@ -51,6 +51,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "my-attendance", label: "My Attendance", path: "/self-service/attendance", section: "Employee", icon: "CalendarClock" },
   { id: "my-performance", label: "My Performance", path: "/self-service/performance", section: "Employee", icon: "TrendingUp" },
   { id: "my-benefits", label: "My Benefits", path: "/self-service/benefits", section: "Employee", icon: "HandCoins" },
+  { id: "my-payslips", label: "My Payslips", path: "/self-service/payslips", section: "Employee", icon: "ReceiptText" },
   { id: "my-documents", label: "My Documents", path: "/self-service/documents", section: "Employee", icon: "FolderOpen" },
   { id: "my-announcements", label: "My Announcements", path: "/self-service/announcements", section: "Employee", icon: "Bell" },
   { id: "complaints", label: "Complaints", path: "/complaints", section: "Employee", icon: "MessageCircleQuestion" },
