@@ -67,7 +67,7 @@ const iconMap: Record<string, LucideIcon> = {
   Users,
   WalletCards,
 };
-
+import { moduleSections } from "../../features/moduleRoutes";
 export default function Sidebar() {
   return (
     <nav className="sidebar" aria-label="Primary navigation">
