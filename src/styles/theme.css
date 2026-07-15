@@ -33,6 +33,109 @@
   --topbar-height: 62px;
 }
 
+/*
+ * Application-wide Executive Dashboard visual baseline.
+ * Several feature modules use Tailwind's neutral utilities directly; keep
+ * those utilities aligned with the shared navy, ink, and surface tokens.
+ * Status colours are intentionally not included so their meaning is retained.
+ */
+.app-main {
+  background: var(--background);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 0.79rem;
+  line-height: 1.5;
+}
+
+.app-main :is(.bg-white, .bg-slate-50, .bg-gray-50, .bg-zinc-50, .bg-neutral-50) {
+  background-color: var(--surface);
+}
+
+.app-main :is(.bg-slate-100, .bg-gray-100, .bg-zinc-100, .bg-neutral-100) {
+  background-color: var(--background);
+}
+
+.app-main :is(
+  .border-slate-100, .border-slate-200, .border-slate-300,
+  .border-gray-100, .border-gray-200, .border-gray-300,
+  .border-zinc-100, .border-zinc-200, .border-zinc-300,
+  .border-neutral-100, .border-neutral-200, .border-neutral-300
+) {
+  border-color: var(--border);
+}
+
+.app-main :is(
+  .text-slate-900, .text-slate-800, .text-slate-700,
+  .text-gray-900, .text-gray-800, .text-gray-700,
+  .text-zinc-900, .text-zinc-800, .text-zinc-700,
+  .text-neutral-900, .text-neutral-800, .text-neutral-700
+) {
+  color: var(--ink);
+}
+
+.app-main :is(
+  .text-slate-600, .text-slate-500,
+  .text-gray-600, .text-gray-500,
+  .text-zinc-600, .text-zinc-500,
+  .text-neutral-600, .text-neutral-500
+) {
+  color: var(--text-secondary);
+}
+
+.app-main :is(
+  .text-slate-400, .text-slate-300, .text-slate-200,
+  .text-gray-400, .text-gray-300,
+  .text-zinc-400, .text-zinc-300,
+  .text-neutral-400, .text-neutral-300
+) {
+  color: var(--text-muted);
+}
+
+/* Onboarding and offboarding previously used a separate dark theme. */
+.executive-consistent-page {
+  background: var(--background) !important;
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+.executive-consistent-page :is([class*="bg-navy-"], [class*="from-navy-"], [class*="via-navy-"]) {
+  background-color: var(--surface) !important;
+  background-image: none !important;
+}
+
+.executive-consistent-page :is([class*="border-gold-"], [class*="border-navy-"]) {
+  border-color: var(--border) !important;
+}
+
+.executive-consistent-page :is(.text-white, .text-gray-300, .text-gray-400) {
+  color: var(--ink) !important;
+}
+
+.executive-consistent-page :is(input, textarea, select, [role="combobox"]) {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
+  font-family: var(--font-sans);
+}
+
+.executive-consistent-page [role="dialog"] {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 18px 40px oklch(18% 0.02 255 / 16%);
+}
+
+.executive-consistent-page button:is([class*="bg-gold-"], .button-primary) {
+  background: var(--navy-deepest) !important;
+  border-color: var(--navy-deepest) !important;
+  color: white !important;
+}
+
+.executive-consistent-page button.button-secondary {
+  background: var(--background) !important;
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
+}
+
 * {
   box-sizing: border-box;
 }

@@ -1229,7 +1229,7 @@ const OffboardingDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 p-6">
+    <div className="offboarding-page executive-consistent-page min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-950 p-6">
       {/* Header Section */}
       <div className="mb-8">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

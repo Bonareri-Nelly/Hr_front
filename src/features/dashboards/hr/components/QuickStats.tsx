@@ -1,3 +1,4 @@
+type BranchKey = "Nairobi HQ" | "Mombasa";
 interface QuickStatsProps {
   branch: string;
 }
@@ -18,7 +19,9 @@ export const QuickStats = ({ branch }: QuickStatsProps) => {
     ],
   };
 
-  const branchStats = stats[branch] || stats['Nairobi HQ'];
+  const branchKey = (branch === "Mombasa" ? "Mombasa" : "Nairobi HQ") as BranchKey;
+  const branchStats = stats[branchKey];
+
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
