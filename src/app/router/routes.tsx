@@ -23,7 +23,7 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "offboarding": lazy(() => import("../../features/employees/offboarding")),
   "onboarding": lazy(() => import("../../features/employees/onboarding")),
   "attendance-management": lazy(() => import("../../features/attendance/management")),
-  "leave-workflow": lazy(() => import("../../modules/leave-workflow")),
+  "leave-workflow": lazy(() => import("../../features/leave-workflow")),
   "leave-approvals": lazy(() => import("../../features/leave/approvals")),
   "disciplinary-cases": lazy(() => import("../../features/disciplinary/cases")),
   "disciplinary-management": lazy(() => import("../../features/disciplinary/management")),
