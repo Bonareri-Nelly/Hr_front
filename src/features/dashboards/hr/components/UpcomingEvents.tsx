@@ -1,5 +1,7 @@
-import { Calendar, Clock, User } from 'lucide-react';
+import type { LucideProps } from "lucide-react";
+import { Calendar, Clock, User } from "lucide-react";
 
+type BranchKey = "Nairobi HQ" | "Mombasa";
 interface UpcomingEventsProps {
   branch: string;
 }
@@ -18,7 +20,9 @@ export const UpcomingEvents = ({ branch }: UpcomingEventsProps) => {
     ],
   };
 
-  const branchEvents = events[branch] || events['Nairobi HQ'];
+  const branchKey = (branch === "Mombasa" ? "Mombasa" : "Nairobi HQ") as BranchKey;
+  const branchEvents = events[branchKey];
+
 
   return (
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm h-full">

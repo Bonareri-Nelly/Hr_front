@@ -2108,7 +2108,7 @@ const DepartmentDashboardPage: React.FC = () => {
       
       if (lowerMsg.includes('hello') || lowerMsg.includes('hi ') || lowerMsg.includes('hey')) {
         return {
-          text: "👋 Hello! I'm your HR Assistant. I can help with:\n• Employee information\n• Attendance tracking\n• Leave management\n• Payroll queries\n• Performance reviews\n• Training programs\n• Department analytics\n\nWhat would you like to know?",
+          text: "👋 Hello! I'm your Department Assistant. I can help with:\n• Employee information\n• Attendance tracking\n• Leave management\n• Payroll queries\n• Performance reviews\n• Training programs\n• Department analytics\n\nWhat would you like to know?",
           quickActions: ['Show attendance summary', 'Pending leave requests', 'Department health']
         };
       }
@@ -2203,7 +2203,7 @@ const DepartmentDashboardPage: React.FC = () => {
     const [messages, setMessages] = useState<Message[]>([
       {
         id: 1,
-        text: "👋 Hello! I'm your HR Assistant. I can help you with attendance, leave, payroll, performance, training, and more. What would you like to know?",
+        text: "👋 Hello! I'm your Department Assistant. I can help you with attendance, leave, payroll, performance, training, and more. What would you like to know?",
         sender: 'ai',
         timestamp: new Date(),
         quickActions: ['Show attendance summary', 'Pending leave requests', 'Department health']
@@ -2271,7 +2271,7 @@ const DepartmentDashboardPage: React.FC = () => {
               <Bot size={20} />
             </div>
             <div>
-              <h3>HR Assistant</h3>
+              <h3>Department Assistant</h3>
               <span className="ai-status">● Online</span>
             </div>
           </div>
@@ -2418,49 +2418,42 @@ const DepartmentDashboardPage: React.FC = () => {
   // ============================================================
 
   return (
-    <div className="department-dashboard">
+    <div className="department-dashboard executive-consistent-page">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
         .department-dashboard {
-          --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
-          --font-body: 'Inter', sans-serif;
+          --font-display: var(--font-serif);
+          --font-body: var(--font-sans);
 
-          /* ==========================================================
-             DARK NAVY/CHARCOAL THEME
-             ========================================================== */
+          /* Executive Dashboard light visual system */
+          --bg: oklch(97.5% 0.004 250);
+          --bg-soft: oklch(97.5% 0.004 250);
+          --bg-surface: oklch(99% 0.002 255);
+          --bg-hover: oklch(93% 0.003 255);
+          --border: oklch(89.5% 0.005 255);
+          --border-light: oklch(93% 0.003 255);
 
-          /* Deep Navy/Charcoal Background */
-          --bg: #0a0e1a;
-          --bg-soft: #111827;
-          --bg-surface: #1a2234;
-          --bg-hover: #24304a;
-          --border: #2a3a5a;
-          --border-light: #3a4a6a;
+          --gold: oklch(69% 0.1 78);
+          --gold-soft: oklch(69% 0.1 78);
+          --gold-light: oklch(87% 0.035 78);
+          --gold-dark: oklch(57% 0.08 64);
+          --gold-bg: oklch(87% 0.035 78);
+          --gold-border: oklch(89.5% 0.005 255);
 
-          /* Muted Gold/Bronze Accents */
-          --gold: #d4a843;
-          --gold-soft: #c9a84c;
-          --gold-light: #e8d5a3;
-          --gold-dark: #b8923a;
-          --gold-bg: rgba(212, 168, 67, 0.12);
-          --gold-border: rgba(212, 168, 67, 0.25);
+          --text-primary: oklch(20% 0.018 255);
+          --text-secondary: oklch(44% 0.012 255);
+          --text-muted: oklch(60% 0.008 255);
+          --text-faint: oklch(60% 0.008 255);
 
-          /* Off-White Text */
-          --text-primary: #f1f5f9;
-          --text-secondary: #c8d0e0;
-          --text-muted: #8899b8;
-          --text-faint: #5a6a8a;
-
-          /* Status Colors (adjusted for dark theme) */
-          --success: #34d399;
-          --success-soft: rgba(52, 211, 153, 0.15);
-          --warning: #fbbf24;
-          --warning-soft: rgba(251, 191, 36, 0.15);
-          --danger: #f87171;
-          --danger-soft: rgba(248, 113, 113, 0.15);
-          --info: #60a5fa;
-          --info-soft: rgba(96, 165, 250, 0.15);
+          --success: oklch(57% 0.11 155);
+          --success-soft: oklch(92% 0.025 155);
+          --warning: oklch(66% 0.11 85);
+          --warning-soft: oklch(93% 0.028 85);
+          --danger: oklch(56% 0.13 28);
+          --danger-soft: oklch(92% 0.025 28);
+          --info: oklch(55% 0.09 240);
+          --info-soft: oklch(92% 0.02 240);
           --neutral: #94a3b8;
           --neutral-soft: rgba(148, 163, 184, 0.15);
           --purple: #a78bfa;
@@ -3913,7 +3906,7 @@ const DepartmentDashboardPage: React.FC = () => {
 
       <div className="dashboard-heading">
         <div>
-          <div className="page-kicker">HR Operations Workspace</div>
+          <div className="page-kicker">Department Operations Workspace</div>
           <h1 className="page-title">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
           <p className="page-subtitle">
             {activeTab === "dashboard" && "Complete department overview with key metrics, trends, and analytics."}

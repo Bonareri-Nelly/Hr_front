@@ -1,3 +1,4 @@
+type BranchKey = "Nairobi HQ" | "Mombasa";
 interface DistributionChartProps {
   branch: string;
 }
@@ -19,8 +20,10 @@ export const DistributionChart = ({ branch }: DistributionChartProps) => {
     ],
   };
 
-  const branchData = data[branch] || data['Nairobi HQ'];
-  const max = Math.max(...branchData.map((d) => d.value));
+  const branchKey = (branch === "Mombasa" ? "Mombasa" : "Nairobi HQ") as BranchKey;
+  const branchData = data[branchKey];
+  const max = Math.max(...branchData.map((d: { label: string; value: number; color: string }) => d.value));
+
 
   return (
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm h-full">

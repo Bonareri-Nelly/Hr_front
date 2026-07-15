@@ -62,6 +62,13 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "my-performance": lazy(() => import("../../features/employee-self-service/performance")),
   "my-benefits": lazy(() => import("../../features/employee-self-service/benefits")),
   "my-documents": lazy(() => import("../../features/employee-self-service/documents")),
+
+  "my-payslips": lazy(() =>
+    Promise.resolve({
+      default: () => <ModulePlaceholderPage title="Payslips" />,
+    })
+  ),
+
   
   // FIX: Employee self-service announcements
   "my-announcements": lazy(() => 
