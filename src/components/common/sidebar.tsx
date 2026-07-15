@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { moduleSections } from "../../modules/moduleRoutes";
+import { moduleSections } from "../../features/moduleRoutes";
 
 export default function Sidebar() {
   return (
