@@ -141,7 +141,7 @@ export default function LeaveApprovals() {
 
       return true;
     });
-  }, [requests]);
+  }, [requests, currentUser.department, currentUser.role]);
 
   const selectedRequest = visibleRequests.find(
     (r) => r.id === selectedId
@@ -172,7 +172,7 @@ export default function LeaveApprovals() {
           history.action === "Approve"
       )
     );
-  }, [requests]);
+  }, [requests, currentUser.name]);
 
   const rejectedRequests = useMemo(() => {
     return requests.filter((request) =>
@@ -182,7 +182,7 @@ export default function LeaveApprovals() {
           history.action === "Reject"
       )
     );
-  }, [requests]);
+  }, [requests, currentUser.name]);
 
   const displayedRequests = (
     activeTab === "Pending"
