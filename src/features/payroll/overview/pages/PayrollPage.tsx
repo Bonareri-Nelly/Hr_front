@@ -19,7 +19,8 @@ import {
   Settings,
   MoreHorizontal,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { payrollApi } from "../../../../services/api/payroll";
 import "./PayrollPage.css";
 
 type PayrunStatus = "processing" | "approved" | "pending" | "completed" | "failed";
@@ -45,97 +46,8 @@ interface EmployeePayroll {
   status: "processed" | "pending" | "review";
 }
 
-const payruns: Payrun[] = [
-  {
-    id: "PR-2026-07",
-    period: "July 2026",
-    date: "Jul 31, 2026",
-    amount: "KES 4,285,000",
-    employees: 214,
-    status: "processing",
-    type: "monthly",
-  },
-  {
-    id: "PR-2026-06",
-    period: "June 2026",
-    date: "Jun 30, 2026",
-    amount: "KES 4,192,500",
-    employees: 212,
-    status: "completed",
-    type: "monthly",
-  },
-  {
-    id: "PR-2026-05",
-    period: "May 2026",
-    date: "May 31, 2026",
-    amount: "KES 4,108,000",
-    employees: 210,
-    status: "completed",
-    type: "monthly",
-  },
-  {
-    id: "PR-2026-Q2-Bonus",
-    period: "Q2 2026 Bonus",
-    date: "Jun 15, 2026",
-    amount: "KES 845,000",
-    employees: 198,
-    status: "completed",
-    type: "bonus",
-  },
-];
-
-const employeePayrolls: EmployeePayroll[] = [
-  {
-    id: "EMP-001",
-    name: "Angela Njeri",
-    department: "Payroll Services",
-    basicPay: "KES 185,000",
-    allowances: "KES 45,000",
-    deductions: "KES 32,500",
-    netPay: "KES 197,500",
-    status: "processed",
-  },
-  {
-    id: "EMP-002",
-    name: "Brian Otieno",
-    department: "Talent Acquisition",
-    basicPay: "KES 165,000",
-    allowances: "KES 30,000",
-    deductions: "KES 28,750",
-    netPay: "KES 166,250",
-    status: "processed",
-  },
-  {
-    id: "EMP-003",
-    name: "Grace Wanjiru",
-    department: "People Operations",
-    basicPay: "KES 195,000",
-    allowances: "KES 50,000",
-    deductions: "KES 35,200",
-    netPay: "KES 209,800",
-    status: "pending",
-  },
-  {
-    id: "EMP-004",
-    name: "Sam Mwangi",
-    department: "Employee Relations",
-    basicPay: "KES 155,000",
-    allowances: "KES 25,000",
-    deductions: "KES 26,500",
-    netPay: "KES 153,500",
-    status: "review",
-  },
-  {
-    id: "EMP-005",
-    name: "Mercy Achieng",
-    department: "Payroll Services",
-    basicPay: "KES 175,000",
-    allowances: "KES 35,000",
-    deductions: "KES 30,200",
-    netPay: "KES 179,800",
-    status: "processed",
-  },
-];
+const fallbackPayruns: Payrun[] = [];
+const fallbackEmployeePayrolls: EmployeePayroll[] = [];
 
 const statusConfig: Record<PayrunStatus, { label: string; icon: any; className: string }> = {
   processing: {
@@ -167,8 +79,51 @@ const statusConfig: Record<PayrunStatus, { label: string; icon: any; className: 
 
 export default function PayrollPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedPayrun, setSelectedPayrun] = useState<string>("PR-2026-07");
+  const [selectedPayrun, setSelectedPayrun] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [payruns, setPayruns] = useState<Payrun[]>(fallbackPayruns);
+  const [employeePayrolls, setEmployeePayrolls] = useState<EmployeePayroll[]>(fallbackEmployeePayrolls);
+
+  useEffect(() => {
+    const loadPayrollData = async () => {
+      try {
+        const [runs, payslips] = await Promise.all([
+          payrollApi.listRuns().catch(() => []),
+          payrollApi.listPayslips().catch(() => []),
+        ]);
+
+        const mappedPayruns: Payrun[] = (runs as Array<Record<string, unknown>>).map((run) => ({
+          id: String(run.id ?? ''),
+          period: run.pay_period ? String(run.pay_period) : `${run.month ?? ''}/${run.year ?? ''}`,
+          date: String(run.created_at ?? ''),
+          amount: `KES ${Number(run.total_amount ?? 0).toLocaleString()}`,
+          employees: Number(run.employee_count ?? 0),
+          status: (String(run.status ?? 'completed').toLowerCase() as PayrunStatus),
+          type: 'monthly' as const,
+        }));
+
+        const mappedPayrolls: EmployeePayroll[] = (payslips as Array<Record<string, unknown>>).map((payslip) => ({
+          id: String(payslip.id ?? ''),
+          name: String(payslip.employee_name ?? 'Employee'),
+          department: String(payslip.department ?? 'Operations'),
+          basicPay: `KES ${Number(payslip.gross_pay ?? 0).toLocaleString()}`,
+          allowances: `KES ${Number(payslip.allowances ?? 0).toLocaleString()}`,
+          deductions: `KES ${Number(payslip.deductions ?? 0).toLocaleString()}`,
+          netPay: `KES ${Number(payslip.net_pay ?? 0).toLocaleString()}`,
+          status: (payslip.status === 'processed' ? 'processed' : 'pending') as EmployeePayroll['status'],
+        }));
+
+        setPayruns(mappedPayruns.length ? mappedPayruns : fallbackPayruns);
+        setEmployeePayrolls(mappedPayrolls.length ? mappedPayrolls : fallbackEmployeePayrolls);
+        setSelectedPayrun((mappedPayruns[0]?.id ?? '') as string);
+      } catch {
+        setPayruns(fallbackPayruns);
+        setEmployeePayrolls(fallbackEmployeePayrolls);
+      }
+    };
+
+    loadPayrollData();
+  }, []);
 
   const getStatusBadge = (status: PayrunStatus) => {
     const config = statusConfig[status];

@@ -1,11 +1,22 @@
 import { Bell, ChevronDown, HelpCircle, Search, Settings } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getCurrentUserRole } from "../../services/permissions/permissions";
+import LogoutButton from "./LogoutButton";
 
 const branches = ["Nairobi HQ", "Mombasa", "Kisumu", "Remote Units"];
 
 export default function Navbar() {
   const [branchIndex, setBranchIndex] = useState(0);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
   const branch = branches[branchIndex];
+
+  useEffect(() => {
+    const syncRole = () => setCurrentRole(getCurrentUserRole());
+    syncRole();
+
+    window.addEventListener("storage", syncRole);
+    return () => window.removeEventListener("storage", syncRole);
+  }, []);
 
   const nextBranchLabel = useMemo(
     () => branches[(branchIndex + 1) % branches.length],
@@ -28,7 +39,7 @@ export default function Navbar() {
 
       <div className="topbar-spacer" />
 
-      <span className="role-badge">Payroll Admin</span>
+      <span className="role-badge">{currentRole ?? "Role pending"}</span>
 
       <button className="icon-button" type="button" aria-label="Search">
         <Search aria-hidden="true" size={17} />
@@ -43,6 +54,8 @@ export default function Navbar() {
       <button className="icon-button" type="button" aria-label="Settings">
         <Settings aria-hidden="true" size={17} />
       </button>
+
+      <LogoutButton />
 
       <div className="avatar" aria-label="Angela Njeri">
         AN

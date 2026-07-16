@@ -1,11 +1,12 @@
 import { AlertCircle, Download, Eye, FileText, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { executiveTheme } from "../../../../theme/executiveTheme";
+import { payrollApi, type PayslipDto } from "../../../../services/api";
 import PayslipDetailModal, { type Payslip } from "../components/PayslipDetailModal";
 import RaiseQueryModal from "../components/RaiseQueryModal";
 
-const payslips: Payslip[] = [
+const fallbackPayslips: Payslip[] = [
   {
     id: "PS-2026-06",
     employeeId: "EMP-1042",
@@ -51,6 +52,33 @@ const payslips: Payslip[] = [
   },
 ];
 
+const toNumber = (value: unknown) => Number(value ?? 0);
+
+const normalizePayslip = (item: PayslipDto): Payslip => {
+  const deductions = item.deductions && typeof item.deductions === "object" ? item.deductions as Record<string, unknown> : {};
+  const allowances = Array.isArray(item.allowances)
+    ? item.allowances as { label: string; amount: number }[]
+    : [];
+
+  return {
+    id: String(item.id),
+    employeeId: String(item.employee_id ?? item.employee ?? ""),
+    payrollRunId: String(item.payroll_run_id ?? item.payroll_run ?? ""),
+    payPeriod: String(item.pay_period ?? ""),
+    grossPay: toNumber(item.gross_pay),
+    allowances,
+    deductions: {
+      paye: toNumber(deductions.paye),
+      nssf: toNumber(deductions.nssf),
+      shif: toNumber(deductions.shif),
+      housingLevy: toNumber(deductions.housingLevy ?? deductions.housing_levy),
+      other: Array.isArray(deductions.other) ? deductions.other as { label: string; amount: number }[] : [],
+    },
+    netPay: toNumber(item.net_pay),
+    status: item.status === "Disbursed" || item.status === "DISBURSED" ? "Disbursed" : "Pending",
+    disbursedAt: String(item.disbursed_at ?? new Date().toISOString()),
+  };
+};
 const formatMoney = (amount: number) => `KES ${amount.toLocaleString()}`;
 
 export default function MyPayslip() {
@@ -58,10 +86,29 @@ export default function MyPayslip() {
   const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
   const [queryPayslip, setQueryPayslip] = useState<Payslip | null>(null);
   const [notice, setNotice] = useState("");
+  const [payslipRows, setPayslipRows] = useState<Payslip[]>(fallbackPayslips);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    payrollApi.listPayslips()
+      .then((items) => {
+        if (isMounted && items.length > 0) {
+          setPayslipRows(items.map(normalizePayslip));
+        }
+      })
+      .catch(() => {
+        if (isMounted) setNotice("Using offline payslip data until the payroll API is available.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const visiblePayslips = useMemo(
-    () => payslips.filter((payslip) => payslip.status === "Disbursed" && payslip.payPeriod.includes(query.trim())),
-    [query],
+    () => payslipRows.filter((payslip) => payslip.status === "Disbursed" && payslip.payPeriod.includes(query.trim())),
+    [payslipRows, query],
   );
 
   const handleDownload = (payslip: Payslip) => {
