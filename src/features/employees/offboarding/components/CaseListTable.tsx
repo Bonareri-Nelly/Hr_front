@@ -16,7 +16,7 @@ import { Eye, AlertTriangle, CheckCircle, Clock, Users } from 'lucide-react';
 import type { OffboardingCase } from '../types';
 import { formatDate } from '@/lib/utils';
 
-interface CaseListTableProps {
+interface CaseListTableProps { 
   cases: OffboardingCase[];
   loading: boolean;
   onViewCase: (caseId: string) => void;

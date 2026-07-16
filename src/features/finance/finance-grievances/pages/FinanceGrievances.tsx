@@ -8,7 +8,7 @@ export default function FinanceGrievances() {
       {
         id: "FIN-ESC-091",
         employeeId: "NX-001247",
-        employeeName: "Nancy Wanjiku Karanja",
+        employeeName: "Nancy Wanjiku Karanja", 
         branch: "Nairobi HQ",
         department: "Engineering",
         escalatedDate: "Today, 10:14 AM",

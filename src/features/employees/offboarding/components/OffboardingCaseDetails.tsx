@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   User,
   ChevronRight,
-  Download,
+  Download, 
   Printer
 } from 'lucide-react';
 import { ChecklistView } from './ChecklistView';

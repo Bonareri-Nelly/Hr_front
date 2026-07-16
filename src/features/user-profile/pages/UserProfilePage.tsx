@@ -23,7 +23,7 @@ import {
   Copy,
   Crown,
   Download,
-  Edit,
+  Edit, 
   ExternalLink,
   Eye,
   EyeOff,

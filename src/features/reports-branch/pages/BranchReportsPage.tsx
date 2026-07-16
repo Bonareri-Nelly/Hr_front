@@ -23,7 +23,7 @@ export default function BranchReportsPage() {
     start: '2026-01-01',
     end: '2026-06-30',
   });
-
+ 
   const { data, loading, error } = useBranchReportsData({
     dateRange,
   });

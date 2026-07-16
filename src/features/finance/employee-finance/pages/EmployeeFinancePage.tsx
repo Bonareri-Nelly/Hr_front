@@ -9,7 +9,7 @@ export default function EmployeeFinancialProfile() {
 
   // DYNAMIC PROCESSING WORKBENCH STATES
   const [adjustmentType, setAdjustmentType] = useState<string>('Bonus');
-  const [adjustmentAmount, setAdjustmentAmount] = useState<string>('');
+  const [adjustmentAmount, setAdjustmentAmount] = useState<string>(''); 
   const [adjustmentReason, setAdjustmentReason] = useState<string>('');
   const [newNoteText, setNewNoteText] = useState<string>('');
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');

@@ -13,7 +13,7 @@ export const WorkforceOverview = ({ data }: { data: WorkforceData }) => {
   ];
 
   const colors = {
-    blue: 'bg-blue-50 text-blue-700',
+    blue: 'bg-blue-50 text-blue-700', 
     green: 'bg-green-50 text-green-600',
     orange: 'bg-orange-50 text-orange-600',
   };

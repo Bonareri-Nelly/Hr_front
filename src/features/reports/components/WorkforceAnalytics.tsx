@@ -15,7 +15,7 @@ export const WorkforceAnalytics = ({ data }: { data: WorkforceData }) => {
     { label: 'Exits', value: data.headcount.reduce((sum, m) => sum + m.exits, 0), icon: UserMinus, color: 'red' },
     { label: 'Turnover Rate', value: data.turnover.rate + '%', icon: TrendingUp, color: 'orange' },
     { label: 'Avg Tenure', value: data.tenure.average + ' yrs', icon: Clock, color: 'purple' },
-  ];
+  ]; 
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6">

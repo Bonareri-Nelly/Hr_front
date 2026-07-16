@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import {
   TrendingUp,
   TrendingDown,
-  DollarSign,
+  DollarSign, 
   Calculator,
 } from 'lucide-react';
 import type { FinalSettlement } from '../types';

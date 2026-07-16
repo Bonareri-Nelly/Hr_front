@@ -19,7 +19,7 @@ import {
   File,
   Download,
   Trash2,
-  TrendingUp,
+  TrendingUp, 
   MessageSquare
 } from 'lucide-react';
 import { 

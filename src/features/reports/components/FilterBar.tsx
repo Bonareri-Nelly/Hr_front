@@ -23,7 +23,7 @@ export const FilterBar = ({
   selectedDepartment,
   setSelectedDepartment,
   dateRange,
-  setDateRange,
+  setDateRange, 
   loading,
 }: FilterBarProps) => {
   return (

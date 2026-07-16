@@ -18,7 +18,7 @@ const mockCases: OffboardingCase[] = [
     reason: 'Career growth opportunity',
     lastWorkingDay: '2024-12-15',
     noticePeriodStatus: 'full',
-    initiatedBy: 'user-001',
+    initiatedBy: 'user-001', 
     initiatedByName: 'John Manager',
     initiatedDate: '2024-11-15',
     status: 'in-progress',

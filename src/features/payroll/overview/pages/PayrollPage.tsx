@@ -17,7 +17,7 @@ import {
   Banknote,
   CalendarDays,
   Settings,
-  MoreHorizontal,
+  MoreHorizontal, 
 } from "lucide-react";
 import { useState } from "react";
 import "./PayrollPage.css";

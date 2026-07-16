@@ -10,7 +10,7 @@ import type {
 } from '../types/announcements';
 
 // Mock data
-const mockTrainings: Training[] = [
+const mockTrainings: Training[] = [ 
   {
     id: 'tr-001',
     title: 'Advanced React Development',

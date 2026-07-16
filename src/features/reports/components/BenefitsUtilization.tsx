@@ -15,7 +15,7 @@ export const BenefitsUtilization = ({ data }: { data: BenefitsData }) => {
       maximumFractionDigits: 0,
     }).format(value);
   };
-
+ 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6">
       <div className="flex justify-between items-center mb-6">

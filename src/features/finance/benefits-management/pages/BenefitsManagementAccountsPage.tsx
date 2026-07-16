@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { BenefitsCostData, ProviderInvoiceRow } from '../types/benefitsCost';
 
 export default function BenefitsCostManagement() {
-  // CONFIGURABLE SETTINGS: Branch Scope Selector
+  // CONFIGURABLE SETTINGS: Branch Scope Selector 
   const [selectedBranch, setSelectedBranch] = useState<string>('Org-wide Consolidated');
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
 

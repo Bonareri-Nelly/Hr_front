@@ -11,7 +11,7 @@ import {
   Filter, 
   Eye,
   User,
-  FileText,
+  FileText, 
   Laptop,
   Briefcase,
   Calendar,
