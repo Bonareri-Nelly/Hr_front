@@ -1,1 +1,1 @@
-export { default } from "./pages/LeaveWorkflowPage";
+export { default } from "../../leave-workflow";

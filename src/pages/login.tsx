@@ -1,8 +1,17 @@
-﻿import { ArrowRight, Building2, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "@/services/authService";
+import { getDefaultRouteForRole } from "../services/permissions";
 
 type LoginErrors = {
   email?: string;
@@ -21,14 +30,18 @@ export default function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<LoginErrors>({});
 
   const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.trim().length > 0 && !isLoading,
-    [email, isLoading, password],
+    () =>
+      email.trim().length > 0 &&
+      password.trim().length > 0 &&
+      !isLoading,
+    [email, password, isLoading]
   );
 
   function validate() {
@@ -50,9 +63,7 @@ export default function Login() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!validate()) {
-      return;
-    }
+    if (!validate()) return;
 
     setIsLoading(true);
     setErrors({});
@@ -69,7 +80,6 @@ export default function Login() {
       navigate("/dashboard");
 
     } catch (error: any) {
-      console.error("Login failed:", error);
 
       setErrors({
         general:
@@ -85,13 +95,13 @@ export default function Login() {
 
   return (
     <main className="login-screen">
-      <section className="login-hero" aria-label="Nexus HR and Payroll">
+      <section className="login-hero">
         <div className="login-brand-row">
           <span className="brand-mark">N</span>
 
           <div>
-            <div className="brand-name">Nexus</div>
-            <div className="brand-subtitle">HR &amp; Payroll</div>
+            <div className="brand-name">OPTIMUM</div>
+            <div className="brand-subtitle">HR & Payroll</div>
           </div>
         </div>
 
@@ -109,10 +119,14 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="login-signal-grid" aria-label="Platform focus areas">
+        <div className="login-signal-grid">
           {trustedSignals.map((signal) => (
-            <div className="login-signal" key={signal}>
-              <ShieldCheck aria-hidden="true" size={18} />
+            <div
+              className="login-signal"
+              key={signal}
+            >
+              <ShieldCheck size={18} />
+
               <span>{signal}</span>
             </div>
           ))}
@@ -126,8 +140,13 @@ export default function Login() {
           <span className="brand-mark">N</span>
 
           <div>
-            <div className="login-mobile-title">Nexus</div>
-            <div className="brand-subtitle">HR &amp; Payroll</div>
+            <div className="login-mobile-title">
+              OPTIMUM
+            </div>
+
+            <div className="brand-subtitle">
+              HR & Payroll
+            </div>
           </div>
         </div>
 
@@ -135,12 +154,16 @@ export default function Login() {
         <div className="login-form-heading">
 
           <div className="login-form-icon">
-            <Building2 aria-hidden="true" size={21} />
+            <Building2 size={21} />
           </div>
 
           <div>
             <h2>Welcome back</h2>
-            <p>Sign in to continue to your HR workspace.</p>
+
+            <p>
+              Sign in to continue to your HR
+              workspace.
+            </p>
           </div>
 
         </div>
@@ -198,11 +221,16 @@ export default function Login() {
 
               <input
                 id="password"
-                autoComplete="current-password"
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Enter your password"
-                type={showPassword ? "text" : "password"}
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
                 value={password}
+                placeholder="Enter password"
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
               />
 
 
@@ -239,12 +267,12 @@ export default function Login() {
             <label className="checkbox-row" htmlFor="remember-me">
 
               <input
+                type="checkbox"
                 checked={rememberMe}
                 id="remember-me"
                 onChange={(event) =>
                   setRememberMe(event.target.checked)
                 }
-                type="checkbox"
               />
 
               <span>Remember me</span>

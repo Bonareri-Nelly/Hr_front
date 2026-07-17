@@ -278,6 +278,16 @@ a {
   padding: 12px 10px 18px;
 }
 
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 10px 16px;
+}
+
+.sidebar-footer .icon-button {
+  width: 100%;
+  justify-content: center;
+}
+
 .nav-section-label {
   padding: 0 12px 7px;
   color: oklch(68% 0.012 255);

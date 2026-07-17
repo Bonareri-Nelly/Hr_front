@@ -1,9 +1,12 @@
 import { AlertCircle, CheckCircle, Download, Filter, LoaderCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, CalendarClock, CheckCircle, Download, Filter } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { actions, resources, type ApiRecord } from "../../../../services/api/resources";
 import { executiveTheme } from "../../../../theme/executiveTheme";
+import { attendanceApi, type AttendanceRecordDto } from "../../../../services/api";
 import AttendanceCorrectionModal from "./AttendanceCorrectionModal";
 import ClockInOutWidget from "./ClockInOutWidget";
 
@@ -17,6 +20,45 @@ type AttendanceRecord = {
   status: string;
 };
 
+const initialRecords: AttendanceRecord[] = [
+  { id: "ATT-1", employeeId: "EMP-1042", date: "2026-07-01", clockIn: "2026-07-01T07:58:00", clockOut: "2026-07-01T17:05:00", hoursWorked: 9.1, status: "present", correctionRequested: false },
+  { id: "ATT-2", employeeId: "EMP-1042", date: "2026-07-02", clockIn: "2026-07-02T08:21:00", clockOut: "2026-07-02T17:00:00", hoursWorked: 8.6, status: "late", correctionRequested: false },
+  { id: "ATT-3", employeeId: "EMP-1042", date: "2026-07-03", clockIn: null, clockOut: null, hoursWorked: 0, status: "absent", correctionRequested: false },
+  { id: "ATT-4", employeeId: "EMP-1042", date: "2026-07-04", clockIn: null, clockOut: null, hoursWorked: 0, status: "on_leave", correctionRequested: false },
+];
+
+const labels = { present: "Present", late: "Late", absent: "Absent", on_leave: "On Leave" };
+
+const attendanceStatus = (status: unknown): AttendanceRecord["status"] => {
+  const value = String(status ?? "present").toLowerCase();
+  if (value === "late" || value === "absent" || value === "on_leave") return value;
+  return "present";
+};
+
+const toAttendanceRecord = (item: AttendanceRecordDto): AttendanceRecord => ({
+  id: String(item.id),
+  employeeId: String(item.employee_id ?? item.employee ?? ""),
+  date: String(item.date ?? new Date().toISOString().slice(0, 10)),
+  clockIn: item.clock_in ?? item.check_in_time ?? null,
+  clockOut: item.clock_out ?? item.check_out_time ?? null,
+  hoursWorked: Number(item.hours_worked ?? 0),
+  status: attendanceStatus(item.status),
+  correctionRequested: Boolean(item.correction_requested),
+});
+
+const getStoredEmployeeId = () => {
+  const savedUser = localStorage.getItem("current_user");
+  if (savedUser) {
+    try {
+      const user = JSON.parse(savedUser) as { employee_id?: number | string };
+      if (user.employee_id) return user.employee_id;
+    } catch {
+      return localStorage.getItem("employee_id") ?? 1;
+    }
+  }
+
+  return localStorage.getItem("employee_id") ?? 1;
+};
 const getCurrentUserId = () => {
   try {
     const user = JSON.parse(localStorage.getItem("user") ?? "null") as { id?: number } | null;
