@@ -50,12 +50,15 @@ const allBranchData = {
   },
 };
 
+type BranchName = keyof typeof allBranchData;
+
 const mockUser = {
-  branch: 'Nairobi HQ',
+  branch: 'Nairobi HQ' as BranchName,
 };
 
 export default function HrDashboardPage() {
-  const [userBranch] = useState(mockUser.branch);
+  const [userBranch] = useState<BranchName>(mockUser.branch); // typed lookup key
+
 
   const branchData = useMemo(() => {
     return allBranchData[userBranch] || allBranchData['Nairobi HQ'];

@@ -1,48 +1,23 @@
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import DashboardLayout from "../layouts/dashboardLayout";
-import { moduleRoutes } from "../features/moduleRoutes";
+import DashboardLayout from "../layouts/DashboardLayout";
 import Dashboard from "../pages/Dashboard";
 import Login from "../pages/login";
+import SystemSettings from "../system/SystemSettings";
 
-export default function AppRouter() {
+function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />
-
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
-          {moduleRoutes.map(({ Component, path }) => (
-            <Route key={path} path={path} element={<Component />} />
-          ))}
+          <Route path="/system" element={<SystemSettings />} />
+          <Route path="/settings" element={<SystemSettings />} />
         </Route>
+        <Route path="*" element={<Login />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import DashboardLayout from "../layouts/dashboardLayout";
-import { moduleRoutes } from "../features/moduleRoutes";
-import Dashboard from "../pages/Dashboard";
-import Login from "../pages/login";
-
-export default function AppRouter() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          {moduleRoutes.map(({ Component, path }) => (
-            <Route key={path} path={path} element={<Component />} />
-          ))}
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
-}
-export { default } from "../app/router/AppRouter";
-
+export default App;
