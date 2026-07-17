@@ -1,7 +1,8 @@
 import { AlertCircle, CalendarClock, CheckCircle, Download, Filter } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { executiveTheme } from "../../../../theme/executiveTheme";
+import { attendanceApi, type AttendanceRecordDto } from "../../../../services/api";
 import AttendanceCorrectionModal from "./AttendanceCorrectionModal";
 import ClockInOutWidget from "./ClockInOutWidget";
 
@@ -16,6 +17,37 @@ const initialRecords: AttendanceRecord[] = [
 
 const labels = { present: "Present", late: "Late", absent: "Absent", on_leave: "On Leave" };
 
+const attendanceStatus = (status: unknown): AttendanceRecord["status"] => {
+  const value = String(status ?? "present").toLowerCase();
+  if (value === "late" || value === "absent" || value === "on_leave") return value;
+  return "present";
+};
+
+const toAttendanceRecord = (item: AttendanceRecordDto): AttendanceRecord => ({
+  id: String(item.id),
+  employeeId: String(item.employee_id ?? item.employee ?? ""),
+  date: String(item.date ?? new Date().toISOString().slice(0, 10)),
+  clockIn: item.clock_in ?? item.check_in_time ?? null,
+  clockOut: item.clock_out ?? item.check_out_time ?? null,
+  hoursWorked: Number(item.hours_worked ?? 0),
+  status: attendanceStatus(item.status),
+  correctionRequested: Boolean(item.correction_requested),
+});
+
+const getStoredEmployeeId = () => {
+  const savedUser = localStorage.getItem("current_user");
+  if (savedUser) {
+    try {
+      const user = JSON.parse(savedUser) as { employee_id?: number | string };
+      if (user.employee_id) return user.employee_id;
+    } catch {
+      return localStorage.getItem("employee_id") ?? 1;
+    }
+  }
+
+  return localStorage.getItem("employee_id") ?? 1;
+};
+
 export default function AttendanceTracker() {
   const [records, setRecords] = useState(initialRecords);
   const [isClockedIn, setIsClockedIn] = useState(false);
@@ -23,6 +55,24 @@ export default function AttendanceTracker() {
   const [correctionOpen, setCorrectionOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [lastClockIn, setLastClockIn] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    attendanceApi.listRecords()
+      .then((items) => {
+        if (isMounted && items.length > 0) {
+          setRecords(items.map(toAttendanceRecord));
+        }
+      })
+      .catch(() => {
+        if (isMounted) setNotice("Using offline attendance data until the attendance API is available.");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const visibleRecords = records.filter((record) => statusFilter === "all" || record.status === statusFilter);
   const summary = useMemo(() => ({ totalHours: records.reduce((sum, record) => sum + record.hoursWorked, 0), late: records.filter((record) => record.status === "late").length, absent: records.filter((record) => record.status === "absent").length }), [records]);

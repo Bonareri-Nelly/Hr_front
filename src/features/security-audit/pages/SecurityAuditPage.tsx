@@ -1,3 +1,7 @@
+// ============================================================
+// SecurityAuditPage.tsx - Main Security & Audit Dashboard
+// ============================================================
+
 import {
   Shield,
   CheckCircle2,
@@ -5,20 +9,15 @@ import {
   Clock,
   Eye,
   Download,
-  Filter,
   Search,
   ChevronRight,
   Users,
   Lock,
-  Key,
   Activity,
   FileText,
-  Calendar,
   MoreHorizontal,
   Settings,
   RefreshCw,
-  ExternalLink,
-  UserCheck,
   UserX,
   Globe,
   Server,
@@ -29,14 +28,18 @@ import {
   Info,
   TrendingUp,
   TrendingDown,
-  Zap,
-  Fingerprint,
+  ArrowLeft,
+  X,
+  Edit,
   FileCheck,
-  Target,
-  BarChart3,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+// ============================================================
+// TYPES
+// ============================================================
 
 type Severity = "critical" | "high" | "medium" | "low" | "info";
 type Status = "resolved" | "investigating" | "open" | "dismissed";
@@ -50,6 +53,9 @@ interface SecurityEvent {
   severity: Severity;
   status: Status;
   source: string;
+  description?: string;
+  affectedSystems?: string[];
+  recommendations?: string[];
 }
 
 interface AuditLog {
@@ -62,6 +68,17 @@ interface AuditLog {
   status: "success" | "failure" | "pending";
 }
 
+interface ComplianceItem {
+  name: string;
+  status: "Compliant" | "Partial" | "Action Required";
+  color: string;
+  width: string;
+  path: string;
+  icon: any;
+  description: string;
+  lastAudit: string;
+}
+
 interface SecurityMetric {
   label: string;
   value: string;
@@ -70,6 +87,25 @@ interface SecurityMetric {
   icon: any;
   color: string;
 }
+
+// ============================================================
+// DATA
+// ============================================================
+
+const severityConfig: Record<Severity, { label: string; icon: any; color: string; bg: string }> = {
+  critical: { label: "Critical", icon: AlertCircle, color: "#dc2626", bg: "#fef2f2" },
+  high: { label: "High", icon: AlertTriangle, color: "#d97706", bg: "#fffbeb" },
+  medium: { label: "Medium", icon: Info, color: "#2563eb", bg: "#eff6ff" },
+  low: { label: "Low", icon: Info, color: "#6b7280", bg: "#f9fafb" },
+  info: { label: "Info", icon: Info, color: "#6b7280", bg: "#f9fafb" },
+};
+
+const statusConfig: Record<Status, { label: string; color: string; bg: string }> = {
+  resolved: { label: "Resolved", color: "#16a34a", bg: "#f0fdf4" },
+  investigating: { label: "Investigating", color: "#d97706", bg: "#fffbeb" },
+  open: { label: "Open", color: "#dc2626", bg: "#fef2f2" },
+  dismissed: { label: "Dismissed", color: "#6b7280", bg: "#f9fafb" },
+};
 
 const securityMetrics: SecurityMetric[] = [
   {
@@ -116,6 +152,9 @@ const securityEvents: SecurityEvent[] = [
     severity: "high",
     status: "investigating",
     source: "Authentication Service",
+    description: "Multiple failed login attempts detected from IP 192.168.1.45.",
+    affectedSystems: ["Authentication Service", "User Database"],
+    recommendations: ["Enable MFA for user", "Block source IP", "Reset user password"],
   },
   {
     id: "SEC-2026-002",
@@ -126,6 +165,9 @@ const securityEvents: SecurityEvent[] = [
     severity: "critical",
     status: "open",
     source: "API Gateway",
+    description: "Unusual API call pattern detected from internal service.",
+    affectedSystems: ["API Gateway", "Database Service"],
+    recommendations: ["Review API logs", "Rotate API keys", "Implement rate limiting"],
   },
   {
     id: "SEC-2026-003",
@@ -136,6 +178,9 @@ const securityEvents: SecurityEvent[] = [
     severity: "critical",
     status: "investigating",
     source: "Payroll Service",
+    description: "Attempted access to payroll data from unauthorized IP address.",
+    affectedSystems: ["Payroll Service", "Employee Database"],
+    recommendations: ["Block source IP", "Review access logs", "Notify security team"],
   },
   {
     id: "SEC-2026-004",
@@ -146,6 +191,9 @@ const securityEvents: SecurityEvent[] = [
     severity: "medium",
     status: "resolved",
     source: "Identity Service",
+    description: "Admin password was changed from internal IP.",
+    affectedSystems: ["Identity Service"],
+    recommendations: ["Verify identity of user", "Enable additional MFA"],
   },
   {
     id: "SEC-2026-005",
@@ -156,6 +204,9 @@ const securityEvents: SecurityEvent[] = [
     severity: "medium",
     status: "dismissed",
     source: "File Storage",
+    description: "Large volume of files downloaded in short time period.",
+    affectedSystems: ["File Storage", "User Account"],
+    recommendations: ["Review download logs", "Implement download limits"],
   },
   {
     id: "SEC-2026-006",
@@ -166,6 +217,9 @@ const securityEvents: SecurityEvent[] = [
     severity: "low",
     status: "resolved",
     source: "Device Management",
+    description: "Device registration from location not previously associated with user.",
+    affectedSystems: ["Device Management"],
+    recommendations: ["Verify device ownership", "Enable device trust"],
   },
 ];
 
@@ -217,134 +271,1383 @@ const auditLogs: AuditLog[] = [
   },
 ];
 
-const severityConfig: Record<Severity, { label: string; icon: any; color: string; bg: string }> = {
-  critical: { label: "Critical", icon: AlertCircle, color: "#dc2626", bg: "#fef2f2" },
-  high: { label: "High", icon: AlertTriangle, color: "#d97706", bg: "#fffbeb" },
-  medium: { label: "Medium", icon: Info, color: "#2563eb", bg: "#eff6ff" },
-  low: { label: "Low", icon: Info, color: "#6b7280", bg: "#f9fafb" },
-  info: { label: "Info", icon: Info, color: "#6b7280", bg: "#f9fafb" },
+const complianceItems: ComplianceItem[] = [
+  {
+    name: "ISO 27001",
+    status: "Compliant",
+    color: "#22c55e",
+    width: "100%",
+    path: "/security/compliance/iso27001",
+    icon: ShieldCheck,
+    description: "Information Security Management System",
+    lastAudit: "2026-06-15",
+  },
+  {
+    name: "GDPR",
+    status: "Partial",
+    color: "#f59e0b",
+    width: "85%",
+    path: "/security/compliance/gdpr",
+    icon: Globe,
+    description: "General Data Protection Regulation",
+    lastAudit: "2026-05-20",
+  },
+  {
+    name: "SOC 2",
+    status: "Compliant",
+    color: "#22c55e",
+    width: "95%",
+    path: "/security/compliance/soc2",
+    icon: Database,
+    description: "System and Organization Controls",
+    lastAudit: "2026-06-30",
+  },
+  {
+    name: "PCI DSS",
+    status: "Action Required",
+    color: "#ef4444",
+    width: "60%",
+    path: "/security/compliance/pci-dss",
+    icon: Lock,
+    description: "Payment Card Industry Data Security Standard",
+    lastAudit: "2026-04-10",
+  },
+];
+
+// ============================================================
+// COMPONENT: SecurityEventBadges - Helper for rendering badges
+// ============================================================
+
+const SecurityEventBadges: React.FC<{ severity: Severity; status: Status }> = ({ severity, status }) => {
+  const SeverityIcon = severityConfig[severity].icon;
+  const severityColor = severityConfig[severity].color;
+  const severityBg = severityConfig[severity].bg;
+  const statusColor = statusConfig[status].color;
+  const statusBg = statusConfig[status].bg;
+
+  return (
+    <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "4px",
+          fontSize: "10px",
+          fontWeight: 600,
+          padding: "3px 10px",
+          borderRadius: "100px",
+          textTransform: "uppercase",
+          letterSpacing: "0.4px",
+          background: severityBg,
+          color: severityColor,
+          border: `1px solid ${severityColor}20`,
+        }}
+      >
+        <SeverityIcon size={12} />
+        {severityConfig[severity].label}
+      </span>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "4px",
+          fontSize: "10px",
+          fontWeight: 600,
+          padding: "3px 10px",
+          borderRadius: "100px",
+          textTransform: "uppercase",
+          letterSpacing: "0.4px",
+          background: statusBg,
+          color: statusColor,
+          border: `1px solid ${statusColor}20`,
+        }}
+      >
+        <div
+          style={{
+            width: "5px",
+            height: "5px",
+            borderRadius: "50%",
+            background: statusColor,
+          }}
+        />
+        {statusConfig[status].label}
+      </span>
+    </div>
+  );
 };
 
-const statusConfig: Record<Status, { label: string; color: string; bg: string }> = {
-  resolved: { label: "Resolved", color: "#16a34a", bg: "#f0fdf4" },
-  investigating: { label: "Investigating", color: "#d97706", bg: "#fffbeb" },
-  open: { label: "Open", color: "#dc2626", bg: "#fef2f2" },
-  dismissed: { label: "Dismissed", color: "#6b7280", bg: "#f9fafb" },
+// ============================================================
+// COMPONENT: SecurityEventDetails
+// ============================================================
+
+const SecurityEventDetails: React.FC<{ event: SecurityEvent; onClose: () => void }> = ({ event, onClose }) => {
+  const navigate = useNavigate();
+  const SeverityIcon = severityConfig[event.severity].icon;
+  const severityColor = severityConfig[event.severity].color;
+  const severityBg = severityConfig[event.severity].bg;
+  const statusColor = statusConfig[event.status].color;
+  const statusBg = statusConfig[event.status].bg;
+
+  return (
+    <div style={{ padding: "20px 24px 24px 24px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: "16px",
+        }}
+      >
+        <div>
+          <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+            <span
+              style={{
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "#94a3b8",
+                fontFamily: "monospace",
+                letterSpacing: "0.3px",
+              }}
+            >
+              {event.id}
+            </span>
+          </div>
+          <h4 style={{ fontSize: "18px", fontWeight: 600, color: "#0f172a", margin: 0 }}>
+            {event.event}
+          </h4>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#94a3b8",
+            cursor: "pointer",
+            padding: "4px",
+            borderRadius: "8px",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#f1f5f9";
+            e.currentTarget.style.color = "#0f172a";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "#94a3b8";
+          }}
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: "6px", marginBottom: "20px" }}>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "10px",
+            fontWeight: 600,
+            padding: "3px 10px",
+            borderRadius: "100px",
+            textTransform: "uppercase",
+            letterSpacing: "0.4px",
+            background: severityBg,
+            color: severityColor,
+            border: `1px solid ${severityColor}20`,
+          }}
+        >
+          <SeverityIcon size={12} />
+          {severityConfig[event.severity].label}
+        </span>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "4px",
+            fontSize: "10px",
+            fontWeight: 600,
+            padding: "3px 10px",
+            borderRadius: "100px",
+            textTransform: "uppercase",
+            letterSpacing: "0.4px",
+            background: statusBg,
+            color: statusColor,
+            border: `1px solid ${statusColor}20`,
+          }}
+        >
+          <div
+            style={{
+              width: "5px",
+              height: "5px",
+              borderRadius: "50%",
+              background: statusColor,
+            }}
+          />
+          {statusConfig[event.status].label}
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "12px 20px",
+          marginBottom: "20px",
+          background: "#f8fafc",
+          padding: "16px",
+          borderRadius: "10px",
+        }}
+      >
+        {[
+          { label: "User", value: event.user, icon: Users },
+          { label: "IP Address", value: event.ip, icon: Server },
+          { label: "Source", value: event.source, icon: Database, fullWidth: true },
+          { label: "Timestamp", value: event.timestamp, icon: Clock, fullWidth: true },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div
+              key={item.label}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+                gridColumn: item.fullWidth ? "1 / -1" : "auto",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  color: "#94a3b8",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                }}
+              >
+                <Icon size={12} />
+                {item.label}
+              </span>
+              <span style={{ fontSize: "14px", fontWeight: 500, color: "#0f172a" }}>
+                {item.value}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {event.description && (
+        <div style={{ marginBottom: "16px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 600, color: "#64748b" }}>Description</span>
+          <p style={{ fontSize: "14px", color: "#1e293b", margin: "4px 0 0 0", lineHeight: 1.6 }}>
+            {event.description}
+          </p>
+        </div>
+      )}
+
+      {event.affectedSystems && (
+        <div style={{ marginBottom: "16px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 600, color: "#64748b" }}>Affected Systems</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "4px" }}>
+            {event.affectedSystems.map((system) => (
+              <span
+                key={system}
+                style={{
+                  padding: "3px 12px",
+                  borderRadius: "6px",
+                  background: "#eef2ff",
+                  color: "#4f46e5",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                }}
+              >
+                {system}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {event.recommendations && (
+        <div style={{ marginBottom: "20px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 600, color: "#64748b" }}>Recommendations</span>
+          <ul style={{ margin: "4px 0 0 0", paddingLeft: "20px", fontSize: "14px", color: "#1e293b" }}>
+            {event.recommendations.map((rec, idx) => (
+              <li key={idx} style={{ marginBottom: "4px" }}>
+                {rec}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          paddingTop: "16px",
+          borderTop: "1px solid #f1f5f9",
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          onClick={() => navigate(`/security/events/${event.id}/investigate`)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+            padding: "8px 18px",
+            borderRadius: "8px",
+            fontSize: "12px",
+            fontWeight: 600,
+            border: "none",
+            background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+            color: "white",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            fontFamily: "inherit",
+            boxShadow: "0 2px 8px rgba(79, 70, 229, 0.3)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 4px 16px rgba(79, 70, 229, 0.4)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "0 2px 8px rgba(79, 70, 229, 0.3)";
+          }}
+        >
+          <Eye size={15} />
+          Investigate
+        </button>
+        <button
+          onClick={() => navigate(`/security/events/${event.id}/resolve`)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+            padding: "8px 18px",
+            borderRadius: "8px",
+            fontSize: "12px",
+            fontWeight: 600,
+            border: "1px solid #e2e8f0",
+            background: "white",
+            color: "#1e293b",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            fontFamily: "inherit",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#f8fafc";
+            e.currentTarget.style.borderColor = "#cbd5e1";
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "white";
+            e.currentTarget.style.borderColor = "#e2e8f0";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          <CheckCircle2 size={15} />
+          Mark Resolved
+        </button>
+        <button
+          onClick={() => navigate(`/security/events/${event.id}/alert`)}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "7px",
+            padding: "8px 18px",
+            borderRadius: "8px",
+            fontSize: "12px",
+            fontWeight: 600,
+            border: "1px solid #e2e8f0",
+            background: "white",
+            color: "#1e293b",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            fontFamily: "inherit",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "#f8fafc";
+            e.currentTarget.style.borderColor = "#cbd5e1";
+            e.currentTarget.style.transform = "translateY(-1px)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "white";
+            e.currentTarget.style.borderColor = "#e2e8f0";
+            e.currentTarget.style.transform = "translateY(0)";
+          }}
+        >
+          <Bell size={15} />
+          Alert Team
+        </button>
+      </div>
+    </div>
+  );
 };
 
-export default function SecurityAuditPage() {
+// ============================================================
+// COMPONENT: SecurityScanPage
+// ============================================================
+
+const SecurityScanPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [scanning, setScanning] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [scanResults, setScanResults] = useState<{ completed: boolean; issues: number; fixes: number } | null>(
+    null
+  );
+
+  const handleStartScan = () => {
+    setScanning(true);
+    setProgress(0);
+    setScanResults(null);
+
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setScanning(false);
+          setScanResults({
+            completed: true,
+            issues: Math.floor(Math.random() * 5) + 1,
+            fixes: Math.floor(Math.random() * 3),
+          });
+          return 100;
+        }
+        return prev + Math.random() * 10;
+      });
+    }, 300);
+  };
+
+  return (
+    <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "24px" }}>
+      <button
+        onClick={() => navigate("/security")}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          background: "none",
+          border: "none",
+          color: "#64748b",
+          fontSize: "14px",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          padding: "8px 12px",
+          borderRadius: "8px",
+          transition: "all 0.2s",
+          marginBottom: "24px",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f1f5f9";
+          e.currentTarget.style.color = "#0f172a";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "#64748b";
+        }}
+      >
+        <ArrowLeft size={16} />
+        Back to Security Dashboard
+      </button>
+
+      <div
+        style={{
+          background: "white",
+          borderRadius: "16px",
+          padding: "40px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          border: "1px solid rgba(226,232,240,0.6)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
+          <div
+            style={{
+              width: "64px",
+              height: "64px",
+              borderRadius: "16px",
+              background: "#eef2ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Shield size={32} style={{ color: "#4f46e5" }} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+              Security Scan
+            </h1>
+            <p style={{ fontSize: "15px", color: "#64748b", margin: "4px 0 0 0" }}>
+              Run a comprehensive security scan across all systems
+            </p>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "#f8fafc",
+            padding: "24px",
+            borderRadius: "12px",
+            marginBottom: "24px",
+          }}
+        >
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+            <div>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Systems to Scan
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "18px",
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  marginTop: "4px",
+                }}
+              >
+                12
+              </span>
+            </div>
+            <div>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Estimated Time
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "18px",
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  marginTop: "4px",
+                }}
+              >
+                2-3 minutes
+              </span>
+            </div>
+            <div>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "#94a3b8",
+                  fontWeight: 500,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Last Scan
+              </span>
+              <span
+                style={{
+                  display: "block",
+                  fontSize: "18px",
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  marginTop: "4px",
+                }}
+              >
+                3 days ago
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {scanning ? (
+          <div>
+            <div style={{ marginBottom: "16px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span style={{ fontSize: "14px", fontWeight: 500, color: "#0f172a" }}>
+                  Scanning in progress...
+                </span>
+                <span style={{ fontSize: "14px", fontWeight: 600, color: "#4f46e5" }}>
+                  {Math.round(progress)}%
+                </span>
+              </div>
+              <div
+                style={{
+                  width: "100%",
+                  height: "8px",
+                  background: "#f1f5f9",
+                  borderRadius: "100px",
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${Math.min(progress, 100)}%`,
+                    height: "100%",
+                    background: "linear-gradient(90deg, #4f46e5, #7c3aed)",
+                    borderRadius: "100px",
+                    transition: "width 0.3s",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+              {["Authentication", "Authorization", "Data Security", "Network Security", "Endpoint Protection", "Compliance"].map(
+                (item, idx) => (
+                  <div
+                    key={item}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "8px 12px",
+                      background: "white",
+                      borderRadius: "8px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "16px",
+                        height: "16px",
+                        borderRadius: "50%",
+                        background: progress > (idx + 1) * 16 ? "#22c55e" : "#e2e8f0",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {progress > (idx + 1) * 16 && <CheckCircle2 size={10} style={{ color: "white" }} />}
+                    </div>
+                    <span style={{ fontSize: "13px", color: progress > (idx + 1) * 16 ? "#0f172a" : "#94a3b8" }}>
+                      {item}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        ) : scanResults ? (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "16px" }}>
+              <CheckCircle2 size={32} style={{ color: "#22c55e" }} />
+              <div>
+                <h3 style={{ fontSize: "18px", fontWeight: 600, color: "#0f172a", margin: 0 }}>
+                  Scan Complete
+                </h3>
+                <p style={{ fontSize: "14px", color: "#64748b", margin: "2px 0 0 0" }}>
+                  Security scan finished successfully
+                </p>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+              <div
+                style={{
+                  padding: "16px",
+                  background: "#f8fafc",
+                  borderRadius: "10px",
+                  textAlign: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "#94a3b8",
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Issues Found
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "28px",
+                    fontWeight: 700,
+                    color: scanResults.issues > 0 ? "#ef4444" : "#22c55e",
+                    marginTop: "4px",
+                  }}
+                >
+                  {scanResults.issues}
+                </span>
+              </div>
+              <div
+                style={{
+                  padding: "16px",
+                  background: "#f8fafc",
+                  borderRadius: "10px",
+                  textAlign: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "#94a3b8",
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Fixes Applied
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "28px",
+                    fontWeight: 700,
+                    color: "#22c55e",
+                    marginTop: "4px",
+                  }}
+                >
+                  {scanResults.fixes}
+                </span>
+              </div>
+              <div
+                style={{
+                  padding: "16px",
+                  background: "#f8fafc",
+                  borderRadius: "10px",
+                  textAlign: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "#94a3b8",
+                    fontWeight: 500,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Security Score
+                </span>
+                <span
+                  style={{
+                    display: "block",
+                    fontSize: "28px",
+                    fontWeight: 700,
+                    color: "#4f46e5",
+                    marginTop: "4px",
+                  }}
+                >
+                  94%
+                </span>
+              </div>
+            </div>
+            <div style={{ marginTop: "16px", display: "flex", gap: "8px" }}>
+              <button
+                onClick={handleStartScan}
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  border: "none",
+                  background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                  color: "white",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  boxShadow: "0 4px 14px rgba(79,70,229,0.35)",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 8px 24px rgba(79,70,229,0.45)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 4px 14px rgba(79,70,229,0.35)";
+                }}
+              >
+                <RefreshCw size={16} style={{ marginRight: "8px" }} />
+                Run New Scan
+              </button>
+              <button
+                onClick={() => navigate("/security")}
+                style={{
+                  padding: "10px 24px",
+                  borderRadius: "10px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  border: "1px solid #e2e8f0",
+                  background: "white",
+                  color: "#1e293b",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "#f8fafc";
+                  e.currentTarget.style.borderColor = "#cbd5e1";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "white";
+                  e.currentTarget.style.borderColor = "#e2e8f0";
+                }}
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={handleStartScan}
+            style={{
+              padding: "14px 32px",
+              borderRadius: "12px",
+              fontSize: "16px",
+              fontWeight: 600,
+              border: "none",
+              background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+              color: "white",
+              cursor: "pointer",
+              fontFamily: "inherit",
+              boxShadow: "0 4px 14px rgba(79,70,229,0.35)",
+              transition: "all 0.2s",
+              width: "100%",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px) scale(1.01)";
+              e.currentTarget.style.boxShadow = "0 8px 24px rgba(79,70,229,0.45)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0) scale(1)";
+              e.currentTarget.style.boxShadow = "0 4px 14px rgba(79,70,229,0.35)";
+            }}
+          >
+            <Shield size={20} style={{ marginRight: "10px" }} />
+            Start Security Scan
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// COMPONENT: SecuritySettingsPage
+// ============================================================
+
+const SecuritySettingsPage: React.FC = () => {
+  const navigate = useNavigate();
+
+  const settingsSections = [
+    {
+      title: "Authentication",
+      icon: Lock,
+      settings: [
+        { name: "Multi-Factor Authentication", status: "Enabled", description: "Require MFA for all users" },
+        { name: "Password Policy", status: "Strong", description: "Minimum 12 characters, special characters required" },
+        { name: "Session Timeout", status: "30 minutes", description: "Auto-logout after inactivity" },
+        { name: "Single Sign-On", status: "Enabled", description: "SSO via Okta" },
+      ],
+    },
+    {
+      title: "Access Control",
+      icon: Shield,
+      settings: [
+        { name: "Role-Based Access", status: "Active", description: "RBAC enabled with 5 roles" },
+        { name: "IP Whitelisting", status: "Enabled", description: "Restricted to company IPs" },
+        { name: "API Key Management", status: "Rotated monthly", description: "Keys expire every 30 days" },
+      ],
+    },
+    {
+      title: "Monitoring & Alerts",
+      icon: Bell,
+      settings: [
+        { name: "Real-time Alerts", status: "Active", description: "Alert on suspicious activities" },
+        { name: "Audit Logging", status: "Enabled", description: "All activities logged" },
+        { name: "Threat Detection", status: "Active", description: "AI-powered threat detection" },
+      ],
+    },
+  ];
+
+  return (
+    <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "24px" }}>
+      <button
+        onClick={() => navigate("/security")}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          background: "none",
+          border: "none",
+          color: "#64748b",
+          fontSize: "14px",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          padding: "8px 12px",
+          borderRadius: "8px",
+          transition: "all 0.2s",
+          marginBottom: "24px",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f1f5f9";
+          e.currentTarget.style.color = "#0f172a";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "#64748b";
+        }}
+      >
+        <ArrowLeft size={16} />
+        Back to Security Dashboard
+      </button>
+
+      <div
+        style={{
+          background: "white",
+          borderRadius: "16px",
+          padding: "32px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          border: "1px solid rgba(226,232,240,0.6)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "14px",
+              background: "#eef2ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Settings size={28} style={{ color: "#4f46e5" }} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+              Security Settings
+            </h1>
+            <p style={{ fontSize: "15px", color: "#64748b", margin: "4px 0 0 0" }}>
+              Configure your organization's security policies
+            </p>
+          </div>
+        </div>
+
+        {settingsSections.map((section) => {
+          const Icon = section.icon;
+          return (
+            <div key={section.title} style={{ marginBottom: "28px" }}>
+              <h3
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  color: "#0f172a",
+                  margin: "0 0 12px 0",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+              >
+                <Icon size={18} style={{ color: "#4f46e5" }} />
+                {section.title}
+              </h3>
+              <div style={{ display: "grid", gap: "8px" }}>
+                {section.settings.map((setting) => (
+                  <div
+                    key={setting.name}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "14px 18px",
+                      background: "#f8fafc",
+                      borderRadius: "10px",
+                      border: "1px solid #f1f5f9",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f1f5f9";
+                      e.currentTarget.style.borderColor = "#e2e8f0";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#f8fafc";
+                      e.currentTarget.style.borderColor = "#f1f5f9";
+                    }}
+                  >
+                    <div>
+                      <span style={{ fontSize: "14px", fontWeight: 500, color: "#0f172a" }}>
+                        {setting.name}
+                      </span>
+                      <span style={{ display: "block", fontSize: "12px", color: "#94a3b8" }}>
+                        {setting.description}
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          color:
+                            setting.status.includes("Enabled") || setting.status.includes("Active")
+                              ? "#22c55e"
+                              : "#f59e0b",
+                          background:
+                            setting.status.includes("Enabled") || setting.status.includes("Active")
+                              ? "#f0fdf4"
+                              : "#fffbeb",
+                          padding: "3px 12px",
+                          borderRadius: "100px",
+                        }}
+                      >
+                        {setting.status}
+                      </span>
+                      <button
+                        style={{
+                          padding: "6px 14px",
+                          borderRadius: "6px",
+                          fontSize: "12px",
+                          fontWeight: 500,
+                          border: "1px solid #e2e8f0",
+                          background: "white",
+                          color: "#1e293b",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f8fafc";
+                          e.currentTarget.style.borderColor = "#cbd5e1";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "white";
+                          e.currentTarget.style.borderColor = "#e2e8f0";
+                        }}
+                      >
+                        <Edit size={12} style={{ marginRight: "4px" }} />
+                        Edit
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// COMPONENT: SecurityCompliancePage
+// ============================================================
+
+const SecurityCompliancePage: React.FC = () => {
+  const navigate = useNavigate();
+  const [selectedCompliance, setSelectedCompliance] = useState<string | null>(null);
+
+  return (
+    <div style={{ maxWidth: "1440px", margin: "0 auto", padding: "24px" }}>
+      <button
+        onClick={() => navigate("/security")}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "8px",
+          background: "none",
+          border: "none",
+          color: "#64748b",
+          fontSize: "14px",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          padding: "8px 12px",
+          borderRadius: "8px",
+          transition: "all 0.2s",
+          marginBottom: "24px",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "#f1f5f9";
+          e.currentTarget.style.color = "#0f172a";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+          e.currentTarget.style.color = "#64748b";
+        }}
+      >
+        <ArrowLeft size={16} />
+        Back to Security Dashboard
+      </button>
+
+      <div
+        style={{
+          background: "white",
+          borderRadius: "16px",
+          padding: "32px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+          border: "1px solid rgba(226,232,240,0.6)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "32px" }}>
+          <div
+            style={{
+              width: "56px",
+              height: "56px",
+              borderRadius: "14px",
+              background: "#eef2ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <FileCheck size={28} style={{ color: "#4f46e5" }} />
+          </div>
+          <div>
+            <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#0f172a", margin: 0 }}>
+              Compliance Management
+            </h1>
+            <p style={{ fontSize: "15px", color: "#64748b", margin: "4px 0 0 0" }}>
+              Track and manage compliance certifications
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: "16px" }}>
+          {complianceItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={item.name}
+                style={{
+                  padding: "20px 24px",
+                  background: "#f8fafc",
+                  borderRadius: "12px",
+                  border: "1px solid #f1f5f9",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                onClick={() => setSelectedCompliance(item.name === selectedCompliance ? null : item.name)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "#e2e8f0";
+                  e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.04)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "#f1f5f9";
+                  e.currentTarget.style.boxShadow = "none";
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "12px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <Icon size={20} style={{ color: item.color }} />
+                    <div>
+                      <span style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a" }}>
+                        {item.name}
+                      </span>
+                      <span style={{ display: "block", fontSize: "13px", color: "#64748b" }}>
+                        {item.description}
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: item.color,
+                        background: `${item.color}15`,
+                        padding: "3px 12px",
+                        borderRadius: "100px",
+                      }}
+                    >
+                      {item.status}
+                    </span>
+                    <span style={{ fontSize: "12px", color: "#94a3b8" }}>Last audit: {item.lastAudit}</span>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    width: "100%",
+                    height: "6px",
+                    background: "#f1f5f9",
+                    borderRadius: "100px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: item.width,
+                      height: "100%",
+                      background: `linear-gradient(90deg, ${item.color}, ${item.color}dd)`,
+                      borderRadius: "100px",
+                      transition: "width 1s ease",
+                    }}
+                  />
+                </div>
+
+                {selectedCompliance === item.name && (
+                  <div
+                    style={{
+                      marginTop: "16px",
+                      padding: "16px",
+                      background: "white",
+                      borderRadius: "8px",
+                      border: "1px solid #e2e8f0",
+                    }}
+                  >
+                    <h4 style={{ fontSize: "14px", fontWeight: 600, color: "#0f172a", margin: "0 0 8px 0" }}>
+                      Compliance Details
+                    </h4>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                      <div>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Status
+                        </span>
+                        <span style={{ display: "block", fontSize: "14px", fontWeight: 500, color: item.color }}>
+                          {item.status}
+                        </span>
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Compliance Score
+                        </span>
+                        <span style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "#0f172a" }}>
+                          {item.width}
+                        </span>
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Last Audit
+                        </span>
+                        <span style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "#0f172a" }}>
+                          {item.lastAudit}
+                        </span>
+                      </div>
+                      <div>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                            color: "#94a3b8",
+                          }}
+                        >
+                          Next Audit
+                        </span>
+                        <span style={{ display: "block", fontSize: "14px", fontWeight: 500, color: "#0f172a" }}>
+                          Q4 2026
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: "12px", display: "flex", gap: "8px" }}>
+                      <button
+                        style={{
+                          padding: "8px 18px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          border: "none",
+                          background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
+                          color: "white",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                          e.currentTarget.style.boxShadow = "0 4px 12px rgba(79,70,229,0.3)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                      >
+                        <FileText size={14} style={{ marginRight: "6px" }} />
+                        View Documentation
+                      </button>
+                      <button
+                        style={{
+                          padding: "8px 18px",
+                          borderRadius: "8px",
+                          fontSize: "13px",
+                          fontWeight: 500,
+                          border: "1px solid #e2e8f0",
+                          background: "white",
+                          color: "#1e293b",
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f8fafc";
+                          e.currentTarget.style.borderColor = "#cbd5e1";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "white";
+                          e.currentTarget.style.borderColor = "#e2e8f0";
+                        }}
+                      >
+                        <Eye size={14} style={{ marginRight: "6px" }} />
+                        View Report
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
+
+const SecurityAuditPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<Severity | "all">("all");
   const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
-  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [animatedMetrics, setAnimatedMetrics] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    // Animate metrics on mount
-    const timer = setTimeout(() => {
-      setAnimatedMetrics({
-        "Security Score": true,
-        "Active Sessions": true,
-        "Failed Logins": true,
-        "Open Incidents": true,
-      });
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const getSeverityBadge = (severity: Severity) => {
-    const config = severityConfig[severity];
-    const Icon = config.icon;
-    return (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "4px",
-          fontSize: "10px",
-          fontWeight: 600,
-          padding: "3px 10px",
-          borderRadius: "100px",
-          textTransform: "uppercase",
-          letterSpacing: "0.4px",
-          background: config.bg,
-          color: config.color,
-          border: `1px solid ${config.color}20`,
-        }}
-      >
-        <Icon size={12} />
-        {config.label}
-      </span>
-    );
-  };
-
-  const getStatusBadge = (status: Status) => {
-    const config = statusConfig[status];
-    return (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "4px",
-          fontSize: "10px",
-          fontWeight: 600,
-          padding: "3px 10px",
-          borderRadius: "100px",
-          textTransform: "uppercase",
-          letterSpacing: "0.4px",
-          background: config.bg,
-          color: config.color,
-          border: `1px solid ${config.color}20`,
-        }}
-      >
-        <div
-          style={{
-            width: "5px",
-            height: "5px",
-            borderRadius: "50%",
-            background: config.color,
-          }}
-        />
-        {config.label}
-      </span>
-    );
-  };
-
-  const getAuditStatusBadge = (status: AuditLog["status"]) => {
-    const config = {
-      success: { label: "Success", color: "#16a34a", bg: "#f0fdf4" },
-      failure: { label: "Failure", color: "#dc2626", bg: "#fef2f2" },
-      pending: { label: "Pending", color: "#d97706", bg: "#fffbeb" },
-    };
-    return (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "4px",
-          padding: "3px 12px",
-          borderRadius: "100px",
-          fontSize: "11px",
-          fontWeight: 600,
-          background: config[status].bg,
-          color: config[status].color,
-          border: `1px solid ${config[status].color}20`,
-        }}
-      >
-        <div
-          style={{
-            width: "5px",
-            height: "5px",
-            borderRadius: "50%",
-            background: config[status].color,
-          }}
-        />
-        {config[status].label}
-      </span>
-    );
-  };
 
   const filteredEvents = securityEvents.filter((event) => {
     const matchesSearch =
@@ -442,14 +1745,7 @@ export default function SecurityAuditPage() {
               in real-time.
             </p>
           </div>
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              flexShrink: 0,
-              alignItems: "center",
-            }}
-          >
+          <div style={{ display: "flex", gap: "10px", flexShrink: 0, alignItems: "center" }}>
             <button
               onClick={handleRefresh}
               style={{
@@ -464,7 +1760,7 @@ export default function SecurityAuditPage() {
                 background: "white",
                 color: "#1e293b",
                 cursor: "pointer",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "all 0.2s",
                 fontFamily: "inherit",
                 boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
               }}
@@ -481,12 +1777,7 @@ export default function SecurityAuditPage() {
                 e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)";
               }}
             >
-              <RefreshCw
-                size={16}
-                style={{
-                  animation: isRefreshing ? "spin 1s linear infinite" : "none",
-                }}
-              />
+              <RefreshCw size={16} style={{ animation: isRefreshing ? "spin 1s linear infinite" : "none" }} />
               Refresh
             </button>
             <button
@@ -503,7 +1794,7 @@ export default function SecurityAuditPage() {
                 background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
                 color: "white",
                 cursor: "pointer",
-                transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                transition: "all 0.2s",
                 fontFamily: "inherit",
                 boxShadow: "0 4px 14px rgba(79, 70, 229, 0.35)",
               }}
@@ -522,131 +1813,6 @@ export default function SecurityAuditPage() {
           </div>
         </header>
 
-        {/* Security Score Overview */}
-        <section style={{ marginBottom: "28px" }}>
-          <div
-            style={{
-              background: "white",
-              borderRadius: "16px",
-              padding: "32px 44px",
-              display: "flex",
-              alignItems: "center",
-              gap: "48px",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
-              border: "1px solid rgba(226, 232, 240, 0.6)",
-            }}
-          >
-            <div style={{ position: "relative", width: "130px", height: "130px", flexShrink: 0 }}>
-              <svg
-                viewBox="0 0 120 120"
-                style={{ transform: "rotate(-90deg)", width: "130px", height: "130px" }}
-              >
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="54"
-                  fill="none"
-                  stroke="#f1f5f9"
-                  strokeWidth="9"
-                />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="54"
-                  fill="none"
-                  stroke="url(#scoreGradient)"
-                  strokeWidth="9"
-                  strokeLinecap="round"
-                  strokeDasharray="339.292"
-                  strokeDashoffset="20.358"
-                  style={{
-                    transition: "stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)",
-                  }}
-                />
-                <defs>
-                  <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#4f46e5" />
-                    <stop offset="100%" stopColor="#7c3aed" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                  textAlign: "center",
-                }}
-              >
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: "36px",
-                    fontWeight: 700,
-                    color: "#0f172a",
-                    lineHeight: 1,
-                    letterSpacing: "-1px",
-                  }}
-                >
-                  94
-                </span>
-                <span
-                  style={{
-                    display: "block",
-                    fontSize: "11px",
-                    color: "#94a3b8",
-                    fontWeight: 500,
-                    marginTop: "2px",
-                    letterSpacing: "0.3px",
-                  }}
-                >
-                  Security Score
-                </span>
-              </div>
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "16px 48px",
-                flex: 1,
-              }}
-            >
-              {[
-                { label: "Risk Level", value: "🟢 Low Risk", color: "#22c55e" },
-                { label: "Open Issues", value: "7", color: "#0f172a" },
-                { label: "Last Scan", value: "2 hours ago", color: "#0f172a" },
-                { label: "Compliance", value: "96%", color: "#0f172a" },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    padding: "10px 0",
-                    borderBottom: "1px solid #f1f5f9",
-                  }}
-                >
-                  <span style={{ fontSize: "13px", color: "#64748b", fontWeight: 500 }}>
-                    {item.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 600,
-                      color: item.color,
-                    }}
-                  >
-                    {item.value}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Stats Grid */}
         <section
           style={{
@@ -656,9 +1822,8 @@ export default function SecurityAuditPage() {
             marginBottom: "28px",
           }}
         >
-          {securityMetrics.map((metric, index) => {
+          {securityMetrics.map((metric) => {
             const Icon = metric.icon;
-            const isAnimated = animatedMetrics[metric.label];
             return (
               <div
                 key={metric.label}
@@ -671,12 +1836,8 @@ export default function SecurityAuditPage() {
                   gap: "16px",
                   boxShadow: "0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
                   border: "1px solid rgba(226, 232, 240, 0.6)",
-                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  transition: "all 0.3s",
                   cursor: "pointer",
-                  opacity: isAnimated ? 1 : 0,
-                  transform: isAnimated ? "translateY(0)" : "translateY(12px)",
-                  animation: isAnimated ? "fadeInUp 0.5s ease forwards" : "none",
-                  animationDelay: `${index * 0.1}s`,
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = "0 8px 25px rgba(0, 0, 0, 0.08)";
@@ -707,25 +1868,11 @@ export default function SecurityAuditPage() {
                     background: `${metric.color}15`,
                     color: metric.color,
                     flexShrink: 0,
-                    transition: "all 0.3s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "scale(1.05)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "scale(1)";
                   }}
                 >
                   <Icon size={24} />
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "2px",
-                    flex: 1,
-                  }}
-                >
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: 1 }}>
                   <span
                     style={{
                       fontSize: "12px",
@@ -772,7 +1919,7 @@ export default function SecurityAuditPage() {
           })}
         </section>
 
-        {/* Main Grid */}
+        {/* Main Grid - Security Events & Details */}
         <div
           style={{
             display: "grid",
@@ -781,7 +1928,7 @@ export default function SecurityAuditPage() {
             marginBottom: "24px",
           }}
         >
-          {/* Security Events */}
+          {/* Security Events List */}
           <section
             style={{
               background: "white",
@@ -804,14 +1951,7 @@ export default function SecurityAuditPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <AlertCircle size={18} style={{ color: "#4f46e5" }} />
-                <h3
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    margin: 0,
-                  }}
-                >
+                <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a", margin: 0 }}>
                   Security Events
                 </h3>
                 <span
@@ -827,29 +1967,9 @@ export default function SecurityAuditPage() {
                   {filteredEvents.length}
                 </span>
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <div
-                  style={{
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                >
-                  <Search
-                    size={15}
-                    style={{
-                      position: "absolute",
-                      left: "12px",
-                      color: "#94a3b8",
-                    }}
-                  />
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <Search size={15} style={{ position: "absolute", left: "12px", color: "#94a3b8" }} />
                   <input
                     type="text"
                     placeholder="Search events..."
@@ -890,7 +2010,6 @@ export default function SecurityAuditPage() {
                     color: "#1e293b",
                     fontFamily: "inherit",
                     cursor: "pointer",
-                    transition: "all 0.2s",
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = "#4f46e5";
@@ -919,7 +2038,6 @@ export default function SecurityAuditPage() {
                     color: "#1e293b",
                     fontFamily: "inherit",
                     cursor: "pointer",
-                    transition: "all 0.2s",
                   }}
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = "#4f46e5";
@@ -965,39 +2083,30 @@ export default function SecurityAuditPage() {
                 </button>
               </div>
             </div>
-            <div
-              style={{
-                padding: "4px 12px 12px 12px",
-                maxHeight: "480px",
-                overflowY: "auto",
-              }}
-            >
+            <div style={{ padding: "4px 12px 12px 12px", maxHeight: "480px", overflowY: "auto" }}>
               {filteredEvents.length > 0 ? (
-                filteredEvents.map((event, index) => (
+                filteredEvents.map((event) => (
                   <div
                     key={event.id}
                     style={{
                       padding: "14px 16px",
                       borderRadius: "10px",
                       cursor: "pointer",
-                      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                      transition: "all 0.2s",
                       border: "2px solid transparent",
                       marginBottom: "4px",
-                      background: selectedEvent === event.id ? "#eef2ff" : "transparent",
-                      borderColor: selectedEvent === event.id ? "#4f46e5" : "transparent",
-                      animation: "fadeInUp 0.4s ease forwards",
-                      animationDelay: `${index * 0.05}s`,
-                      opacity: 0,
+                      background: selectedEventId === event.id ? "#eef2ff" : "transparent",
+                      borderColor: selectedEventId === event.id ? "#4f46e5" : "transparent",
                     }}
-                    onClick={() => setSelectedEvent(event.id)}
+                    onClick={() => setSelectedEventId(event.id === selectedEventId ? null : event.id)}
                     onMouseEnter={(e) => {
-                      if (selectedEvent !== event.id) {
+                      if (selectedEventId !== event.id) {
                         e.currentTarget.style.background = "#f8fafc";
                         e.currentTarget.style.transform = "translateX(4px)";
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (selectedEvent !== event.id) {
+                      if (selectedEventId !== event.id) {
                         e.currentTarget.style.background = "transparent";
                         e.currentTarget.style.transform = "translateX(0)";
                       }
@@ -1022,25 +2131,10 @@ export default function SecurityAuditPage() {
                       >
                         {event.id}
                       </span>
-                      <div style={{ display: "flex", gap: "6px", flexShrink: 0 }}>
-                        {getSeverityBadge(event.severity)}
-                        {getStatusBadge(event.status)}
-                      </div>
+                      <SecurityEventBadges severity={event.severity} status={event.status} />
                     </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          color: "#0f172a",
-                        }}
-                      >
+                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                      <div style={{ fontSize: "14px", fontWeight: 500, color: "#0f172a" }}>
                         {event.event}
                       </div>
                       <div
@@ -1076,13 +2170,7 @@ export default function SecurityAuditPage() {
                   </div>
                 ))
               ) : (
-                <div
-                  style={{
-                    padding: "60px 20px",
-                    textAlign: "center",
-                    color: "#94a3b8",
-                  }}
-                >
+                <div style={{ padding: "60px 20px", textAlign: "center", color: "#94a3b8" }}>
                   <Shield size={40} style={{ color: "#cbd5e1", marginBottom: "16px" }} />
                   <p style={{ margin: 0, fontSize: "15px", fontWeight: 500 }}>
                     No security events match your filters
@@ -1116,14 +2204,7 @@ export default function SecurityAuditPage() {
             >
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <Eye size={18} style={{ color: "#4f46e5" }} />
-                <h3
-                  style={{
-                    fontSize: "16px",
-                    fontWeight: 600,
-                    color: "#0f172a",
-                    margin: 0,
-                  }}
-                >
+                <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a", margin: 0 }}>
                   Event Details
                 </h3>
               </div>
@@ -1156,216 +2237,13 @@ export default function SecurityAuditPage() {
                 <MoreHorizontal size={18} />
               </button>
             </div>
-            {selectedEvent ? (
-              (() => {
-                const event = securityEvents.find((e) => e.id === selectedEvent);
-                if (!event) return null;
-                return (
-                  <div style={{ padding: "20px 24px 24px 24px" }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        marginBottom: "12px",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          color: "#94a3b8",
-                          fontFamily: "monospace",
-                          letterSpacing: "0.3px",
-                        }}
-                      >
-                        {event.id}
-                      </span>
-                      <div style={{ display: "flex", gap: "6px" }}>
-                        {getSeverityBadge(event.severity)}
-                        {getStatusBadge(event.status)}
-                      </div>
-                    </div>
-                    <h4
-                      style={{
-                        fontSize: "18px",
-                        fontWeight: 600,
-                        color: "#0f172a",
-                        margin: "0 0 20px 0",
-                        letterSpacing: "-0.3px",
-                      }}
-                    >
-                      {event.event}
-                    </h4>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "12px 20px",
-                        marginBottom: "20px",
-                        background: "#f8fafc",
-                        padding: "16px",
-                        borderRadius: "10px",
-                      }}
-                    >
-                      {[
-                        { label: "User", value: event.user, icon: Users },
-                        { label: "IP Address", value: event.ip, icon: Server },
-                        { label: "Source", value: event.source, icon: Database, fullWidth: true },
-                        { label: "Timestamp", value: event.timestamp, icon: Clock, fullWidth: true },
-                      ].map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <div
-                            key={item.label}
-                            style={{
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "2px",
-                              gridColumn: item.fullWidth ? "1 / -1" : "auto",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: "10px",
-                                fontWeight: 600,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.5px",
-                                color: "#94a3b8",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "4px",
-                              }}
-                            >
-                              <Icon size={12} />
-                              {item.label}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: "14px",
-                                fontWeight: 500,
-                                color: "#0f172a",
-                              }}
-                            >
-                              {item.value}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        paddingTop: "16px",
-                        borderTop: "1px solid #f1f5f9",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button
-                        onClick={() => handleNavigate(`/security/events/${event.id}/investigate`)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "7px",
-                          padding: "8px 18px",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          border: "none",
-                          background: "linear-gradient(135deg, #4f46e5, #7c3aed)",
-                          color: "white",
-                          cursor: "pointer",
-                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
-                          fontFamily: "inherit",
-                          boxShadow: "0 2px 8px rgba(79, 70, 229, 0.3)",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = "translateY(-2px) scale(1.02)";
-                          e.currentTarget.style.boxShadow = "0 4px 16px rgba(79, 70, 229, 0.4)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = "translateY(0) scale(1)";
-                          e.currentTarget.style.boxShadow = "0 2px 8px rgba(79, 70, 229, 0.3)";
-                        }}
-                      >
-                        <Eye size={15} />
-                        Investigate
-                      </button>
-                      <button
-                        onClick={() => handleNavigate(`/security/events/${event.id}/resolve`)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "7px",
-                          padding: "8px 18px",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          border: "1px solid #e2e8f0",
-                          background: "white",
-                          color: "#1e293b",
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          fontFamily: "inherit",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#f8fafc";
-                          e.currentTarget.style.borderColor = "#cbd5e1";
-                          e.currentTarget.style.transform = "translateY(-1px)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "white";
-                          e.currentTarget.style.borderColor = "#e2e8f0";
-                          e.currentTarget.style.transform = "translateY(0)";
-                        }}
-                      >
-                        <CheckCircle2 size={15} />
-                        Mark Resolved
-                      </button>
-                      <button
-                        onClick={() => handleNavigate(`/security/events/${event.id}/alert`)}
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "7px",
-                          padding: "8px 18px",
-                          borderRadius: "8px",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          border: "1px solid #e2e8f0",
-                          background: "white",
-                          color: "#1e293b",
-                          cursor: "pointer",
-                          transition: "all 0.2s",
-                          fontFamily: "inherit",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#f8fafc";
-                          e.currentTarget.style.borderColor = "#cbd5e1";
-                          e.currentTarget.style.transform = "translateY(-1px)";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "white";
-                          e.currentTarget.style.borderColor = "#e2e8f0";
-                          e.currentTarget.style.transform = "translateY(0)";
-                        }}
-                      >
-                        <Bell size={15} />
-                        Alert Team
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()
+            {selectedEventId ? (
+              <SecurityEventDetails
+                event={securityEvents.find((e) => e.id === selectedEventId)!}
+                onClose={() => setSelectedEventId(null)}
+              />
             ) : (
-              <div
-                style={{
-                  padding: "80px 20px",
-                  textAlign: "center",
-                  color: "#94a3b8",
-                }}
-              >
+              <div style={{ padding: "80px 20px", textAlign: "center", color: "#94a3b8" }}>
                 <Shield size={48} style={{ color: "#cbd5e1", marginBottom: "16px" }} />
                 <p style={{ margin: 0, fontSize: "16px", fontWeight: 500, color: "#64748b" }}>
                   Select a security event
@@ -1400,14 +2278,7 @@ export default function SecurityAuditPage() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <FileText size={18} style={{ color: "#4f46e5" }} />
-              <h3
-                style={{
-                  fontSize: "16px",
-                  fontWeight: 600,
-                  color: "#0f172a",
-                  margin: 0,
-                }}
-              >
+              <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#0f172a", margin: 0 }}>
                 Audit Logs
               </h3>
               <span
@@ -1482,47 +2353,36 @@ export default function SecurityAuditPage() {
             </div>
           </div>
           <div style={{ overflowX: "auto", padding: "0 8px 8px 8px" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "13px",
-              }}
-            >
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
               <thead>
                 <tr>
-                  {["Timestamp", "User", "Action", "Resource", "IP Address", "Status"].map(
-                    (header) => (
-                      <th
-                        key={header}
-                        style={{
-                          textAlign: "left",
-                          padding: "10px 16px",
-                          fontWeight: 600,
-                          fontSize: "10px",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.6px",
-                          color: "#94a3b8",
-                          borderBottom: "2px solid #f1f5f9",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {header}
-                      </th>
-                    )
-                  )}
+                  {["Timestamp", "User", "Action", "Resource", "IP Address", "Status"].map((header) => (
+                    <th
+                      key={header}
+                      style={{
+                        textAlign: "left",
+                        padding: "10px 16px",
+                        fontWeight: 600,
+                        fontSize: "10px",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.6px",
+                        color: "#94a3b8",
+                        borderBottom: "2px solid #f1f5f9",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {header}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {auditLogs.map((log, index) => (
+                {auditLogs.map((log) => (
                   <tr
                     key={log.id}
                     style={{
                       transition: "all 0.2s",
                       cursor: "pointer",
-                      animation: "fadeInUp 0.4s ease forwards",
-                      animationDelay: `${index * 0.05}s`,
-                      opacity: 0,
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.background = "#f8fafc";
@@ -1583,14 +2443,52 @@ export default function SecurityAuditPage() {
                     >
                       {log.ip}
                     </td>
-                    <td
-                      style={{
-                        padding: "12px 16px",
-                        borderBottom: "1px solid #f8fafc",
-                        color: "#1e293b",
-                      }}
-                    >
-                      {getAuditStatusBadge(log.status)}
+                    <td style={{ padding: "12px 16px", borderBottom: "1px solid #f8fafc" }}>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "4px",
+                          padding: "3px 12px",
+                          borderRadius: "100px",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                          background:
+                            log.status === "success"
+                              ? "#f0fdf4"
+                              : log.status === "failure"
+                              ? "#fef2f2"
+                              : "#fffbeb",
+                          color:
+                            log.status === "success"
+                              ? "#16a34a"
+                              : log.status === "failure"
+                              ? "#dc2626"
+                              : "#d97706",
+                          border: `1px solid ${
+                            log.status === "success"
+                              ? "#bbf7d0"
+                              : log.status === "failure"
+                              ? "#fecaca"
+                              : "#fde68a"
+                          }`,
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: "5px",
+                            height: "5px",
+                            borderRadius: "50%",
+                            background:
+                              log.status === "success"
+                                ? "#16a34a"
+                                : log.status === "failure"
+                                ? "#dc2626"
+                                : "#d97706",
+                          }}
+                        />
+                        {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -1686,40 +2584,7 @@ export default function SecurityAuditPage() {
               </button>
             </div>
             <div style={{ display: "grid", gap: "18px" }}>
-              {[
-                {
-                  name: "ISO 27001",
-                  status: "Compliant",
-                  color: "#22c55e",
-                  width: "100%",
-                  path: "/security/compliance/iso27001",
-                  icon: ShieldCheck,
-                },
-                {
-                  name: "GDPR",
-                  status: "Partial",
-                  color: "#f59e0b",
-                  width: "85%",
-                  path: "/security/compliance/gdpr",
-                  icon: Globe,
-                },
-                {
-                  name: "SOC 2",
-                  status: "Compliant",
-                  color: "#22c55e",
-                  width: "95%",
-                  path: "/security/compliance/soc2",
-                  icon: Database,
-                },
-                {
-                  name: "PCI DSS",
-                  status: "Action Required",
-                  color: "#ef4444",
-                  width: "60%",
-                  path: "/security/compliance/pci-dss",
-                  icon: Lock,
-                },
-              ].map((item) => {
+              {complianceItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <div
@@ -1809,22 +2674,6 @@ export default function SecurityAuditPage() {
             to { transform: rotate(360deg); }
           }
           
-          @keyframes fadeInUp {
-            from {
-              opacity: 0;
-              transform: translateY(12px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-          }
-          
           * {
             box-sizing: border-box;
           }
@@ -1832,4 +2681,11 @@ export default function SecurityAuditPage() {
       </div>
     </div>
   );
-}
+};
+
+// ============================================================
+// EXPORTS
+// ============================================================
+
+export default SecurityAuditPage;
+export { SecurityScanPage, SecuritySettingsPage, SecurityCompliancePage };

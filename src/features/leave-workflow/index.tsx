@@ -1,32 +1,16 @@
 import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ApplyLeaveModal from "./components/ApplyLeaveModal";
 import LeaveCalendar from "./components/LeaveCalendar";
 import HRLeaveEntitlementsCard from "./components/HRLeaveEntitlementsCard";
 import ReplacementDecisionPanel from "./components/ReplacementDecisionPanel";
-import { mockEmployees } from "./data/mockEmployees";
+import { employeeApi } from "../../services/api/employee";
+import { leaveApi } from "../../services/api/leave";
 import type {
   LeaveEntitlements,
   LeaveTypeKey,
   ReplacementWorkflowState,
 } from "./types/leaveWorkflowTypes";
-
-const recentRequests = [
-  {
-    id: 1,
-    type: "Annual Leave",
-    period: "09 Jul - 13 Jul 2026",
-    days: 5,
-    status: "Pending",
-  },
-  {
-    id: 2,
-    type: "Sick Leave",
-    period: "15 Jun - 16 Jun 2026",
-    days: 2,
-    status: "Approved",
-  },
-];
 
 const initialEntitlements: LeaveEntitlements = {
   annual: 16,
@@ -39,7 +23,8 @@ const initialEntitlements: LeaveEntitlements = {
 };
 
 export default function LeaveWorkflow() {
-  const loggedInEmployee = mockEmployees[0];
+  const [loggedInEmployee, setLoggedInEmployee] = useState<{ name: string; department: string; gender?: "Male" | "Female" } | null>(null);
+  const [recentRequests, setRecentRequests] = useState<Array<{ id: number; type: string; period: string; days: number; status: string }>>([]);
   const [openModal, setOpenModal] = useState(false);
   const [openEntitlements, setOpenEntitlements] = useState(false);
   const [openReplacementDemo, setOpenReplacementDemo] = useState(false);
@@ -95,6 +80,62 @@ export default function LeaveWorkflow() {
   const isReplacementNeeded = currentPolicyRequiresSubstitute;
 
   const [actingAsReplacement, setActingAsReplacement] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [employees, leaveTypes, leaveRequests] = await Promise.all([
+          employeeApi.list().catch(() => []),
+          leaveApi.listTypes().catch(() => []),
+          leaveApi.listRequests().catch(() => []),
+        ]);
+
+        const currentEmployee = (employees as Array<Record<string, unknown>>)[0];
+        setLoggedInEmployee({
+          name: [currentEmployee?.first_name, currentEmployee?.last_name].filter(Boolean).join(' ') || 'Employee',
+          department: String(currentEmployee?.department ?? 'Operations'),
+          gender: (currentEmployee?.gender === 'F' || currentEmployee?.gender === 'Female' ? 'Female' : 'Male') as "Male" | "Female",
+        });
+
+        const mappedRequests = (leaveRequests as Array<Record<string, unknown>>).slice(0, 4).map((request) => {
+          const start = String(request.start_date ?? '');
+          const end = String(request.end_date ?? '');
+          const type = (leaveTypes as Array<Record<string, unknown>>).find((item) => String(item.id) === String(request.leave_type_id ?? ''))?.name ?? 'Leave';
+          const days = start && end ? Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)) + 1) : 1;
+
+          return {
+            id: Number(request.id ?? 0),
+            type: String(type),
+            period: start && end ? `${start} - ${end}` : 'Pending',
+            days,
+            status: String(request.status ?? 'Pending'),
+          };
+        });
+
+        setRecentRequests(mappedRequests.length ? mappedRequests : [
+          {
+            id: 1,
+            type: 'Annual Leave',
+            period: 'No requests yet',
+            days: 0,
+            status: 'Pending',
+          },
+        ]);
+      } catch {
+        setRecentRequests([
+          {
+            id: 1,
+            type: 'Annual Leave',
+            period: 'Unable to load requests',
+            days: 0,
+            status: 'Pending',
+          },
+        ]);
+      }
+    };
+
+    loadData();
+  }, []);
 
   return (
     <div className="dashboard-page">
@@ -275,7 +316,7 @@ export default function LeaveWorkflow() {
               <ApplyLeaveModal
                 open={openModal}
                 onClose={() => setOpenModal(false)}
-                employeeGender={loggedInEmployee.gender}
+                employeeGender={(loggedInEmployee?.gender as "Male" | "Female") ?? "Female"}
                 setSelectedLeave={setSelectedLeave}
               />
             </div>

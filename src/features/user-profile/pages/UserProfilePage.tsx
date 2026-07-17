@@ -133,12 +133,18 @@ export default function UserProfilePage() {
   const [notifications, setNotifications] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData>({ name: "", email: "", phone: "", location: "", department: "", role: "", manager: "", startDate: "", bio: "" });
   const apiProfile = currentUser.data;
+  const getRoleName = (role: unknown) => {
+    if (!role) return "";
+    if (typeof role === "string") return role;
+    if (typeof role === "object" && "name" in role) return String((role as { name?: string }).name ?? "");
+    return "";
+  };
   const effectiveProfile = apiProfile ? {
     ...profileData,
     name: apiProfile.username,
-    email: apiProfile.email,
+    email: apiProfile.email ?? "",
     phone: apiProfile.phone_number ?? "",
-    role: apiProfile.role?.name ?? "",
+    role: getRoleName(apiProfile.role),
   } : profileData;
 
   // Sample Data

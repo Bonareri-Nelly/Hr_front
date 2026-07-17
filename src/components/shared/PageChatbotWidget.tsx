@@ -64,7 +64,7 @@ export default function PageChatbotWidget({ page, role, contextSummary, quickPro
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <div>
               <p className="text-sm font-bold text-[#fffaf0]">Page Assistant</p>
-              <p className="text-xs text-[#c8a45d]">{page} • {role}</p>
+              <p className="text-xs text-[#c8a45d]">{page} ï¿½ {role}</p>
             </div>
             <button className="rounded-lg p-2 text-[#c9d3df] hover:bg-white/10" onClick={() => setOpen(false)}><X size={16} /></button>
           </div>
