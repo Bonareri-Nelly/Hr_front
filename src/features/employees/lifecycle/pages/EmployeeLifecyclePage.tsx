@@ -345,6 +345,20 @@ const mockAnalytics = {
   ],
 };
 
+function Toast({ message, type, onClose }: any) {
+  const colors = {
+    success: 'bg-green-50 text-green-700 border-green-200',
+    error: 'bg-red-50 text-red-700 border-red-200',
+    info: 'bg-blue-50 text-blue-700 border-blue-200',
+  };
+  return (
+    <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg ${colors[type] || colors.info}`}>
+      <span className="text-sm">{message}</span>
+      <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X className="w-4 h-4" /></button>
+    </div>
+  );
+}
+
 function EmployeeList({ employees, onSelect }: any) {
   if (!employees || employees.length === 0) {
     return (
@@ -412,7 +426,7 @@ function EmployeeList({ employees, onSelect }: any) {
   );
 }
 
-function MilestoneModal({ isOpen, onClose, milestone }: any) {
+function MilestoneModal({ isOpen, onClose, milestone, onViewFullRecord }: any) {
   if (!isOpen || !milestone) return null;
 
   return (
@@ -443,7 +457,10 @@ function MilestoneModal({ isOpen, onClose, milestone }: any) {
           </div>
         )}
         <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
-          <button className="flex-1 px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800 transition flex items-center justify-center gap-2">
+          <button
+            onClick={() => onViewFullRecord(milestone)}
+            className="flex-1 px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800 transition flex items-center justify-center gap-2"
+          >
             <ExternalLink className="w-4 h-4" />
             View Full Record
           </button>
@@ -459,7 +476,7 @@ function MilestoneModal({ isOpen, onClose, milestone }: any) {
   );
 }
 
-function EmployeeTimeline({ employee, onBack }: any) {
+function EmployeeTimeline({ employee, onBack, onViewFullRecord }: any) {
   const [selectedMilestone, setSelectedMilestone] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -574,6 +591,7 @@ function EmployeeTimeline({ employee, onBack }: any) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         milestone={selectedMilestone}
+        onViewFullRecord={onViewFullRecord}
       />
     </div>
   );
@@ -630,62 +648,157 @@ function LifecycleAnalytics({ data }: any) {
   );
 }
 
-function EmployeeProfileCard({ employee }: { employee: Employee }) {
-  if (!employee) return null;
+function EmployeeProfileCard({ employee, onAddNote, onRemind }: any) {
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isRemindModalOpen, setIsRemindModalOpen] = useState(false);
+  const [noteText, setNoteText] = useState('');
+  const [reminderText, setReminderText] = useState('');
+
+  const handleAddNote = () => {
+    if (!noteText.trim()) return;
+    onAddNote(noteText);
+    setNoteText('');
+    setIsNoteModalOpen(false);
+  };
+
+  const handleRemind = () => {
+    if (!reminderText.trim()) return;
+    onRemind(reminderText);
+    setReminderText('');
+    setIsRemindModalOpen(false);
+  };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-      <div className="flex flex-wrap items-start gap-6">
-        <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-          <User className="w-10 h-10 text-blue-700" />
-        </div>
-        <div className="flex-1 min-w-[200px]">
-          <div className="flex flex-wrap items-center gap-3">
-            <h3 className="text-xl font-bold text-gray-900">{employee.name}</h3>
-            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${stageConfig[employee.stage]?.color || ''}`}>
-              {React.createElement(stageConfig[employee.stage]?.icon || Clock, { className: "w-3 h-3" })}
-              {stageConfig[employee.stage]?.label || employee.stage}
-            </span>
+    <>
+      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+        <div className="flex flex-wrap items-start gap-6">
+          <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <User className="w-10 h-10 text-blue-700" />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Briefcase className="w-4 h-4 text-gray-400" />
-              {employee.role}
+          <div className="flex-1 min-w-[200px]">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="text-xl font-bold text-gray-900">{employee.name}</h3>
+              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${stageConfig[employee.stage]?.color || ''}`}>
+                {React.createElement(stageConfig[employee.stage]?.icon || Clock, { className: "w-3 h-3" })}
+                {stageConfig[employee.stage]?.label || employee.stage}
+              </span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Building2 className="w-4 h-4 text-gray-400" />
-              {employee.department} · {employee.branch}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-4 h-4 text-gray-400" />
-              Started: {new Date(employee.startDate).toLocaleDateString()}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Mail className="w-4 h-4 text-gray-400" />
-              {employee.email}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Phone className="w-4 h-4 text-gray-400" />
-              {employee.phone}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <User className="w-4 h-4 text-gray-400" />
-              {employee.employmentType}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-3 text-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <Briefcase className="w-4 h-4 text-gray-400" />
+                {employee.role}
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <Building2 className="w-4 h-4 text-gray-400" />
+                {employee.department} · {employee.branch}
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                Started: {new Date(employee.startDate).toLocaleDateString()}
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <Mail className="w-4 h-4 text-gray-400" />
+                {employee.email}
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <Phone className="w-4 h-4 text-gray-400" />
+                {employee.phone}
+              </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <User className="w-4 h-4 text-gray-400" />
+                {employee.employmentType}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button className="px-3 py-1.5 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800 transition flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Add Note
-          </button>
-          <button className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            Remind
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setIsNoteModalOpen(true)}
+              className="px-3 py-1.5 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800 transition flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add Note
+            </button>
+            <button
+              onClick={() => setIsRemindModalOpen(true)}
+              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition flex items-center gap-2"
+            >
+              <Bell className="w-4 h-4" />
+              Remind
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      {isNoteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsNoteModalOpen(false)}></div>
+          <div className="relative bg-white rounded-xl w-full max-w-md mx-4 p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Add Note for {employee.name}</h3>
+              <button onClick={() => setIsNoteModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              rows={4}
+              placeholder="Enter note here..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleAddNote}
+                className="flex-1 px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800 transition"
+              >
+                Save Note
+              </button>
+              <button
+                onClick={() => setIsNoteModalOpen(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isRemindModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsRemindModalOpen(false)}></div>
+          <div className="relative bg-white rounded-xl w-full max-w-md mx-4 p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">Send Reminder to {employee.name}</h3>
+              <button onClick={() => setIsRemindModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <textarea
+              value={reminderText}
+              onChange={(e) => setReminderText(e.target.value)}
+              rows={3}
+              placeholder="Reminder message..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleRemind}
+                className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 transition"
+              >
+                Send Reminder
+              </button>
+              <button
+                onClick={() => setIsRemindModalOpen(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -808,13 +921,8 @@ function StageDistribution({ data }: { data: any[] }) {
   );
 }
 
-function ExportDropdown({ data }: { data: any }) {
+function ExportDropdown({ onExport }: any) {
   const [isOpen, setIsOpen] = useState(false);
-
-  const handleExport = (format: 'pdf' | 'excel') => {
-    setIsOpen(false);
-    alert(`Exporting ${format.toUpperCase()} of employee lifecycle data`);
-  };
 
   return (
     <div className="relative">
@@ -831,14 +939,14 @@ function ExportDropdown({ data }: { data: any }) {
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-20">
             <button
-              onClick={() => handleExport('pdf')}
+              onClick={() => { setIsOpen(false); onExport('pdf'); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg transition flex items-center gap-2"
             >
               <FileText className="w-4 h-4 text-blue-700" />
               Export as PDF
             </button>
             <button
-              onClick={() => handleExport('excel')}
+              onClick={() => { setIsOpen(false); onExport('excel'); }}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-b-lg transition flex items-center gap-2"
             >
               <FileSpreadsheet className="w-4 h-4 text-green-500" />
@@ -930,8 +1038,10 @@ export default function EmployeeLifecyclePage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedBranch, setSelectedBranch] = useState<string>('all');
   const [selectedEmploymentType, setSelectedEmploymentType] = useState<string>('all');
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [employees, setEmployees] = useState(mockEmployees);
 
-  const filteredEmployees = mockEmployees.filter((emp) => {
+  const filteredEmployees = employees.filter((emp) => {
     const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           emp.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStage = selectedStage === 'all' || emp.stage === selectedStage;
@@ -941,7 +1051,7 @@ export default function EmployeeLifecyclePage() {
     return matchesSearch && matchesStage && matchesDepartment && matchesBranch && matchesEmployment;
   });
 
-  const selectedEmployee = mockEmployees.find(e => e.id === selectedEmployeeId);
+  const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
 
   const handleSelectEmployee = (id: string) => {
     setSelectedEmployeeId(id);
@@ -951,6 +1061,64 @@ export default function EmployeeLifecyclePage() {
   const handleBackToList = () => {
     setSelectedEmployeeId(null);
     setViewMode('list');
+  };
+
+  const handleToggleAnalytics = () => {
+    setViewMode(viewMode === 'analytics' ? 'list' : 'analytics');
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleAddNote = (employeeId: string, noteText: string) => {
+    setEmployees(prev =>
+      prev.map(emp => {
+        if (emp.id === employeeId) {
+          return {
+            ...emp,
+            activity: [
+              { date: new Date().toISOString().slice(0, 10), text: noteText, icon: User },
+              ...emp.activity
+            ]
+          };
+        }
+        return emp;
+      })
+    );
+    showToast('Note added successfully!', 'success');
+  };
+
+  const handleRemind = (employeeId: string, reminderText: string) => {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+    const newMilestone = {
+      id: `u${Date.now()}`,
+      type: 'performance' as MilestoneType,
+      date: new Date().toISOString().slice(0, 10),
+      title: reminderText.slice(0, 40) + (reminderText.length > 40 ? '...' : ''),
+    };
+    setEmployees(prev =>
+      prev.map(emp => {
+        if (emp.id === employeeId) {
+          return {
+            ...emp,
+            upcomingMilestones: [...emp.upcomingMilestones, newMilestone]
+          };
+        }
+        return emp;
+      })
+    );
+    showToast('Reminder sent!', 'success');
+  };
+
+  const handleViewFullRecord = (milestone: any) => {
+    window.open(milestone.moduleLink, '_blank');
+  };
+
+  const handleExport = (format: 'pdf' | 'excel') => {
+    showToast(`Exporting ${format.toUpperCase()}...`, 'success');
   };
 
   return (
@@ -978,7 +1146,7 @@ export default function EmployeeLifecyclePage() {
             List
           </button>
           <button
-            onClick={() => setViewMode('analytics')}
+            onClick={handleToggleAnalytics}
             className={`px-3 py-1.5 text-sm rounded-lg transition ${
               viewMode === 'analytics'
                 ? 'bg-blue-700 text-white'
@@ -988,7 +1156,7 @@ export default function EmployeeLifecyclePage() {
             <TrendingUp className="w-4 h-4 inline mr-1" />
             Analytics
           </button>
-          <ExportDropdown data={filteredEmployees} />
+          <ExportDropdown onExport={handleExport} />
         </div>
       </div>
 
@@ -1017,13 +1185,18 @@ export default function EmployeeLifecyclePage() {
 
         {viewMode === 'timeline' && selectedEmployee && (
           <div className="space-y-6">
-            <EmployeeProfileCard employee={selectedEmployee} />
+            <EmployeeProfileCard
+              employee={selectedEmployee}
+              onAddNote={(text: string) => handleAddNote(selectedEmployee.id, text)}
+              onRemind={(text: string) => handleRemind(selectedEmployee.id, text)}
+            />
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
                 <div className="bg-white border border-gray-200 rounded-xl p-6">
                   <EmployeeTimeline
                     employee={selectedEmployee}
                     onBack={handleBackToList}
+                    onViewFullRecord={handleViewFullRecord}
                   />
                 </div>
               </div>
@@ -1049,6 +1222,14 @@ export default function EmployeeLifecyclePage() {
           </div>
         )}
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
