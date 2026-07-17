@@ -1,8 +1,6 @@
 import { AlertCircle, CheckCircle, Download, Filter, LoaderCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CalendarClock, CheckCircle, Download, Filter } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { actions, resources, type ApiRecord } from "../../../../services/api/resources";
 import { executiveTheme } from "../../../../theme/executiveTheme";
@@ -20,14 +18,25 @@ type AttendanceRecord = {
   status: string;
 };
 
-const initialRecords: AttendanceRecord[] = [
-  { id: "ATT-1", employeeId: "EMP-1042", date: "2026-07-01", clockIn: "2026-07-01T07:58:00", clockOut: "2026-07-01T17:05:00", hoursWorked: 9.1, status: "present", correctionRequested: false },
-  { id: "ATT-2", employeeId: "EMP-1042", date: "2026-07-02", clockIn: "2026-07-02T08:21:00", clockOut: "2026-07-02T17:00:00", hoursWorked: 8.6, status: "late", correctionRequested: false },
-  { id: "ATT-3", employeeId: "EMP-1042", date: "2026-07-03", clockIn: null, clockOut: null, hoursWorked: 0, status: "absent", correctionRequested: false },
-  { id: "ATT-4", employeeId: "EMP-1042", date: "2026-07-04", clockIn: null, clockOut: null, hoursWorked: 0, status: "on_leave", correctionRequested: false },
-];
+const getCurrentUserId = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") ?? "null") as { id?: number } | null;
+    return user?.id;
+  } catch {
+    return undefined;
+  }
+};
 
-const labels = { present: "Present", late: "Late", absent: "Absent", on_leave: "On Leave" };
+const getLocation = () => new Promise<GeolocationPosition>((resolve, reject) => {
+  if (!navigator.geolocation) {
+    reject(new Error("Location access is required to record attendance."));
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
+});
+
+const formatStatus = (status: string) => status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+const employeeName = (employee: ApiRecord) => String(employee.full_name ?? [employee.first_name, employee.middle_name, employee.last_name].filter(Boolean).join(" ") ?? "Employee");
 
 const attendanceStatus = (status: unknown): AttendanceRecord["status"] => {
   const value = String(status ?? "present").toLowerCase();
@@ -59,25 +68,6 @@ const getStoredEmployeeId = () => {
 
   return localStorage.getItem("employee_id") ?? 1;
 };
-const getCurrentUserId = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem("user") ?? "null") as { id?: number } | null;
-    return user?.id;
-  } catch {
-    return undefined;
-  }
-};
-
-const getLocation = () => new Promise<GeolocationPosition>((resolve, reject) => {
-  if (!navigator.geolocation) {
-    reject(new Error("Location access is required to record attendance."));
-    return;
-  }
-  navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
-});
-
-const formatStatus = (status: string) => status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-const employeeName = (employee: ApiRecord) => String(employee.full_name ?? [employee.first_name, employee.middle_name, employee.last_name].filter(Boolean).join(" ") ?? "Employee");
 
 export default function AttendanceTracker() {
   const queryClient = useQueryClient();
