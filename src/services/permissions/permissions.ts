@@ -236,5 +236,5 @@ export function getAllowedNavigationSections(): NavigationSection[] {
 
 export function hasActiveSession(): boolean {
   if (typeof window === "undefined") return false;
-  return Boolean(localStorage.getItem("access_token"));
+  return Boolean(localStorage.getItem("access_token") ?? localStorage.getItem("hr_payroll_access_token"));
 }
