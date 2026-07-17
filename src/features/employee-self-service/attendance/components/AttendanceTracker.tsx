@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { actions, resources, type ApiRecord } from "../../../../services/api/resources";
 import { executiveTheme } from "../../../../theme/executiveTheme";
-import { attendanceApi, type AttendanceRecordDto } from "../../../../services/api";
 import AttendanceCorrectionModal from "./AttendanceCorrectionModal";
 import ClockInOutWidget from "./ClockInOutWidget";
 
@@ -35,39 +34,8 @@ const getLocation = () => new Promise<GeolocationPosition>((resolve, reject) => 
   navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
 });
 
-const formatStatus = (status: string) => status.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+const formatStatus = (status: string) => status.replace(/_/g, " ").replace(/\b\w/g, (letter: string) => letter.toUpperCase());
 const employeeName = (employee: ApiRecord) => String(employee.full_name ?? [employee.first_name, employee.middle_name, employee.last_name].filter(Boolean).join(" ") ?? "Employee");
-
-const attendanceStatus = (status: unknown): AttendanceRecord["status"] => {
-  const value = String(status ?? "present").toLowerCase();
-  if (value === "late" || value === "absent" || value === "on_leave") return value;
-  return "present";
-};
-
-const toAttendanceRecord = (item: AttendanceRecordDto): AttendanceRecord => ({
-  id: String(item.id),
-  employeeId: String(item.employee_id ?? item.employee ?? ""),
-  date: String(item.date ?? new Date().toISOString().slice(0, 10)),
-  clockIn: item.clock_in ?? item.check_in_time ?? null,
-  clockOut: item.clock_out ?? item.check_out_time ?? null,
-  hoursWorked: Number(item.hours_worked ?? 0),
-  status: attendanceStatus(item.status),
-  correctionRequested: Boolean(item.correction_requested),
-});
-
-const getStoredEmployeeId = () => {
-  const savedUser = localStorage.getItem("current_user");
-  if (savedUser) {
-    try {
-      const user = JSON.parse(savedUser) as { employee_id?: number | string };
-      if (user.employee_id) return user.employee_id;
-    } catch {
-      return localStorage.getItem("employee_id") ?? 1;
-    }
-  }
-
-  return localStorage.getItem("employee_id") ?? 1;
-};
 
 export default function AttendanceTracker() {
   const queryClient = useQueryClient();
