@@ -2,10 +2,12 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { login } from "@/services/authService";
 
 type LoginErrors = {
   email?: string;
   password?: string;
+  general?: string;
 };
 
 const trustedSignals = [
@@ -16,6 +18,7 @@ const trustedSignals = [
 
 export default function Login() {
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
@@ -31,8 +34,8 @@ export default function Login() {
   function validate() {
     const nextErrors: LoginErrors = {};
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      nextErrors.email = "Enter a valid work email.";
+    if (!email.trim()) {
+      nextErrors.email = "Enter your username or work email.";
     }
 
     if (password.length < 6) {
@@ -40,10 +43,11 @@ export default function Login() {
     }
 
     setErrors(nextErrors);
+
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validate()) {
@@ -51,20 +55,32 @@ export default function Login() {
     }
 
     setIsLoading(true);
+    setErrors({});
 
-    window.setTimeout(() => {
-      localStorage.setItem("token", "nexus-auth-token");
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email,
-          name: "Angela Njeri",
-          rememberMe,
-          role: "Payroll Admin",
-        }),
-      );
+    try {
+      await login({
+        username: email,
+        password,
+      });
+
+      // Tokens and the documented user object are persisted by the auth API.
+      localStorage.setItem("rememberMe", String(rememberMe));
+
       navigate("/dashboard");
-    }, 650);
+
+    } catch (error: any) {
+      console.error("Login failed:", error);
+
+      setErrors({
+        general:
+          error instanceof Error ? error.message :
+          error?.response?.data?.detail ||
+          "Invalid credentials. Please try again.",
+      });
+
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -72,6 +88,7 @@ export default function Login() {
       <section className="login-hero" aria-label="Nexus HR and Payroll">
         <div className="login-brand-row">
           <span className="brand-mark">N</span>
+
           <div>
             <div className="brand-name">Nexus</div>
             <div className="brand-subtitle">HR &amp; Payroll</div>
@@ -80,10 +97,15 @@ export default function Login() {
 
         <div className="login-hero-copy">
           <p className="page-kicker">Secure workforce operations</p>
-          <h1>Run payroll, approvals, and people operations from one command center.</h1>
+
+          <h1>
+            Run payroll, approvals, and people operations from one command center.
+          </h1>
+
           <p>
-            A focused workspace for HR teams managing branch payroll, employee records,
-            statutory compliance, attendance, benefits, and approvals.
+            A focused workspace for HR teams managing branch payroll,
+            employee records, statutory compliance, attendance, benefits,
+            and approvals.
           </p>
         </div>
 
@@ -97,47 +119,83 @@ export default function Login() {
         </div>
       </section>
 
+
       <section className="login-form-panel" aria-label="Sign in">
+
         <div className="login-mobile-brand">
           <span className="brand-mark">N</span>
+
           <div>
             <div className="login-mobile-title">Nexus</div>
             <div className="brand-subtitle">HR &amp; Payroll</div>
           </div>
         </div>
 
+
         <div className="login-form-heading">
+
           <div className="login-form-icon">
             <Building2 aria-hidden="true" size={21} />
           </div>
+
           <div>
             <h2>Welcome back</h2>
             <p>Sign in to continue to your HR workspace.</p>
           </div>
+
         </div>
 
+
         <form className="login-form" onSubmit={handleSubmit} noValidate>
+
+          {errors.general && (
+            <small className="error-message">
+              {errors.general}
+            </small>
+          )}
+
+
           <label className="field-group" htmlFor="email">
-            <span>Email address</span>
-            <div className={`input-shell${errors.email ? " input-shell-error" : ""}`}>
+
+            <span>Username or email</span>
+
+            <div
+              className={`input-shell${
+                errors.email ? " input-shell-error" : ""
+              }`}
+            >
+
               <Mail aria-hidden="true" size={18} />
+
               <input
                 id="email"
-                autoComplete="email"
-                inputMode="email"
+                autoComplete="username"
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="hr@company.com"
-                type="email"
+                placeholder="Username or hr@company.com"
+                type="text"
                 value={email}
               />
+
             </div>
-            {errors.email ? <small>{errors.email}</small> : null}
+
+            {errors.email && <small>{errors.email}</small>}
+
           </label>
 
+
+
           <label className="field-group" htmlFor="password">
+
             <span>Password</span>
-            <div className={`input-shell${errors.password ? " input-shell-error" : ""}`}>
+
+            <div
+              className={`input-shell${
+                errors.password ? " input-shell-error" : ""
+              }`}
+            >
+
               <Lock aria-hidden="true" size={18} />
+
               <input
                 id="password"
                 autoComplete="current-password"
@@ -146,39 +204,79 @@ export default function Login() {
                 type={showPassword ? "text" : "password"}
                 value={password}
               />
+
+
               <button
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={
+                  showPassword ? "Hide password" : "Show password"
+                }
                 className="input-icon-button"
-                onClick={() => setShowPassword((visible) => !visible)}
+                onClick={() =>
+                  setShowPassword((visible) => !visible)
+                }
                 type="button"
               >
-                {showPassword ? <EyeOff aria-hidden="true" size={17} /> : <Eye aria-hidden="true" size={17} />}
+
+                {showPassword ? (
+                  <EyeOff aria-hidden="true" size={17} />
+                ) : (
+                  <Eye aria-hidden="true" size={17} />
+                )}
+
               </button>
+
             </div>
-            {errors.password ? <small>{errors.password}</small> : null}
+
+
+            {errors.password && <small>{errors.password}</small>}
+
           </label>
 
+
+
           <div className="login-options">
+
             <label className="checkbox-row" htmlFor="remember-me">
+
               <input
                 checked={rememberMe}
                 id="remember-me"
-                onChange={(event) => setRememberMe(event.target.checked)}
+                onChange={(event) =>
+                  setRememberMe(event.target.checked)
+                }
                 type="checkbox"
               />
+
               <span>Remember me</span>
+
             </label>
+
+
             <button className="text-button" type="button">
               Reset password
             </button>
+
           </div>
 
-          <button className="button button-primary login-submit" disabled={!canSubmit} type="submit">
+
+
+          <button
+            className="button button-primary login-submit"
+            disabled={!canSubmit}
+            type="submit"
+          >
+
             {isLoading ? "Signing in..." : "Sign in"}
+
             <ArrowRight aria-hidden="true" size={16} />
+
           </button>
+
+
         </form>
+
       </section>
+
     </main>
   );
 }
