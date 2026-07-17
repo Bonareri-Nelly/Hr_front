@@ -1,4 +1,5 @@
-import { Users, TrendingUp, TrendingDown, UserPlus, UserMinus, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { Users, TrendingUp, TrendingDown, UserPlus, UserMinus, Clock, X } from 'lucide-react';
 
 interface WorkforceData {
   headcount: { month: string; total: number; newHires: number; exits: number }[];
@@ -9,6 +10,7 @@ interface WorkforceData {
 }
 
 export const WorkforceAnalytics = ({ data }: { data: WorkforceData }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const stats = [
     { label: 'Total Headcount', value: data.headcount[data.headcount.length - 1]?.total || 0, icon: Users, color: 'blue' },
     { label: 'New Hires', value: data.headcount.reduce((sum, m) => sum + m.newHires, 0), icon: UserPlus, color: 'green' },
@@ -17,34 +19,37 @@ export const WorkforceAnalytics = ({ data }: { data: WorkforceData }) => {
     { label: 'Avg Tenure', value: data.tenure.average + ' yrs', icon: Clock, color: 'purple' },
   ];
 
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-700" />  {/* Changed to blue-700 */}
-            Workforce Analytics
-          </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            Headcount trends, turnover, and organizational structure
-          </p>
-        </div>
-        <button className="text-sm text-blue-700 hover:text-blue-800 transition">
-          View Details →
-        </button>
-      </div>
+  const colors = {
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-green-50 text-green-600',
+    red: 'bg-red-50 text-red-600',
+    orange: 'bg-orange-50 text-orange-600',
+    purple: 'bg-purple-50 text-purple-600',
+  };
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        {stats.map((stat) => {
-          const colors = {
-            blue: 'bg-blue-50 text-blue-700',
-            green: 'bg-green-50 text-green-600',
-            red: 'bg-red-50 text-red-600',
-            orange: 'bg-orange-50 text-orange-600',
-            purple: 'bg-purple-50 text-purple-600',
-          };
-          return (
+  return (
+    <>
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-700" />
+              Workforce Analytics
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Headcount trends, turnover, and organizational structure
+            </p>
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="text-sm text-blue-700 hover:text-blue-800 transition"
+          >
+            View Details →
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+          {stats.map((stat) => (
             <div key={stat.label} className="bg-gray-50 rounded-lg p-3">
               <div className="flex items-center gap-2">
                 <div className={`p-1.5 rounded-lg ${colors[stat.color as keyof typeof colors]}`}>
@@ -54,55 +59,102 @@ export const WorkforceAnalytics = ({ data }: { data: WorkforceData }) => {
               </div>
               <p className="text-lg font-bold text-gray-900 mt-1">{stat.value}</p>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Headcount Chart */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <p className="text-xs text-gray-500 mb-3">Headcount Trend (Last 6 Months)</p>
-        <div className="flex items-end gap-2 h-32">
-          {data.headcount.slice(-6).map((item, idx) => {
-            const max = Math.max(...data.headcount.map((d) => d.total));
-            const height = (item.total / max) * 100;
-            return (
-              <div key={idx} className="flex-1 flex flex-col items-center">
-                <div
-                  className="w-full bg-blue-300 rounded-t hover:bg-blue-400 transition"  // Changed to blue
-                  style={{ height: `${Math.max(height * 0.7, 10)}px` }}
-                />
-                <span className="text-[10px] text-gray-500 mt-1">{item.month.slice(0, 3)}</span>
-                <span className="text-[10px] text-gray-600">{item.total}</span>
-              </div>
-            );
-          })}
+          ))}
         </div>
-      </div>
 
-      {/* Department Table */}
-      <div className="mt-4">
-        <p className="text-xs text-gray-500 mb-2">Department Headcount</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left text-xs text-gray-500 py-2 font-medium">Department</th>
-                <th className="text-right text-xs text-gray-500 py-2 font-medium">Headcount</th>
-                <th className="text-right text-xs text-gray-500 py-2 font-medium">Span of Control</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.departments.map((dept) => (
-                <tr key={dept.name} className="border-b border-gray-100 last:border-0">
-                  <td className="text-left text-xs text-gray-700 py-2">{dept.name}</td>
-                  <td className="text-right text-xs text-gray-700 py-2">{dept.headcount}</td>
-                  <td className="text-right text-xs text-gray-700 py-2">{dept.spanOfControl}:1</td>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-xs text-gray-500 mb-3">Headcount Trend (Last 6 Months)</p>
+          <div className="flex items-end gap-2 h-32">
+            {data.headcount.slice(-6).map((item, idx) => {
+              const max = Math.max(...data.headcount.map((d) => d.total));
+              const height = (item.total / max) * 100;
+              return (
+                <div key={idx} className="flex-1 flex flex-col items-center">
+                  <div
+                    className="w-full bg-blue-300 rounded-t hover:bg-blue-400 transition"
+                    style={{ height: `${Math.max(height * 0.7, 10)}px` }}
+                  />
+                  <span className="text-[10px] text-gray-500 mt-1">{item.month.slice(0, 3)}</span>
+                  <span className="text-[10px] text-gray-600">{item.total}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <p className="text-xs text-gray-500 mb-2">Department Headcount</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left text-xs text-gray-500 py-2 font-medium">Department</th>
+                  <th className="text-right text-xs text-gray-500 py-2 font-medium">Headcount</th>
+                  <th className="text-right text-xs text-gray-500 py-2 font-medium">Span of Control</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.departments.map((dept) => (
+                  <tr key={dept.name} className="border-b border-gray-100 last:border-0">
+                    <td className="text-left text-xs text-gray-700 py-2">{dept.name}</td>
+                    <td className="text-right text-xs text-gray-700 py-2">{dept.headcount}</td>
+                    <td className="text-right text-xs text-gray-700 py-2">{dept.spanOfControl}:1</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setIsModalOpen(false)}></div>
+          <div className="relative bg-white rounded-xl w-full max-w-3xl mx-4 max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Users className="w-6 h-6 text-blue-700" />
+                Workforce Analytics – Full Details
+              </h3>
+              <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-gray-100 rounded-lg">
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              {stats.map((stat) => (
+                <div key={stat.label} className="bg-gray-50 p-3 rounded-lg">
+                  <p className="text-xs text-gray-500">{stat.label}</p>
+                  <p className="text-lg font-bold text-gray-900">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <p className="text-sm font-semibold mb-2">Tenure Distribution</p>
+              <div className="space-y-2">
+                {data.tenure.distribution.map((item) => (
+                  <div key={item.label}>
+                    <div className="flex justify-between text-xs">
+                      <span>{item.label}</span>
+                      <span>{item.value}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${item.value}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };

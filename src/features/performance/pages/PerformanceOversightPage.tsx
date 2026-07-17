@@ -65,6 +65,7 @@ import {
 } from 'lucide-react';
 
 type CycleStatus = 'not_started' | 'in_progress' | 'completed';
+type PerformanceTrend = 'improving' | 'declining' | 'stable';
 type GoalStatus = 'not_started' | 'in_progress' | 'achieved' | 'missed' | 'carried_forward';
 type ReviewType = 'self' | 'manager' | 'peer' | 'cross_functional';
 type UserRole = 'employee' | 'department_head' | 'branch_manager' | 'branch_hr_admin' | 'executive' | 'system_admin';
@@ -567,6 +568,9 @@ function CycleStatusBadge({ status }: { status: CycleStatus }) {
 }
 
 type TabType = 'cycles' | 'goals' | 'reviews' | 'history' | 'dashboard';
+type SetCycles = React.Dispatch<React.SetStateAction<AppraisalCycle[]>>;
+type SetEmployeePerformance = React.Dispatch<React.SetStateAction<Record<string, EmployeePerformance>>>;
+type ShowToast = (message: string, type: string) => void;
 
 export default function PerformanceOversightPage() {
   const [role, setRole] = useState<UserRole>('branch_hr_admin');
@@ -574,8 +578,8 @@ export default function PerformanceOversightPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
-  const [cycles, setCycles] = useState(mockCycles);
-  const [employeePerformance, setEmployeePerformance] = useState(mockEmployeePerformance);
+  const [cycles, setCycles] = useState<AppraisalCycle[]>(mockCycles);
+  const [employeePerformance, setEmployeePerformance] = useState<Record<string, EmployeePerformance>>(mockEmployeePerformance);
 
   const selectedEmployee = selectedEmployeeId ? employeePerformance[selectedEmployeeId] : null;
   const selectedCycle = cycles.find(c => c.id === selectedCycleId);
@@ -711,7 +715,7 @@ export default function PerformanceOversightPage() {
   );
 }
 
-function CyclesTab({ cycles, setCycles, role, onShowToast, employeePerformance }: any) {
+function CyclesTab({ cycles, setCycles, role, onShowToast, employeePerformance }: { cycles: AppraisalCycle[]; setCycles: SetCycles; role: UserRole; onShowToast: ShowToast; employeePerformance: Record<string, EmployeePerformance> }) {
   const [isCreating, setIsCreating] = useState(false);
   const [newCycle, setNewCycle] = useState({
     name: '',
@@ -948,7 +952,7 @@ function CyclesTab({ cycles, setCycles, role, onShowToast, employeePerformance }
   );
 }
 
-function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, onShowToast }: any) {
+function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, onShowToast }: { employeePerformance: Record<string, EmployeePerformance>; setEmployeePerformance: SetEmployeePerformance; selectedEmployeeId: string | null; setSelectedEmployeeId: (id: string) => void; role: UserRole; onShowToast: ShowToast }) {
   const [isCreating, setIsCreating] = useState(false);
   const [newGoal, setNewGoal] = useState({
     title: '',
@@ -965,7 +969,7 @@ function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmploye
     ? employees.filter(e => e.department === 'Engineering')
     : employees;
 
-  const selectedEmp = employeePerformance[selectedEmployeeId] || displayEmployees[0];
+  const selectedEmp = (selectedEmployeeId ? employeePerformance[selectedEmployeeId] : undefined) || displayEmployees[0];
   const canCreateGoals = role === 'employee' || role === 'department_head';
 
   const handleCreateGoal = () => {
@@ -1151,7 +1155,7 @@ function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmploye
   );
 }
 
-function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, cycles, onShowToast }: any) {
+function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, cycles, onShowToast }: { employeePerformance: Record<string, EmployeePerformance>; setEmployeePerformance: SetEmployeePerformance; selectedEmployeeId: string | null; setSelectedEmployeeId: (id: string) => void; role: UserRole; cycles: AppraisalCycle[]; onShowToast: ShowToast }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewData, setReviewData] = useState({
     rating: 3,
@@ -1165,7 +1169,7 @@ function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmplo
     ? employees.filter(e => e.employeeId === 'emp1')
     : employees;
 
-  const selectedEmp = employeePerformance[selectedEmployeeId] || displayEmployees[0];
+  const selectedEmp = (selectedEmployeeId ? employeePerformance[selectedEmployeeId] : undefined) || displayEmployees[0];
 
   const canSubmitReview = role === 'employee' || role === 'department_head';
 
@@ -1351,16 +1355,16 @@ function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmplo
   );
 }
 
-function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmployeeId, role }: any) {
+function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmployeeId, role }: { employeePerformance: Record<string, EmployeePerformance>; selectedEmployeeId: string | null; setSelectedEmployeeId: (id: string) => void; role: UserRole }) {
   const employees = Object.values(employeePerformance);
 
   const displayEmployees = role === 'employee'
     ? employees.filter(e => e.employeeId === 'emp1')
     : employees;
 
-  const selectedEmp = employeePerformance[selectedEmployeeId] || displayEmployees[0];
+  const selectedEmp = (selectedEmployeeId ? employeePerformance[selectedEmployeeId] : undefined) || displayEmployees[0];
 
-  const getTrend = (history: { rating: number; date: string }[]) => {
+  const getTrend = (history: { rating: number; date: string }[]): PerformanceTrend => {
     if (history.length < 2) return 'stable';
     const last = history[history.length - 1].rating;
     const prev = history[history.length - 2].rating;
@@ -1369,7 +1373,7 @@ function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmploy
     return 'stable';
   };
 
-  const getTrendColor = (trend: string) => {
+  const getTrendColor = (trend: PerformanceTrend) => {
     const map = {
       improving: 'text-green-600',
       declining: 'text-red-600',
@@ -1378,7 +1382,7 @@ function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmploy
     return map[trend] || 'text-gray-600';
   };
 
-  const getTrendIcon = (trend: string) => {
+  const getTrendIcon = (trend: PerformanceTrend) => {
     const map = {
       improving: TrendingUpIcon,
       declining: TrendingDown,
@@ -1494,7 +1498,7 @@ function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmploy
   );
 }
 
-function DashboardTab({ employeePerformance, cycles, role }: any) {
+function DashboardTab({ employeePerformance, cycles, role }: { employeePerformance: Record<string, EmployeePerformance>; cycles: AppraisalCycle[]; role: UserRole }) {
   const employees = Object.values(employeePerformance);
 
   const totalEmployees = employees.length;

@@ -68,6 +68,7 @@ import {
   Pencil,
   MoreHorizontal,
 } from "lucide-react";
+import PayrollBatchApprovalModal from "../components/PayrollBatchApprovalModal";
 
 // ==================== INTERFACES ====================
 interface DeductionType {
@@ -346,6 +347,7 @@ export default function PayrollApprovalPage() {
   const [selectedPeriod] = useState("March 2026");
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [selectedForAction, setSelectedForAction] = useState<string | null>(null);
+  const [showBatchApprovalModal, setShowBatchApprovalModal] = useState(false);
   const [approvalNote, setApprovalNote] = useState("");
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -1070,6 +1072,63 @@ export default function PayrollApprovalPage() {
     setShowApprovalModal(true);
   };
 
+  const handleConfirmBatchApproval = (ids: string[]) => {
+    const approvedAt = new Date().toISOString();
+    setPayrollData((prev) =>
+      prev.map((record) =>
+        ids.includes(record.id)
+          ? {
+              ...record,
+              status: "Approved",
+              approvedDate: approvedAt,
+              approvedBy: "Payroll Manager",
+              history: [
+                ...record.history,
+                {
+                  id: `batch-${record.id}-${Date.now()}`,
+                  payrollId: record.id,
+                  action: "Approved",
+                  timestamp: approvedAt,
+                  user: "Payroll Manager",
+                  userRole: "Payroll",
+                  notes: "Approved in batch approval workflow",
+                  status: "Approved",
+                },
+              ],
+            }
+          : record,
+      ),
+    );
+    showToast(`${ids.length} payroll record${ids.length === 1 ? "" : "s"} approved successfully`, "success");
+  };
+
+  const handleBatchReject = (id: string, reason: string) => {
+    const rejectedAt = new Date().toISOString();
+    setPayrollData((prev) =>
+      prev.map((record) =>
+        record.id === id
+          ? {
+              ...record,
+              status: "Rejected",
+              history: [
+                ...record.history,
+                {
+                  id: `batch-reject-${record.id}-${Date.now()}`,
+                  payrollId: record.id,
+                  action: "Rejected",
+                  timestamp: rejectedAt,
+                  user: "Payroll Manager",
+                  userRole: "Payroll",
+                  notes: reason,
+                  status: "Rejected",
+                },
+              ],
+            }
+          : record,
+      ),
+    );
+    showToast("Payroll record rejected with a reason", "info");
+  };
   const handleConfirmApproval = (approved: boolean) => {
     if (selectedForAction) {
       const record = payrollData.find(r => r.id === selectedForAction);
