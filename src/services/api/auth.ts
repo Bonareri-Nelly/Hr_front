@@ -11,6 +11,8 @@ export type CurrentUser = {
   group?: string;
   groups?: Array<string | { id?: number; name?: string }>;
   employee_id?: number;
+  branch_name?: string;
+  department_name?: string;
   is_approved?: boolean;
   is_active?: boolean;
 };
