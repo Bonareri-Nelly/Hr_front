@@ -1,0 +1,19 @@
+import { navigationItems } from "./navigation";
+
+export type RoleName = "System Admin" | "Executive" | "Manager" | "HR" | "Department Head" | "Finance" | "Employee";
+
+const withProfile = (modules: string[]) => [...new Set([...modules, "user-profile"])];
+
+export const roleModuleMap: Record<RoleName, string[]> = {
+  "System Admin": [...navigationItems.map((item) => item.id)],
+  Executive: withProfile(["executive-dashboard", "reports-analytics", "ai-assistant", "branch-dashboard", "branch-reports", "payroll-approval", "finance-dashboard", "compensation-data", "disciplinary-cases", "announcements-training"]),
+  Manager: withProfile(["branch-dashboard", "branch-reports", "department-dashboard", "payroll-approval", "payroll-history", "employee-lifecycle", "contract-management", "performance-oversight", "leave-approvals", "attendance-management", "disciplinary-cases", "announcements-training"]),
+  HR: withProfile(["hr-dashboard", "department-dashboard", "employee-lifecycle", "contract-management", "performance-oversight", "offboarding", "onboarding", "attendance-management", "leave-workflow", "leave-approvals", "disciplinary-cases", "disciplinary-management", "announcements-training", "benefits-management"]),
+  "Department Head": withProfile(["department-dashboard", "employee-lifecycle", "performance-oversight", "leave-approvals", "attendance-management", "announcements-training"]),
+  Finance: withProfile(["finance-dashboard", "bank-integration-accounts", "tax-compliance-accounts", "benefits-management-accounts", "employee-finance", "finance-grievances", "payroll", "payroll-creation", "payroll-history", "compensation-data", "multi-currency-gl-integration"]),
+  Employee: withProfile(["employee-dashboard", "my-attendance", "my-performance", "my-benefits", "my-payslips", "my-documents", "my-announcements", "complaints"]),
+};
+
+export const roleDefaultModule: Record<RoleName, string> = {
+  "System Admin": "executive-dashboard", Executive: "executive-dashboard", Manager: "branch-dashboard", HR: "hr-dashboard", "Department Head": "department-dashboard", Finance: "finance-dashboard", Employee: "employee-dashboard",
+};
