@@ -39,7 +39,7 @@ export const register = async (payload: RegisterRequest) => {
 };
 
 export const getCurrentUser = async () => {
-  const response = await api.get<AuthUser>("auth/me/");
+  const response = await api.get<AuthUser>("auth/me/", { timeout: 3000 });
 
   return response.data;
 };

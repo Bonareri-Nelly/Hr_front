@@ -2,6 +2,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/",
+  timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -25,12 +26,15 @@ api.interceptors.response.use(
     const originalRequest = error.config as RetryableRequest | undefined;
     const refreshToken = localStorage.getItem("refresh_token");
 
+    const requestUrl = originalRequest?.url ?? "";
+    const isAuthRequest = requestUrl.includes("auth/login/") || requestUrl.includes("auth/register/") || requestUrl.includes("auth/token/refresh/");
+
     if (
       error.response?.status === 401 &&
       originalRequest &&
       !originalRequest._retry &&
       refreshToken &&
-      !originalRequest.url?.includes("auth/token/refresh/")
+      !isAuthRequest
     ) {
       originalRequest._retry = true;
 

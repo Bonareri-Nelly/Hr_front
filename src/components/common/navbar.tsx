@@ -1,7 +1,6 @@
 import { Bell, ChevronDown, HelpCircle, Search, Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentUserRole } from "../../services/permissions/permissions";
-import LogoutButton from "./LogoutButton";
 
 const branches = ["Nairobi HQ", "Mombasa", "Kisumu", "Remote Units"];
 
@@ -54,8 +53,6 @@ export default function Navbar() {
       <button className="icon-button" type="button" aria-label="Settings">
         <Settings aria-hidden="true" size={17} />
       </button>
-
-      <LogoutButton />
 
       <div className="avatar" aria-label="Angela Njeri">
         AN

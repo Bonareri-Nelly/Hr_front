@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowRight,
   Building2,
   Eye,
@@ -10,7 +10,8 @@
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { login } from "../services/api/auth";
+import { getCurrentUser, login } from "../services/api/auth";
+import { getDefaultRouteForRole } from "../services/permissions";
 
 type LoginErrors = {
   email?: string;
@@ -68,20 +69,41 @@ export default function Login() {
     setErrors({});
 
     try {
+      const username = email.trim();
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      localStorage.removeItem("current_user");
+
       const response = await login({
-        username: email,
+        username,
         password,
       });
-      if (response.access) {
-        localStorage.setItem("access_token", response.access);
+
+      localStorage.setItem("access_token", response.access);
+      localStorage.setItem("refresh_token", response.refresh);
+
+      let signedInUser = response.user;
+
+      if (!signedInUser) {
+        try {
+          signedInUser = await getCurrentUser();
+        } catch {
+          signedInUser = { id: 0, username };
+        }
       }
 
-      if (response.refresh) {
-        localStorage.setItem("refresh_token", response.refresh);
-      }
+      const rawUser = signedInUser as unknown as Record<string, unknown>;
+      const roleValue = rawUser.role ?? rawUser.role_name ?? rawUser.user_role ?? null;
+      const normalizedUser = {
+        ...signedInUser,
+        role: typeof roleValue === "object" && roleValue !== null && "name" in roleValue ? (roleValue as { name?: string }).name : roleValue,
+        role_name: typeof roleValue === "object" && roleValue !== null && "name" in roleValue ? (roleValue as { name?: string }).name : roleValue,
+      };
 
-      if (response.user) {
-        localStorage.setItem("current_user", JSON.stringify(response.user));
+      localStorage.setItem("current_user", JSON.stringify(normalizedUser));
+
+      if (signedInUser.employee_id) {
+        localStorage.setItem("employee_id", String(signedInUser.employee_id));
       }
 
       if (rememberMe) {
@@ -90,7 +112,7 @@ export default function Login() {
         localStorage.removeItem("rememberMe");
       }
 
-      navigate("/dashboard");
+      navigate(getDefaultRouteForRole(), { replace: true });
     } catch (error: any) {
       const backendMessage =
         error?.response?.data?.message ||
