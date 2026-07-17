@@ -1,10 +1,11 @@
-﻿import { ArrowRight, Building2, Eye, EyeOff, Lock, Mail, ShieldCheck } from "lucide-react";
+﻿import { ArrowRight, Building2, Eye, EyeOff, Lock, Mail, ShieldCheck, User } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks";
 
 type LoginErrors = {
-  email?: string;
+  username?: string;
   password?: string;
 };
 
@@ -16,23 +17,25 @@ const trustedSignals = [
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const { login } = useAuth();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<LoginErrors>({});
+  const [apiError, setApiError] = useState("");
 
   const canSubmit = useMemo(
-    () => email.trim().length > 0 && password.trim().length > 0 && !isLoading,
-    [email, isLoading, password],
+    () => username.trim().length > 0 && password.trim().length > 0 && !isLoading,
+    [username, isLoading, password],
   );
 
   function validate() {
     const nextErrors: LoginErrors = {};
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      nextErrors.email = "Enter a valid work email.";
+    if (username.trim().length === 0) {
+      nextErrors.username = "Username is required.";
     }
 
     if (password.length < 6) {
@@ -43,7 +46,7 @@ export default function Login() {
     return Object.keys(nextErrors).length === 0;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!validate()) {
@@ -51,20 +54,20 @@ export default function Login() {
     }
 
     setIsLoading(true);
+    setApiError("");
 
-    window.setTimeout(() => {
-      localStorage.setItem("token", "nexus-auth-token");
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email,
-          name: "Angela Njeri",
-          rememberMe,
-          role: "Payroll Admin",
-        }),
-      );
+    try {
+      await login({ username, password });
       navigate("/dashboard");
-    }, 650);
+    } catch (err: any) {
+      const message =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        "Invalid username or password.";
+      setApiError(message);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -116,22 +119,28 @@ export default function Login() {
           </div>
         </div>
 
+        {apiError && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-4">
+            {apiError}
+          </div>
+        )}
+
         <form className="login-form" onSubmit={handleSubmit} noValidate>
-          <label className="field-group" htmlFor="email">
-            <span>Email address</span>
-            <div className={`input-shell${errors.email ? " input-shell-error" : ""}`}>
-              <Mail aria-hidden="true" size={18} />
+          <label className="field-group" htmlFor="username">
+            <span>Username</span>
+            <div className={`input-shell${errors.username ? " input-shell-error" : ""}`}>
+              <User aria-hidden="true" size={18} />
               <input
-                id="email"
-                autoComplete="email"
-                inputMode="email"
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="hr@company.com"
-                type="email"
-                value={email}
+                id="username"
+                autoComplete="username"
+                inputMode="text"
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="Enter your username"
+                type="text"
+                value={username}
               />
             </div>
-            {errors.email ? <small>{errors.email}</small> : null}
+            {errors.username ? <small>{errors.username}</small> : null}
           </label>
 
           <label className="field-group" htmlFor="password">
