@@ -7,6 +7,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "ai-assistant", label: "AI Assistant", path: "/ai-assistant", section: "Executive", icon: "Sparkles" },
   { id: "security-audit", label: "Security & Audit", path: "/security-audit", section: "Executive", icon: "ShieldCheck" },
   { id: "user-profile", label: "User Profile", path: "/user-profile", section: "Executive", icon: "UserRound" },
+  { id: "system-settings", label: "System Settings", path: "/system/settings", section: "Executive", icon: "Settings" },
 
   // HR Operations Section
   { id: "hr-dashboard", label: "HR Dashboard", path: "/dashboard/hr", section: "HR Operations", icon: "Users" },

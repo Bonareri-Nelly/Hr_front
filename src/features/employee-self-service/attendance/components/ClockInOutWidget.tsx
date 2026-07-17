@@ -1,7 +1,7 @@
 import { Clock } from "lucide-react";
 import { executiveTheme } from "../../../../theme/executiveTheme";
 
-export default function ClockInOutWidget({ isClockedIn, currentTime, onClockIn, onClockOut }: { isClockedIn: boolean; currentTime: string; onClockIn: () => void; onClockOut: () => void }) {
+export default function ClockInOutWidget({ isClockedIn, currentTime, onClockIn, onClockOut, disabled = false }: { isClockedIn: boolean; currentTime: string; onClockIn: () => void; onClockOut: () => void; disabled?: boolean }) {
   return (
     <div className={`${executiveTheme.cardSoft} p-5`}>
       <div className="mb-4 flex items-center justify-between">
@@ -9,7 +9,7 @@ export default function ClockInOutWidget({ isClockedIn, currentTime, onClockIn, 
         <span className={`h-3 w-3 rounded-full ${isClockedIn ? "bg-emerald-400" : "bg-[#c8a45d]"}`} />
       </div>
       <div className="mb-4 flex items-center gap-3 text-[#c9d3df]"><Clock size={18} /><span>{currentTime}</span></div>
-      {isClockedIn ? <button className={executiveTheme.dangerButton} onClick={onClockOut}>Clock Out</button> : <button className={executiveTheme.buttonPrimary} onClick={onClockIn}>Clock In</button>}
+      {isClockedIn ? <button className={executiveTheme.dangerButton} onClick={onClockOut} disabled={disabled}>Clock Out</button> : <button className={executiveTheme.buttonPrimary} onClick={onClockIn} disabled={disabled}>Clock In</button>}
     </div>
   );
 }

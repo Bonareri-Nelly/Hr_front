@@ -136,6 +136,36 @@
   color: var(--ink) !important;
 }
 
+/* The employee attendance workspace uses the same light executive palette. */
+.attendance-page {
+  background: var(--background) !important;
+  color: var(--ink) !important;
+  font-family: var(--font-sans);
+}
+
+.attendance-page :is([class*="bg-[#121f31]"], [class*="bg-[#17263b]"], [class*="bg-[#0d1624]"]) {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 10px 24px oklch(18% 0.02 255 / 7%) !important;
+}
+
+.attendance-page :is([class*="text-[#f8f4ea]"], [class*="text-[#fffaf0]"], [class*="text-[#c9d3df]"], [class*="text-[#8fa0b8]"]) {
+  color: var(--ink) !important;
+}
+
+.attendance-page :is([class*="text-[#c8a45d]"], [class*="text-[#f1d99b]"]) {
+  color: var(--bronze) !important;
+}
+
+.attendance-page :is([class*="border-white/10"], [class*="border-white/5"]) {
+  border-color: var(--border) !important;
+}
+
+.attendance-page button[class*="bg-[#c8a45d]"] {
+  background: var(--navy-deepest) !important;
+  color: white !important;
+}
+
 * {
   box-sizing: border-box;
 }
