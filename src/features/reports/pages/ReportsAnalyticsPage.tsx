@@ -44,19 +44,20 @@ export default function ReportsAnalyticsPage() {
   const scopeLabel = selectedBranch === 'all' ? 'All Branches' : selectedBranch;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="dashboard-page reports-analytics-page">
+      <div className="dashboard-heading reports-analytics-heading">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <BarChart3 className="w-7 h-7 text-blue-700" />
+          <p className="page-kicker">Strategic reporting</p>
+          <h1 className="page-title flex items-center gap-3">
+            <BarChart3 className="w-6 h-6 reports-analytics-accent" />
             Reports & Analytics
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="page-subtitle">
             {scopeLabel} – {selectedBranch === 'all' ? 'Company-wide' : 'Branch'} executive insights
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm hover:bg-blue-100 transition flex items-center gap-2">
+          <button className="button button-secondary">
             <Calendar className="w-4 h-4" />
             {dateRange.start} - {dateRange.end}
           </button>
@@ -67,23 +68,23 @@ export default function ReportsAnalyticsPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-gray-200 mb-6">
+      <div className="reports-analytics-tabs">
         <button
           onClick={() => setViewMode('overview')}
-          className={`px-4 py-2 text-sm transition border-b-2 ${
+          className={`reports-analytics-tab ${
             viewMode === 'overview'
-              ? 'border-blue-700 text-blue-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'reports-analytics-tab-active'
+              : ''
           }`}
         >
           Overview
         </button>
         <button
           onClick={() => setViewMode('builder')}
-          className={`px-4 py-2 text-sm transition border-b-2 ${
+          className={`reports-analytics-tab ${
             viewMode === 'builder'
-              ? 'border-blue-700 text-blue-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'reports-analytics-tab-active'
+              : ''
           }`}
         >
           <BookOpen className="w-4 h-4 inline mr-1" />
@@ -91,10 +92,10 @@ export default function ReportsAnalyticsPage() {
         </button>
         <button
           onClick={() => setViewMode('scheduled')}
-          className={`px-4 py-2 text-sm transition border-b-2 ${
+          className={`reports-analytics-tab ${
             viewMode === 'scheduled'
-              ? 'border-blue-700 text-blue-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'reports-analytics-tab-active'
+              : ''
           }`}
         >
           <Clock className="w-4 h-4 inline mr-1" />

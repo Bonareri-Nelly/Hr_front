@@ -37,10 +37,10 @@ function normalizeRole(value: unknown): RoleName | null {
   if (!normalized) return null;
   if (normalized.includes("system admin") || normalized.includes("super admin") || normalized === "admin" || normalized === "super") return "System Admin";
   if (normalized.includes("executive") || normalized.includes("director") || normalized.includes("ceo")) return "Executive";
-  if (normalized.includes("department head") || normalized === "head" || normalized.includes("hod")) return "Department Head";
-  if (normalized.includes("branch manager") || normalized === "manager" || normalized.includes("manager")) return "Manager";
-  if (normalized === "hr" || normalized.includes("human resource")) return "HR";
-  if (normalized.includes("finance") || normalized.includes("payroll officer") || normalized === "payroll") return "Finance";
+  if (normalized.includes("department") || normalized.includes("head")) return "Department Head";
+  if (normalized.includes("manager")) return "Manager";
+  if (normalized.includes("finance") || normalized.includes("payroll")) return "Finance";
+  if (normalized === "hr" || normalized.includes("human resource") || normalized.includes("hr")) return "HR";
   if (normalized.includes("employee") || normalized.includes("staff")) return "Employee";
   return null;
 }
