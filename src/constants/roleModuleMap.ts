@@ -2,7 +2,7 @@ import { navigationItems } from "./navigation";
 
 export type RoleName = "System Admin" | "Executive" | "Manager" | "HR" | "Department Head" | "Finance" | "Employee";
 
-const withProfile = (modules: string[]) => [...new Set([...modules, "user-profile"])];
+const withProfile = (modules: string[]) => [...new Set([...modules, "user-profile"])] as string[];
 
 export const roleModuleMap: Record<RoleName, string[]> = {
   "System Admin": [...navigationItems.map((item) => item.id)],
@@ -15,5 +15,11 @@ export const roleModuleMap: Record<RoleName, string[]> = {
 };
 
 export const roleDefaultModule: Record<RoleName, string> = {
-  "System Admin": "executive-dashboard", Executive: "executive-dashboard", Manager: "branch-dashboard", HR: "hr-dashboard", "Department Head": "department-dashboard", Finance: "finance-dashboard", Employee: "employee-dashboard",
+  "System Admin": "executive-dashboard",
+  Executive: "executive-dashboard",
+  Manager: "branch-dashboard",
+  HR: "hr-dashboard",
+  "Department Head": "department-dashboard",
+  Finance: "finance-dashboard",
+  Employee: "employee-dashboard",
 };

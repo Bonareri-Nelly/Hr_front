@@ -12,7 +12,9 @@ export type CurrentUser = {
   groups?: Array<string | { id?: number; name?: string }>;
   employee_id?: number;
   branch_name?: string;
+  branch?: string | { id?: number; name?: string } | null;
   department_name?: string;
+  department?: string | { id?: number; name?: string } | null;
   is_approved?: boolean;
   is_active?: boolean;
 };

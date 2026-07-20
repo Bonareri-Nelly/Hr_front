@@ -31,7 +31,9 @@ export function AppRouter() {
             {appRoutes.map((route) => (
               <Route key={route.path} path={route.path} element={<ProtectedModuleRoute route={route} />} />
             ))}
+            <Route path="*" element={<DashboardRedirect />} />
           </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
