@@ -85,7 +85,7 @@ function CycleStatusBadge({ status }: { status: CycleStatus }) {
 
 function Toast({ message, type, onClose }: any) {
   const colors = { success: 'bg-green-50 text-green-700 border-green-200', error: 'bg-red-50 text-red-700 border-red-200', info: 'bg-blue-50 text-blue-700 border-blue-200' };
-  return <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg ${colors[type] || colors.info}`}><span className="text-sm">{message}</span><button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X className="w-4 h-4" /></button></div>;
+  return <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg ${colors[type as keyof typeof colors] || colors.info}`}><span className="text-sm">{message}</span><button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X className="w-4 h-4" /></button></div>;
 }
 
 function CyclesTab({ cycles, setCycles, role, onShowToast }: any) {

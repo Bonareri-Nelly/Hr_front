@@ -1,5 +1,6 @@
 // src/features/benefits/management/hooks/UseBenefitsData.ts
 import { useState, useEffect } from 'react';
+import { apiClient } from '@/services/api';
 
 interface UseBenefitsDataProps {
   role: string;
@@ -81,15 +82,74 @@ export const useBenefitsData = ({
   const [data, setData] = useState<BenefitsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Simulate API call with mock data
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
+
+        const unwrap = (payload: any) => Array.isArray(payload) ? payload : payload?.results || [];
+        const [employeesResponse, plansResponse, enrollmentsResponse] = await Promise.all([
+          apiClient.get('/employees/'),
+          apiClient.get('/benefits/plans/'),
+          apiClient.get('/benefits/enrollments/'),
+        ]);
+        const allEmployees = unwrap(employeesResponse.data);
+        const plans = unwrap(plansResponse.data);
+        const allEnrollments = unwrap(enrollmentsResponse.data);
+        const selectedScope = selectedBranch && selectedBranch !== 'all' ? selectedBranch : branchId;
+        const employees = selectedScope
+          ? allEmployees.filter((employee: any) => String(employee.branch) === String(selectedScope) || employee.branch_name === selectedScope)
+          : allEmployees;
+        const employeeIds = new Set(employees.map((employee: any) => employee.id));
+        const enrollments = allEnrollments.filter((enrollment: any) =>
+          employeeIds.has(enrollment.employee) && ['ACTIVE', 'PENDING', 'SUSPENDED'].includes(enrollment.status),
+        );
+        const enrolledEmployeeIds = new Set(enrollments.map((enrollment: any) => enrollment.employee));
+        const totalEligible = employees.length;
+        const totalEnrolled = enrolledEmployeeIds.size;
+        const contribution = (plan: any) => Number(plan.employee_contribution || 0) + Number(plan.employer_contribution || 0);
+        const byCategory = plans.filter((plan: any) => plan.is_active).map((plan: any) => {
+          const planEnrollments = enrollments.filter((enrollment: any) => enrollment.benefit_plan === plan.id);
+          const enrolled = new Set(planEnrollments.map((enrollment: any) => enrollment.employee)).size;
+          return {
+            category: String(plan.benefit_type || 'Other').replace(/_/g, ' '),
+            eligible: totalEligible,
+            enrolled,
+            rate: totalEligible ? Number((enrolled / totalEligible * 100).toFixed(1)) : 0,
+            cost: contribution(plan) * enrolled,
+            costPerEmployee: contribution(plan),
+            trend: 0,
+          };
+        });
+        const branchMap = new Map<string, { id: string; name: string }>();
+        employees.forEach((employee: any) => branchMap.set(String(employee.branch ?? 'unassigned'), {
+          id: String(employee.branch ?? 'unassigned'), name: employee.branch_name || 'Unassigned',
+        }));
+        const byBranch = Array.from(branchMap.values()).map((branch) => {
+          const branchEmployees = employees.filter((employee: any) => String(employee.branch ?? 'unassigned') === branch.id);
+          const branchIds = new Set(branchEmployees.map((employee: any) => employee.id));
+          const branchEnrollments = enrollments.filter((enrollment: any) => branchIds.has(enrollment.employee));
+          const enrolled = new Set(branchEnrollments.map((enrollment: any) => enrollment.employee)).size;
+          const cost = branchEnrollments.reduce((sum: number, enrollment: any) => {
+            const plan = plans.find((item: any) => item.id === enrollment.benefit_plan);
+            return sum + (plan ? contribution(plan) : Number(enrollment.employee_amount || 0) + Number(enrollment.employer_amount || 0));
+          }, 0);
+          return { branchId: branch.id, branchName: branch.name, eligible: branchEmployees.length, enrolled,
+            rate: branchEmployees.length ? Number((enrolled / branchEmployees.length * 100).toFixed(1)) : 0,
+            cost, costPerEmployee: enrolled ? cost / enrolled : 0 };
+        });
+        const employeeCovered = enrollments.reduce((sum: number, item: any) => sum + Number(item.employee_amount || 0), 0);
+        const employerCovered = enrollments.reduce((sum: number, item: any) => sum + Number(item.employer_amount || 0), 0);
+        const total = employeeCovered + employerCovered;
+        setData({ totalEligible, totalEnrolled, enrollmentRate: totalEligible ? Number((totalEnrolled / totalEligible * 100).toFixed(1)) : 0,
+          enrollmentTrend: { totalEmployees: totalEligible, enrolled: totalEnrolled }, costTrend: { percentage: 0, direction: 'stable' },
+          byCategory, byBranch, costSummary: { total, employerCovered, employeeCovered, costPerEmployee: totalEnrolled ? total / totalEnrolled : 0, budget: total, actual: total, variance: 0 },
+          trends: [], alerts: [], categories: byCategory.map((item: { category: string }) => item.category), branches: byBranch.map((branch) => ({ id: branch.branchId, name: branch.branchName, code: '', location: '', managerId: '' })) });
+        setError(null);
+        return;
+
         // Mock data
         const mockData: BenefitsData = {
           totalEligible: 425,
@@ -245,17 +305,17 @@ export const useBenefitsData = ({
         if (role === 'Branch Manager' && branchId) {
           const branch = mockData.byBranch.find(b => b.branchId === branchId);
           if (branch) {
-            filteredData.byBranch = [branch];
-            filteredData.totalEligible = branch.eligible;
-            filteredData.totalEnrolled = branch.enrolled;
-            filteredData.enrollmentRate = branch.rate;
+            filteredData.byBranch = [branch!];
+            filteredData.totalEligible = branch!.eligible;
+            filteredData.totalEnrolled = branch!.enrolled;
+            filteredData.enrollmentRate = branch!.rate;
           }
         }
 
         if (selectedBranch && selectedBranch !== 'all') {
           const branch = mockData.byBranch.find(b => b.branchId === selectedBranch);
           if (branch) {
-            filteredData.byBranch = [branch];
+            filteredData.byBranch = [branch!];
           }
         }
 
@@ -269,12 +329,10 @@ export const useBenefitsData = ({
     };
 
     fetchData();
-  }, [role, branchId, selectedBranch, dateRange]);
+  }, [role, branchId, selectedBranch, dateRange, refreshVersion]);
 
   const refetch = () => {
-    // Trigger a re-fetch
-    setLoading(true);
-    // The useEffect will run again due to dependency changes
+    setRefreshVersion((version) => version + 1);
   };
 
   return { data, loading, error, refetch };

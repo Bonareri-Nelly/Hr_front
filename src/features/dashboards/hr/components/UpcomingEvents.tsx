@@ -1,34 +1,31 @@
-import type { LucideProps } from "lucide-react";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock, User } from 'lucide-react';
 
-type BranchKey = "Nairobi HQ" | "Mombasa";
 interface UpcomingEventsProps {
-  branch: string;
+  events?: {
+    title: string;
+    date: string;
+    type: string;
+    icon: React.ElementType;
+  }[];
 }
 
-export const UpcomingEvents = ({ branch }: UpcomingEventsProps) => {
-  const events = {
-    'Nairobi HQ': [
-      { title: 'Leave Request - John Doe', date: 'Tomorrow', type: 'Pending Approval', icon: Clock },
-      { title: 'Contract Renewal - Jane Smith', date: 'July 10', type: 'Upcoming', icon: Calendar },
-      { title: 'Onboarding - 5 New Employees', date: 'July 15', type: 'Scheduled', icon: User },
-      { title: 'Performance Reviews', date: 'July 20', type: 'Coming Up', icon: Calendar },
-    ],
-    'Mombasa': [
-      { title: 'Team Meeting - Sales', date: 'Tomorrow', type: 'Scheduled', icon: Calendar },
-      { title: 'Performance Reviews - Q2', date: 'July 12', type: 'Pending', icon: User },
-    ],
-  };
-
-  const branchKey = (branch === "Mombasa" ? "Mombasa" : "Nairobi HQ") as BranchKey;
-  const branchEvents = events[branchKey];
-
+export const UpcomingEvents = ({ events = [] }: UpcomingEventsProps) => {
+  if (!events || events.length === 0) {
+    return (
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm h-full">
+        <h3 className="font-semibold text-gray-800 text-sm mb-3">Upcoming Events</h3>
+        <div className="text-center py-8 text-gray-500 text-sm">
+          No upcoming events
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm h-full">
       <h3 className="font-semibold text-gray-800 text-sm mb-3">Upcoming Events</h3>
       <div className="space-y-2">
-        {branchEvents.map((event, idx) => (
+        {events.slice(0, 3).map((event, idx) => (
           <div key={idx} className="flex items-center gap-3 text-xs border-b last:border-0 pb-2 last:pb-0">
             <div className="p-1.5 bg-blue-50 rounded-lg">
               <event.icon className="w-3.5 h-3.5 text-blue-600" />

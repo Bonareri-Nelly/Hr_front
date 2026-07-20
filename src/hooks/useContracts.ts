@@ -4,10 +4,41 @@ import { contractApi } from '../services/api';
 export const useContracts = () => {
   const queryClient = useQueryClient();
   const queryKey = ['contracts'];
+  const contractType: Record<string, string> = { PERMANENT: 'Employment', FIXED_TERM: 'Contractor', PROBATION: 'Probation', INTERNSHIP: 'Internship', CONSULTANCY: 'Consultancy' };
+  const contractStatus: Record<string, string> = { DRAFT: 'Draft', ACTIVE: 'Active', EXPIRED: 'Expired', TERMINATED: 'Terminated', RENEWED: 'Active', CANCELLED: 'Terminated' };
+  const mapContract = (contract: any) => ({
+    ...contract,
+    title: contract.contract_number,
+    type: contractType[contract.contract_type] || contract.contract_type,
+    status: contractStatus[contract.status] || contract.status,
+    employeeName: contract.employee_name,
+    employeeId: String(contract.employee),
+    startDate: contract.start_date,
+    endDate: contract.end_date,
+    salary: Number(contract.basic_salary || 0),
+    currency: 'KES',
+    position: '',
+    department: '',
+    employeeEmail: '',
+    probationPeriod: 0,
+    noticePeriod: 0,
+    documents: contract.document ? [{ name: 'Contract document', type: 'document', size: '', uploadDate: contract.created_at, url: contract.document }] : [],
+    signedByEmployee: Boolean(contract.approved_at),
+    signedByEmployer: Boolean(contract.approved_at),
+    createdBy: contract.created_by_name || '',
+    createdAt: contract.created_at,
+    updatedAt: contract.updated_at,
+    notes: contract.terms,
+    history: [],
+  });
 
   const { data, isLoading, error } = useQuery({
     queryKey,
-    queryFn: () => contractApi.getAll().then((res) => res.data),
+    queryFn: () => contractApi.getAll().then((res) => {
+      const payload = res.data;
+      const contracts = Array.isArray(payload) ? payload : payload.results || [];
+      return contracts.map(mapContract);
+    }),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -58,6 +89,7 @@ export const useContracts = () => {
     error,
     createContract: create.mutateAsync,
     updateContract: update.mutateAsync,
+    amendContract: update.mutateAsync,
     deleteContract: remove.mutateAsync,
     renewContract: renew.mutateAsync,
     terminateContract: terminate.mutateAsync,

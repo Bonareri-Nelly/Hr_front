@@ -14,8 +14,9 @@ export const useAuth = () => {
   });
 
   const logout = useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: () => {
+    mutationFn: () => authApi.logout(localStorage.getItem('refreshToken')),
+    // Clear local credentials even when the backend token has already expired.
+    onSettled: () => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       queryClient.setQueryData(['currentUser'], null);

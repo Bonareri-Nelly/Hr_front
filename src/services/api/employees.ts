@@ -8,11 +8,9 @@ export const employeeApi = {
   delete: (id: string) => apiClient.delete(`/employees/${id}/`),
   getDocuments: (id: string) => apiClient.get(`/employees/${id}/documents/`),
   getEducation: (id: string) => apiClient.get(`/employees/${id}/education/`),
-  getWorkExperience: (id: string) =>
-    apiClient.get(`/employees/${id}/work-experience/`),
+  getWorkExperience: (id: string) => apiClient.get(`/employees/${id}/work-experience/`),
   getDependants: (id: string) => apiClient.get(`/employees/${id}/dependants/`),
-  getCertifications: (id: string) =>
-    apiClient.get(`/employees/${id}/certifications/`),
+  getCertifications: (id: string) => apiClient.get(`/employees/${id}/certifications/`),
   getSkills: (id: string) => apiClient.get(`/employees/${id}/skills/`),
   getBankAccounts: (id: string) => apiClient.get(`/employees/${id}/bank-accounts/`),
   getAssets: (id: string) => apiClient.get(`/employees/${id}/assets/`),

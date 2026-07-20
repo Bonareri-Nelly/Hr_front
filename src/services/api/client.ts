@@ -7,6 +7,7 @@ export const apiClient = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
   if (token) {
@@ -15,14 +16,16 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const isRefreshRequest = originalRequest?.url?.includes('/auth/token/refresh/');
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (error.response?.status === 401 && !isRefreshRequest && !originalRequest?._retry && refreshToken) {
       originalRequest._retry = true;
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
         const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
           refresh: refreshToken,
         });

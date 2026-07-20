@@ -10,6 +10,7 @@ export function AppRouter() {
     <BrowserRouter>
       <Suspense fallback={<div className="app-main">Loading...</div>}>
         <Routes>
+          <Route path="/login" element={<Login />} />
           <Route path="/" element={<Login />} />
 
           <Route element={<DashboardLayout />}>

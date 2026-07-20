@@ -5,9 +5,22 @@ export const useEmployees = () => {
   const queryClient = useQueryClient();
   const queryKey = ['employees'];
 
+  const mapEmployee = (employee: any) => ({
+    ...employee,
+    name: employee.full_name ?? [employee.first_name, employee.last_name].filter(Boolean).join(' '),
+    email: employee.work_email || employee.personal_email,
+    branch: employee.branch_name ?? employee.branch,
+    department: employee.department_name ?? employee.department,
+    role: employee.designation_name || employee.job_title || employee.job_level,
+  });
+
   const { data, isLoading, error } = useQuery({
     queryKey,
-    queryFn: () => employeeApi.getAll().then((res) => res.data),
+    queryFn: () => employeeApi.getAll().then((res) => {
+      const payload = res.data;
+      const employees = Array.isArray(payload) ? payload : payload.results || [];
+      return employees.map(mapEmployee);
+    }),
     staleTime: 5 * 60 * 1000,
   });
 

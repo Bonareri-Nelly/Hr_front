@@ -1,10 +1,12 @@
 import { apiClient } from './client';
 
 export const authApi = {
-  login: (credentials: { email: string; password: string }) =>
+  // The Django LoginView authenticates with `username`, not `email`.
+  login: (credentials: { username: string; password: string }) =>
     apiClient.post('/auth/login/', credentials),
   register: (data: any) => apiClient.post('/auth/register/', data),
-  logout: () => apiClient.post('/auth/logout/'),
+  logout: (refresh?: string | null) =>
+    apiClient.post('/auth/logout/', refresh ? { refresh } : {}),
   refreshToken: (refresh: string) =>
     apiClient.post('/auth/token/refresh/', { refresh }),
   getCurrentUser: () => apiClient.get('/auth/me/'),

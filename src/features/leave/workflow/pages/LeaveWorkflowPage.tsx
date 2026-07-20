@@ -1,1 +1,1 @@
-export { default } from "../../../../modules/leave-workflow";
+export { default } from "../../../leave-workflow";
