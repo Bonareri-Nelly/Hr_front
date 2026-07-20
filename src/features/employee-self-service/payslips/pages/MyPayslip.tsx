@@ -3,54 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { executiveTheme } from "../../../../theme/executiveTheme";
 import { payrollApi, type PayslipDto } from "../../../../services/api";
+import { actions } from "../../../../services/api/resources";
 import PayslipDetailModal, { type Payslip } from "../components/PayslipDetailModal";
 import RaiseQueryModal from "../components/RaiseQueryModal";
-
-const fallbackPayslips: Payslip[] = [
-  {
-    id: "PS-2026-06",
-    employeeId: "EMP-1042",
-    payrollRunId: "RUN-2026-06-FIN-DISB",
-    payPeriod: "2026-06",
-    grossPay: 184000,
-    allowances: [
-      { label: "Housing allowance", amount: 26000 },
-      { label: "Transport allowance", amount: 12000 },
-      { label: "Medical allowance", amount: 8000 },
-    ],
-    deductions: {
-      paye: 31400,
-      nssf: 2160,
-      shif: 2750,
-      housingLevy: 2760,
-      other: [{ label: "Staff welfare", amount: 850 }],
-    },
-    netPay: 144080,
-    status: "Disbursed",
-    disbursedAt: "2026-06-30T08:45:00",
-  },
-  {
-    id: "PS-2026-05",
-    employeeId: "EMP-1042",
-    payrollRunId: "RUN-2026-05-FIN-DISB",
-    payPeriod: "2026-05",
-    grossPay: 178500,
-    allowances: [
-      { label: "Housing allowance", amount: 26000 },
-      { label: "Transport allowance", amount: 12000 },
-    ],
-    deductions: {
-      paye: 30100,
-      nssf: 2160,
-      shif: 2680,
-      housingLevy: 2678,
-      other: [],
-    },
-    netPay: 140882,
-    status: "Disbursed",
-    disbursedAt: "2026-05-31T09:10:00",
-  },
-];
 
 const toNumber = (value: unknown) => Number(value ?? 0);
 
@@ -76,7 +31,7 @@ const normalizePayslip = (item: PayslipDto): Payslip => {
     },
     netPay: toNumber(item.net_pay),
     status: item.status === "Disbursed" || item.status === "DISBURSED" ? "Disbursed" : "Pending",
-    disbursedAt: String(item.disbursed_at ?? new Date().toISOString()),
+    disbursedAt: String(item.disbursed_at ?? ""),
   };
 };
 const formatMoney = (amount: number) => `KES ${amount.toLocaleString()}`;
@@ -86,19 +41,17 @@ export default function MyPayslip() {
   const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
   const [queryPayslip, setQueryPayslip] = useState<Payslip | null>(null);
   const [notice, setNotice] = useState("");
-  const [payslipRows, setPayslipRows] = useState<Payslip[]>(fallbackPayslips);
+  const [payslipRows, setPayslipRows] = useState<Payslip[]>([]);
 
   useEffect(() => {
     let isMounted = true;
 
     payrollApi.listPayslips()
       .then((items) => {
-        if (isMounted && items.length > 0) {
-          setPayslipRows(items.map(normalizePayslip));
-        }
+        if (isMounted) setPayslipRows(items.map(normalizePayslip));
       })
       .catch(() => {
-        if (isMounted) setNotice("Using offline payslip data until the payroll API is available.");
+        if (isMounted) setNotice("Could not load payslips. Check that the backend is running and that you have access.");
       });
 
     return () => {
@@ -111,8 +64,18 @@ export default function MyPayslip() {
     [payslipRows, query],
   );
 
-  const handleDownload = (payslip: Payslip) => {
-    setNotice(`PDF download prepared for ${payslip.payPeriod}. Reference ${payslip.payrollRunId}.`);
+  const handleDownload = async (payslip: Payslip) => {
+    try {
+      const response = await actions.downloadPayslip(Number(payslip.id));
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `payslip-${payslip.payPeriod || payslip.id}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not download this payslip.");
+    }
   };
 
   return (
@@ -143,7 +106,7 @@ export default function MyPayslip() {
               <strong>{payslip.payPeriod}</strong>
               <span className="font-mono text-xs text-[#c9d3df]">{payslip.payrollRunId}</span>
               <span className="font-bold text-[#c8a45d]">{formatMoney(payslip.netPay)}</span>
-              <span>{new Date(payslip.disbursedAt).toLocaleDateString()}</span>
+              <span>{payslip.disbursedAt ? new Date(payslip.disbursedAt).toLocaleDateString() : "—"}</span>
               <div className="flex flex-wrap justify-end gap-2">
                 <button className={executiveTheme.buttonSecondary} onClick={() => setSelectedPayslip(payslip)}><Eye size={15} /> View</button>
                 <button className={executiveTheme.buttonSecondary} onClick={() => handleDownload(payslip)}><Download size={15} /> Download</button>

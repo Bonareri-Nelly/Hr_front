@@ -46,9 +46,6 @@ interface EmployeePayroll {
   status: "processed" | "pending" | "review";
 }
 
-const fallbackPayruns: Payrun[] = [];
-const fallbackEmployeePayrolls: EmployeePayroll[] = [];
-
 const statusConfig: Record<PayrunStatus, { label: string; icon: any; className: string }> = {
   processing: {
     label: "Processing",
@@ -81,8 +78,9 @@ export default function PayrollPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPayrun, setSelectedPayrun] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [payruns, setPayruns] = useState<Payrun[]>(fallbackPayruns);
-  const [employeePayrolls, setEmployeePayrolls] = useState<EmployeePayroll[]>(fallbackEmployeePayrolls);
+  const [payruns, setPayruns] = useState<Payrun[]>([]);
+  const [employeePayrolls, setEmployeePayrolls] = useState<EmployeePayroll[]>([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadPayrollData = async () => {
@@ -113,17 +111,20 @@ export default function PayrollPage() {
           status: (payslip.status === 'processed' ? 'processed' : 'pending') as EmployeePayroll['status'],
         }));
 
-        setPayruns(mappedPayruns.length ? mappedPayruns : fallbackPayruns);
-        setEmployeePayrolls(mappedPayrolls.length ? mappedPayrolls : fallbackEmployeePayrolls);
+        setPayruns(mappedPayruns);
+        setEmployeePayrolls(mappedPayrolls);
         setSelectedPayrun((mappedPayruns[0]?.id ?? '') as string);
       } catch {
-        setPayruns(fallbackPayruns);
-        setEmployeePayrolls(fallbackEmployeePayrolls);
+        setError("Could not load payroll data. Check that the backend is running and that you have access.");
       }
     };
 
     loadPayrollData();
   }, []);
+
+  const totalPayroll = employeePayrolls.reduce((sum, item) => sum + Number(item.netPay.replace(/[^0-9.-]/g, "")), 0);
+  const activeEmployees = new Set(employeePayrolls.map((item) => item.name)).size;
+  const pendingApprovals = payruns.filter((run) => ["pending", "processing"].includes(run.status)).length;
 
   const getStatusBadge = (status: PayrunStatus) => {
     const config = statusConfig[status];
@@ -181,6 +182,7 @@ export default function PayrollPage() {
             </button>
           </div>
         </header>
+        {error && <div className="alert alert-error">{error}</div>}
 
         {/* Stats Overview */}
         <section className="stats-grid">
@@ -190,7 +192,7 @@ export default function PayrollPage() {
             </div>
             <div className="stat-content">
               <span className="stat-label">Total Payroll</span>
-              <span className="stat-value">KES 4,285,000</span>
+              <span className="stat-value">KES {totalPayroll.toLocaleString()}</span>
               <span className="stat-change positive">
                 <TrendingUp size={14} />
                 2.2% from last month
@@ -203,7 +205,7 @@ export default function PayrollPage() {
             </div>
             <div className="stat-content">
               <span className="stat-label">Active Employees</span>
-              <span className="stat-value">214</span>
+              <span className="stat-value">{activeEmployees}</span>
               <span className="stat-change">+8 this quarter</span>
             </div>
           </div>
@@ -213,7 +215,7 @@ export default function PayrollPage() {
             </div>
             <div className="stat-content">
               <span className="stat-label">Pay Runs</span>
-              <span className="stat-value">12</span>
+              <span className="stat-value">{payruns.length}</span>
               <span className="stat-change">This financial year</span>
             </div>
           </div>
@@ -223,7 +225,7 @@ export default function PayrollPage() {
             </div>
             <div className="stat-content">
               <span className="stat-label">Pending Approvals</span>
-              <span className="stat-value">3</span>
+              <span className="stat-value">{pendingApprovals}</span>
               <span className="stat-change">Require immediate action</span>
             </div>
           </div>
