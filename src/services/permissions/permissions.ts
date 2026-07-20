@@ -17,7 +17,7 @@ function normalizeRole(value: unknown): RoleName | null {
   if (normalized.includes("department") || normalized.includes("head")) return "Department Head";
   if (normalized.includes("manager")) return "Manager";
   if (normalized.includes("finance") || normalized.includes("payroll")) return "Finance";
-  if (normalized === "hr" || normalized.includes("human resource")) return "HR";
+  if (normalized === "hr" || normalized.includes("human resource") || normalized.includes("hr")) return "HR";
   if (normalized.includes("employee") || normalized.includes("staff")) return "Employee";
   return null;
 }

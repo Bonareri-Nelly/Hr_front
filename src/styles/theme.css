@@ -136,6 +136,77 @@
   color: var(--ink) !important;
 }
 
+/* Candidate applications uses the same light Executive Dashboard surface. */
+.candidate-executive-page {
+  background: var(--background) !important;
+  color: var(--ink) !important;
+  font-family: var(--font-sans);
+}
+
+.candidate-executive-page [class~="bg-[#121f31]"],
+.candidate-executive-page [class~="bg-[#17263b]"],
+.candidate-executive-page [class~="bg-[#101b2c]"] {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 8px 22px oklch(18% 0.02 255 / 7%);
+}
+
+.candidate-executive-page [class~="bg-[#0d1624]"] {
+  background-color: var(--background) !important;
+  color: var(--ink) !important;
+  border-color: var(--border) !important;
+}
+
+.candidate-executive-page :is([class~="text-[#fffaf0]"], [class~="text-[#f8f4ea]"], [class~="text-[#d7e0ec]"], [class~="text-[#c9d3df]"]) {
+  color: var(--ink) !important;
+}
+
+.candidate-executive-page :is([class~="text-[#8fa0b8]"], [class~="text-[#7f8ca3]"]) {
+  color: var(--text-secondary) !important;
+}
+
+/* One shared Executive visual language for every authenticated module. */
+.app-main,
+.app-main *,
+.login-screen,
+.login-screen * {
+  font-family: var(--font-sans) !important;
+}
+
+.app-main :is(h1, h2, h3, .page-title, .panel-title, .metric-value),
+.login-screen :is(h1, h2, h3) {
+  font-family: var(--font-serif) !important;
+}
+
+.app-main :is(h1, h2, h3, .page-title, .panel-title, .metric-value) { color: var(--ink); }
+
+.app-main :is([class*="bg-navy-"], [class*="from-navy-"], [class*="via-navy-"], [class~="bg-[#0d1624]"], [class~="bg-[#121f31]"], [class~="bg-[#17263b]"], [class~="bg-[#101b2c]"]) {
+  background-color: var(--surface) !important;
+  background-image: none !important;
+  border-color: var(--border) !important;
+}
+
+.app-main :is(.text-white, .text-gray-300, .text-gray-400, [class~="text-[#fffaf0]"], [class~="text-[#f8f4ea]"], [class~="text-[#d7e0ec]"], [class~="text-[#c9d3df]"]) {
+  color: var(--ink) !important;
+}
+
+.app-main :is(input, textarea, select, [role="combobox"]) {
+  background-color: var(--surface) !important;
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
+}
+
+.app-main button:not(:disabled),
+.app-main [role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+.app-main button:focus-visible,
+.app-main [role="button"]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
 /* The employee attendance workspace uses the same light executive palette. */
 .attendance-page {
   background: var(--background) !important;
@@ -492,6 +563,90 @@ a {
 .dashboard-page {
   display: grid;
   gap: 20px;
+}
+
+/* Reports & Analytics shares the Executive Dashboard's restrained ink, gold,
+ * and surface treatment while retaining its data visualisation hierarchy. */
+.reports-analytics-page {
+  color: var(--ink);
+}
+
+.reports-analytics-heading {
+  margin-bottom: 4px;
+}
+
+.reports-analytics-accent {
+  color: var(--bronze);
+}
+
+.reports-analytics-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.reports-analytics-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 9px 14px;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.reports-analytics-tab:hover,
+.reports-analytics-tab-active {
+  border-bottom-color: var(--bronze);
+  color: var(--ink);
+}
+
+.reports-analytics-page :is(.bg-blue-50, .bg-blue-100) {
+  background-color: var(--gold-light) !important;
+}
+
+.reports-analytics-page :is(.text-blue-600, .text-blue-700, .text-blue-800) {
+  color: var(--bronze) !important;
+}
+
+.reports-analytics-page :is(.bg-blue-600, .bg-blue-700, .bg-blue-800) {
+  background-color: var(--navy-deepest) !important;
+}
+
+.reports-analytics-page :is(.hover\\:bg-blue-100:hover, .hover\\:bg-blue-400:hover) {
+  background-color: var(--gold-light) !important;
+}
+
+.reports-analytics-page :is(.hover\\:text-blue-800:hover, .focus\\:border-blue-700:focus) {
+  color: var(--bronze) !important;
+  border-color: var(--bronze) !important;
+}
+
+.reports-analytics-page :is(.from-blue-200, .to-blue-400, .bg-blue-300) {
+  --tw-gradient-from: var(--gold-light) !important;
+  --tw-gradient-to: oklch(69% 0.1 78) !important;
+  background-color: var(--gold) !important;
+}
+
+.reports-analytics-page :is(.bg-white, .bg-gray-50) {
+  border-color: var(--border);
+}
+
+.reports-analytics-page :is(.rounded-xl, .rounded-lg) {
+  border-radius: 9px;
+}
+
+.reports-analytics-page :is(h2, h3) {
+  color: var(--ink) !important;
+  font-family: var(--font-serif) !important;
+  font-weight: 500;
+}
+
+.reports-analytics-page :is(input, select) {
+  border-color: var(--border) !important;
+  color: var(--ink) !important;
 }
 
 .login-page {

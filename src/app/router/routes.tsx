@@ -17,6 +17,7 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "user-profile": lazy(() => import("../../features/user-profile")),
   "system-settings": lazy(() => import("../../features/system/SystemSettings")),
   "hr-dashboard": lazy(() => import("../../features/dashboards/hr")),
+  "candidate-applications": lazy(() => import("../../features/candidates")),
   "department-dashboard": lazy(() => import("../../features/dashboards/department")),
   "employee-lifecycle": lazy(() => import("../../features/employees/lifecycle")),
   "contract-management": lazy(() => import("../../features/contracts")),

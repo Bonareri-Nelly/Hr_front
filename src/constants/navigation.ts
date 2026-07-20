@@ -11,6 +11,7 @@ export const navigationItems: NavigationItem[] = [
 
   // HR Operations Section
   { id: "hr-dashboard", label: "HR Dashboard", path: "/dashboard/hr", section: "HR Operations", icon: "Users" },
+  { id: "candidate-applications", label: "Candidate Applications", path: "/recruitment/applications", section: "HR Operations", icon: "Users" },
   { id: "department-dashboard", label: "Department Dashboard", path: "/dashboard/department", section: "HR Operations", icon: "Building2" },
   { id: "employee-lifecycle", label: "Employee Lifecycle", path: "/employees/lifecycle", section: "HR Operations", icon: "UserCheck" },
   { id: "contract-management", label: "Contract Management", path: "/contracts", section: "HR Operations", icon: "FileCheck2" },
