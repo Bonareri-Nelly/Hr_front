@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ApplyLeaveModal from "./components/ApplyLeaveModal";
 import LeaveCalendar from "./components/LeaveCalendar";
 import HRLeaveEntitlementsCard from "./components/HRLeaveEntitlementsCard";
@@ -38,6 +38,22 @@ const initialEntitlements: LeaveEntitlements = {
   unpaid: "As Required",
 };
 
+type ApiLeaveType = {
+  id: number;
+  name: string;
+  code: string;
+  max_days_per_year: number;
+  is_paid: boolean;
+  requires_attachment: boolean;
+  is_active: boolean;
+};
+
+type LeaveBalance = {
+  code: string;
+  type: string;
+  value: string;
+};
+
 export default function LeaveWorkflow() {
   const loggedInEmployee = mockEmployees[0];
   const [openModal, setOpenModal] = useState(false);
@@ -58,17 +74,33 @@ export default function LeaveWorkflow() {
     initialEntitlements
   );
 
-  const leaveBalances = useMemo(() => {
-    return [
-      { type: "Annual Leave", value: `${entitlements.annual} Days Remaining` },
-      { type: "Sick Leave", value: `${entitlements.sick} Days Available` },
-      { type: "Maternity Leave", value: String(entitlements.maternity) },
-      { type: "Paternity Leave", value: String(entitlements.paternity) },
-      { type: "Compassionate Leave", value: `${entitlements.compassionate} Days` },
-      { type: "Study Leave", value: `${entitlements.study} Days` },
-      { type: "Unpaid Leave", value: String(entitlements.unpaid) },
-    ];
-  }, [entitlements]);
+  const [leaveTypes, setLeaveTypes] = useState<ApiLeaveType[]>([]);
+  const [loadingLeaveTypes, setLoadingLeaveTypes] = useState(true);
+  const [leaveTypesError, setLeaveTypesError] = useState<string | null>(null);
+
+  const leaveBalances = useMemo<LeaveBalance[]>(
+    () =>
+      leaveTypes
+        .filter((leaveType) => leaveType.is_active)
+        .map((leaveType) => ({
+          code: leaveType.code,
+          type: leaveType.name,
+          value:
+            leaveType.max_days_per_year > 0
+              ? `${leaveType.max_days_per_year} Days`
+              : "As Required",
+        })),
+    [leaveTypes]
+  );
+
+  const annualLeaveDays = useMemo(
+    () => leaveTypes.find((leaveType) => leaveType.code === "ANNUAL")?.max_days_per_year,
+    [leaveTypes]
+  );
+  const sickLeaveDays = useMemo(
+    () => leaveTypes.find((leaveType) => leaveType.code === "SICK")?.max_days_per_year,
+    [leaveTypes]
+  );
 
   // Replacement workflow state (local mock)
   const [replacementState, setReplacementState] = useState<ReplacementWorkflowState>(
@@ -95,6 +127,54 @@ export default function LeaveWorkflow() {
   const isReplacementNeeded = currentPolicyRequiresSubstitute;
 
   const [actingAsReplacement, setActingAsReplacement] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const token = localStorage.getItem("accessToken") ?? localStorage.getItem("token");
+
+    async function loadLeaveTypes() {
+      if (!token) {
+        setLeaveTypesError("Your session has expired. Please sign in again to view leave balances.");
+        setLoadingLeaveTypes(false);
+        return;
+      }
+
+      try {
+        setLoadingLeaveTypes(true);
+        setLeaveTypesError(null);
+
+        const response = await fetch("http://127.0.0.1:8000/api/leave/types/", {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const data: unknown = await response.json();
+        if (!Array.isArray(data)) {
+          throw new Error("The leave types response was not a list.");
+        }
+
+        setLeaveTypes(data as ApiLeaveType[]);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setLeaveTypesError("We couldn't load leave balances right now. Please try again shortly.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingLeaveTypes(false);
+        }
+      }
+    }
+
+    void loadLeaveTypes();
+
+    return () => controller.abort();
+  }, []);
 
   return (
     <div className="dashboard-page">
@@ -145,7 +225,7 @@ export default function LeaveWorkflow() {
             Annual Leave
           </div>
           <div style={{ fontSize: "1.35rem", fontWeight: 700 }}>
-            {entitlements.annual}
+            {loadingLeaveTypes ? "—" : annualLeaveDays ?? "—"}
           </div>
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
             Days Remaining
@@ -157,7 +237,7 @@ export default function LeaveWorkflow() {
             Sick Leave
           </div>
           <div style={{ fontSize: "1.35rem", fontWeight: 700 }}>
-            {entitlements.sick}
+            {loadingLeaveTypes ? "—" : sickLeaveDays ?? "—"}
           </div>
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
             Days Available
@@ -256,22 +336,35 @@ export default function LeaveWorkflow() {
             </div>
 
             <div className="panel-body">
-              {leaveBalances.map((leave) => (
-                <div
-                  key={leave.type}
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "8px 0",
-                    borderBottom: "1px solid var(--border-subtle)",
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  <span>{leave.type}</span>
-                  <strong>{leave.value}</strong>
-                </div>
-              ))}
-
+              {loadingLeaveTypes ? (
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", margin: 0 }}>
+                  Loading leave balances...
+                </p>
+              ) : leaveTypesError ? (
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", margin: 0 }}>
+                  {leaveTypesError}
+                </p>
+              ) : leaveBalances.length > 0 ? (
+                leaveBalances.map((leave) => (
+                  <div
+                    key={leave.code}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      padding: "8px 0",
+                      borderBottom: "1px solid var(--border-subtle)",
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    <span>{leave.type}</span>
+                    <strong>{leave.value}</strong>
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: "var(--text-secondary)", fontSize: "0.8rem", margin: 0 }}>
+                  No active leave types are currently available.
+                </p>
+              )}
               <ApplyLeaveModal
                 open={openModal}
                 onClose={() => setOpenModal(false)}
