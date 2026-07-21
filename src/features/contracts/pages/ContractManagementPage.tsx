@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useContracts } from "../../../hooks";
 import {
   AlertCircle,
@@ -63,12 +63,12 @@ import {
   Settings as SettingsIcon,
   HelpCircle,
   BookOpen,
-  Ban
+  Ban,
+  FilePlus
 } from "lucide-react";
 
 type ContractStatus = "Active" | "Pending" | "Expired" | "Terminated" | "Draft" | "Under Review";
 type ContractType = "Employment" | "Contractor" | "Internship" | "Probation" | "Consultancy";
-type ContractTone = "success" | "warning" | "danger" | "info" | "neutral";
 
 interface Contract {
   id: string;
@@ -111,54 +111,111 @@ interface Contract {
   }[];
 }
 
-function AmendmentModal({ isOpen, onClose, contract, onConfirm }: any) {
+// ============================================================
+// ADD CONTRACT MODAL
+// ============================================================
+
+function AddContractModal({ isOpen, onClose, onConfirm }: any) {
   const [formData, setFormData] = useState({
-    contractType: contract?.type || 'Employment',
-    endDate: contract?.endDate || '',
-    salary: contract?.salary || '',
-    termsSummary: contract?.notes || '',
-    notes: contract?.notes || '',
-    reason: '',
+    title: '',
+    type: 'Employment' as ContractType,
+    employeeName: '',
+    employeeId: '',
+    employeeEmail: '',
+    department: '',
+    position: '',
+    startDate: '',
+    endDate: '',
+    salary: '',
+    currency: 'USD',
+    probationPeriod: 0,
+    noticePeriod: 30,
+    notes: '',
   });
 
-  useEffect(() => {
-    if (contract) {
-      setFormData({
-        contractType: contract.type,
-        endDate: contract.endDate,
-        salary: contract.salary,
-        termsSummary: contract.notes || '',
-        notes: contract.notes || '',
-        reason: '',
-      });
-    }
-  }, [contract]);
-
-  if (!isOpen || !contract) return null;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.reason) {
-      alert('Please provide a reason for the amendment.');
+    if (!formData.title || !formData.employeeName || !formData.startDate || !formData.endDate) {
+      alert('Please fill in all required fields.');
       return;
     }
-    onConfirm(contract.id, formData);
+
+    const newContract: Contract = {
+      id: `c${Date.now()}`,
+      title: formData.title,
+      type: formData.type,
+      status: 'Draft',
+      employeeName: formData.employeeName,
+      employeeId: formData.employeeId || 'EMP-001',
+      employeeEmail: formData.employeeEmail,
+      department: formData.department,
+      position: formData.position,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+      salary: parseFloat(formData.salary) || 0,
+      currency: formData.currency,
+      probationPeriod: parseInt(formData.probationPeriod as any) || 0,
+      noticePeriod: parseInt(formData.noticePeriod as any) || 30,
+      documents: [],
+      signedByEmployee: false,
+      signedByEmployer: false,
+      createdBy: 'Current User',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      notes: formData.notes,
+      history: [{
+        action: 'Created',
+        date: new Date().toISOString(),
+        user: 'Current User',
+        note: 'Contract created'
+      }],
+    };
+
+    onConfirm(newContract);
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose}></div>
       <div className="relative bg-white rounded-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-slate-900">Amend Contract – {contract.employeeName}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+        <div className="flex justify-between items-start mb-4">
+          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <FilePlus className="w-6 h-6 text-blue-700" />
+            New Contract
+          </h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
         </div>
+
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Contract Type</label>
-              <select name="contractType" value={formData.contractType} onChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none">
+              <label className="block text-sm font-medium text-gray-700">Contract Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Type</label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+              >
                 <option value="Employment">Employment</option>
                 <option value="Contractor">Contractor</option>
                 <option value="Internship">Internship</option>
@@ -167,25 +224,145 @@ function AmendmentModal({ isOpen, onClose, contract, onConfirm }: any) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Salary ({contract.currency})</label>
-              <input type="number" name="salary" value={formData.salary} onChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label className="block text-sm font-medium text-gray-700">Employee Name *</label>
+              <input
+                type="text"
+                name="employeeName"
+                value={formData.employeeName}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                placeholder="e.g. John Doe"
+                required
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
-              <input type="date" name="endDate" value={formData.endDate} onChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label className="block text-sm font-medium text-gray-700">Employee Email</label>
+              <input
+                type="email"
+                name="employeeEmail"
+                value={formData.employeeEmail}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                placeholder="john.doe@company.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Department</label>
+              <input
+                type="text"
+                name="department"
+                value={formData.department}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                placeholder="e.g. Engineering"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Position</label>
+              <input
+                type="text"
+                name="position"
+                value={formData.position}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                placeholder="e.g. Senior Developer"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Start Date *</label>
+              <input
+                type="date"
+                name="startDate"
+                value={formData.startDate}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">End Date *</label>
+              <input
+                type="date"
+                name="endDate"
+                value={formData.endDate}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Salary ({formData.currency})</label>
+              <input
+                type="number"
+                name="salary"
+                value={formData.salary}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                placeholder="e.g. 75000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Currency</label>
+              <select
+                name="currency"
+                value={formData.currency}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+              >
+                <option value="USD">USD</option>
+                <option value="KES">KES</option>
+                <option value="EUR">EUR</option>
+                <option value="GBP">GBP</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Probation (months)</label>
+              <input
+                type="number"
+                name="probationPeriod"
+                value={formData.probationPeriod}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Notice Period (days)</label>
+              <input
+                type="number"
+                name="noticePeriod"
+                value={formData.noticePeriod}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+              />
             </div>
             <div className="col-span-full">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Terms / Notes</label>
-              <textarea name="termsSummary" value={formData.termsSummary} onChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" />
-            </div>
-            <div className="col-span-full">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Reason for Amendment <span className="text-red-500">*</span></label>
-              <textarea name="reason" value={formData.reason} onChange={(e) => setFormData({...formData, [e.target.name]: e.target.value})} rows={2} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required />
+              <label className="block text-sm font-medium text-gray-700">Notes</label>
+              <textarea
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
+                placeholder="Additional details..."
+              />
             </div>
           </div>
-          <div className="flex gap-3 mt-4 pt-4 border-t border-slate-200">
-            <button type="submit" className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-all flex items-center justify-center gap-2">Confirm Amendment</button>
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all">Cancel</button>
+
+          <div className="flex gap-3 mt-4 pt-4 border-t border-gray-200">
+            <button
+              type="submit"
+              className="flex-1 px-4 py-2 bg-blue-700 text-white rounded-lg text-sm hover:bg-blue-800 transition flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              Create Contract
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition"
+            >
+              Cancel
+            </button>
           </div>
         </form>
       </div>
@@ -193,80 +370,23 @@ function AmendmentModal({ isOpen, onClose, contract, onConfirm }: any) {
   );
 }
 
-function RenewalModal({ isOpen, onClose, contract, onConfirm }: any) {
-  const [newEndDate, setNewEndDate] = useState('');
-  const [reason, setReason] = useState('');
-  if (!isOpen || !contract) return null;
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newEndDate) return;
-    onConfirm(contract.id, newEndDate, reason);
-    onClose();
-  };
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose}></div>
-      <div className="relative bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
-        <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Renew Contract</h3><button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button></div>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Employee</label><p className="text-slate-900">{contract.employeeName}</p></div>
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">New End Date</label><input type="date" value={newEndDate} onChange={(e) => setNewEndDate(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required min={new Date().toISOString().split('T')[0]} /></div>
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Reason / Notes</label><textarea value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" rows={3} placeholder="e.g., Performance satisfactory, renewal for 1 year" /></div>
-          </div>
-          <div className="flex gap-3 mt-4">
-            <button type="submit" className="flex-1 px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all">Confirm Renewal</button>
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function TerminationModal({ isOpen, onClose, contract, onConfirm }: any) {
-  const [effectiveDate, setEffectiveDate] = useState('');
-  const [reason, setReason] = useState('');
-  if (!isOpen || !contract) return null;
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!effectiveDate) return;
-    onConfirm(contract.id, effectiveDate, reason);
-    onClose();
-  };
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose}></div>
-      <div className="relative bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
-        <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Terminate Contract</h3><button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button></div>
-        <form onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Employee</label><p className="text-slate-900">{contract.employeeName}</p></div>
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Effective Date</label><input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required min={new Date().toISOString().split('T')[0]} /></div>
-            <div><label className="block text-sm font-medium text-slate-700 mb-1">Reason for Termination</label><textarea value={reason} onChange={(e) => setReason(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" rows={3} placeholder="e.g., Resignation, End of contract, Performance issues" required /></div>
-          </div>
-          <div className="flex gap-3 mt-4">
-            <button type="submit" className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all">Confirm Termination</button>
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 
 export default function ContractManagementPage() {
   const {
-    contracts,
+    contracts: apiContracts,
     isLoading,
     error,
     createContract,
-    renewContract,
-    terminateContract,
-    amendContract,
     deleteContract,
+    renewContract,
+    approveContract,
+    refreshContracts,
   } = useContracts();
 
+  // State Management
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<ContractStatus | "All">("All");
   const [filterType, setFilterType] = useState<ContractType | "All">("All");
@@ -275,40 +395,35 @@ export default function ContractManagementPage() {
   const [selectedContract, setSelectedContract] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [isLoadingLocal, setIsLoadingLocal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [contractToDelete, setContractToDelete] = useState<string | null>(null);
-  const [showAmendmentModal, setShowAmendmentModal] = useState(false);
-  const [contractToAmend, setContractToAmend] = useState<Contract | null>(null);
-  const [showRenewalModal, setShowRenewalModal] = useState(false);
-  const [contractToRenew, setContractToRenew] = useState<Contract | null>(null);
-  const [showTerminationModal, setShowTerminationModal] = useState(false);
-  const [contractToTerminate, setContractToTerminate] = useState<Contract | null>(null);
-  const [showMoreDropdown, setShowMoreDropdown] = useState<string | null>(null);
+  const contracts = apiContracts as Contract[];
 
+  // Contract Statistics
   const contractStats = {
-    total: contracts?.length || 0,
-    active: contracts?.filter((c: any) => c.status === "Active").length || 0,
-    pending: contracts?.filter((c: any) => c.status === "Pending").length || 0,
-    expired: contracts?.filter((c: any) => c.status === "Expired").length || 0,
-    expiringSoon: contracts?.filter((c: any) => {
+    total: contracts.length,
+    active: contracts.filter(c => c.status === "Active").length,
+    pending: contracts.filter(c => c.status === "Pending").length,
+    expired: contracts.filter(c => c.status === "Expired").length,
+    expiringSoon: contracts.filter(c => {
       if (!c.endDate) return false;
       const endDate = new Date(c.endDate);
       const today = new Date();
       const daysUntilExpiry = (endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
       return daysUntilExpiry > 0 && daysUntilExpiry <= 30;
-    }).length || 0,
+    }).length,
     byType: [
-      { type: "Employment", count: contracts?.filter((c: any) => c.type === "Employment").length || 0 },
-      { type: "Contractor", count: contracts?.filter((c: any) => c.type === "Contractor").length || 0 },
-      { type: "Internship", count: contracts?.filter((c: any) => c.type === "Internship").length || 0 },
-      { type: "Probation", count: contracts?.filter((c: any) => c.type === "Probation").length || 0 },
-      { type: "Consultancy", count: contracts?.filter((c: any) => c.type === "Consultancy").length || 0 },
+      { type: "Employment", count: contracts.filter(c => c.type === "Employment").length },
+      { type: "Contractor", count: contracts.filter(c => c.type === "Contractor").length },
+      { type: "Internship", count: contracts.filter(c => c.type === "Internship").length },
+      { type: "Probation", count: contracts.filter(c => c.type === "Probation").length },
+      { type: "Consultancy", count: contracts.filter(c => c.type === "Consultancy").length },
     ],
     renewalRate: 85,
     averageDuration: 24,
   };
 
+  // Helper Functions
   const getStatusColor = (status: ContractStatus): string => {
     const statusMap: Record<ContractStatus, string> = {
       Active: "bg-green-100 text-green-800 border-green-200",
@@ -376,41 +491,67 @@ export default function ContractManagementPage() {
     return Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  const filteredContracts = contracts?.filter((contract: any) => {
-    const matchesSearch = contract.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contract.employeeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contract.employeeEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contract.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      contract.position?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filter Contracts
+  const filteredContracts = contracts.filter(contract => {
+    const matchesSearch = contract.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contract.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contract.employeeEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contract.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      contract.position.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "All" || contract.status === filterStatus;
     const matchesType = filterType === "All" || contract.type === filterType;
     return matchesSearch && matchesStatus && matchesType;
-  }) || [];
+  });
 
-  const selectedContractData = contracts?.find((c: any) => c.id === selectedContract);
+  const selectedContractData = contracts.find(c => c.id === selectedContract);
 
+  // Event Handlers
   const handleDeleteContract = async () => {
     if (contractToDelete) {
-      if (window.confirm("Are you sure you want to delete this contract?")) {
-        try {
-          await deleteContract(contractToDelete);
-          setContractToDelete(null);
-          setShowDeleteConfirm(false);
-          alert("Contract deleted successfully!");
-        } catch (err) {
-          alert("Failed to delete contract");
-        }
+      try {
+        await deleteContract(contractToDelete);
+        setContractToDelete(null);
+        setShowDeleteConfirm(false);
+        alert("Contract deleted successfully!");
+      } catch {
+        alert("Unable to delete the contract. Please try again.");
       }
     }
   };
 
-  const handleAddContract = async (data: any) => {
+  const handleAddContract = async (newContract: Contract) => {
+    const employeeId = Number(newContract.employeeId);
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      alert("Enter a valid numeric employee database ID.");
+      return;
+    }
+
+    const contractTypes: Record<ContractType, string> = {
+      Employment: "PERMANENT",
+      Contractor: "FIXED_TERM",
+      Internship: "INTERNSHIP",
+      Probation: "PROBATION",
+      Consultancy: "CONSULTANCY",
+    };
+
     try {
-      await createContract(data);
+      await createContract({
+        employee: employeeId,
+        contract_number: `CNT-${Date.now()}`,
+        title: newContract.title,
+        contract_type: contractTypes[newContract.type],
+        start_date: newContract.startDate,
+        end_date: newContract.endDate,
+        basic_salary: newContract.salary,
+        currency: newContract.currency,
+        probation_period: newContract.probationPeriod,
+        notice_period: newContract.noticePeriod,
+        terms: newContract.notes || "",
+      });
       setShowAddModal(false);
-      alert("Contract created successfully!");
-    } catch (err) {
-      alert("Failed to create contract");
+      alert("New contract created successfully!");
+    } catch {
+      alert("Unable to create the contract. Check the employee ID and required contract details.");
     }
   };
 
@@ -419,55 +560,46 @@ export default function ContractManagementPage() {
     setShowEditModal(false);
   };
 
-  const handleSendForSignature = (contract: any) => {
-    alert(`Contract "${contract.title}" sent for signature to ${contract.employeeEmail}`);
-  };
-
-  const handleRenewContract = (contract: any) => {
-    setContractToRenew(contract);
-    setShowRenewalModal(true);
-  };
-
-  const handleAmendContract = (contract: any) => {
-    setContractToAmend(contract);
-    setShowAmendmentModal(true);
-  };
-
-  const handleTerminateContract = (contract: any) => {
-    setContractToTerminate(contract);
-    setShowTerminationModal(true);
-  };
-
-  const handleConfirmRenewal = async (id: string, newEndDate: string, reason: string) => {
+  const handleSendForSignature = async (contractId: string) => {
     try {
-      await renewContract({ id, data: { new_end_date: newEndDate, reason } });
-      setShowRenewalModal(false);
-      setContractToRenew(null);
+      await approveContract(contractId);
+      alert("Contract approved successfully!");
+    } catch {
+      alert("Unable to approve the contract. Please try again.");
+    }
+  };
+
+  const handleRenewContract = async (contractId: string) => {
+    const newEndDate = window.prompt("Enter the new contract end date (YYYY-MM-DD):");
+    if (!newEndDate) return;
+
+    const contract = contracts.find((item) => item.id === contractId);
+    if (!contract) {
+      alert("Contract details are unavailable. Refresh and try again.");
+      return;
+    }
+
+    const currentEndDate = new Date(contract.endDate);
+    if (Number.isNaN(currentEndDate.getTime())) {
+      alert("This contract has no valid end date to renew from.");
+      return;
+    }
+
+    currentEndDate.setDate(currentEndDate.getDate() + 1);
+    const newStartDate = currentEndDate.toISOString().slice(0, 10);
+
+    try {
+      await renewContract({
+        id: contractId,
+        data: {
+          new_start_date: newStartDate,
+          new_end_date: newEndDate,
+          new_salary: contract.salary,
+        },
+      });
       alert("Contract renewed successfully!");
-    } catch (err) {
-      alert("Failed to renew contract");
-    }
-  };
-
-  const handleConfirmAmendment = async (id: string, data: any) => {
-    try {
-      await amendContract({ id, data });
-      setShowAmendmentModal(false);
-      setContractToAmend(null);
-      alert("Contract amended successfully!");
-    } catch (err) {
-      alert("Failed to amend contract");
-    }
-  };
-
-  const handleConfirmTermination = async (id: string, effectiveDate: string, reason: string) => {
-    try {
-      await terminateContract({ id, data: { termination_date: effectiveDate, reason } });
-      setShowTerminationModal(false);
-      setContractToTerminate(null);
-      alert("Contract terminated successfully!");
-    } catch (err) {
-      alert("Failed to terminate contract");
+    } catch {
+      alert("Unable to renew the contract. Please check the new end date.");
     }
   };
 
@@ -479,77 +611,17 @@ export default function ContractManagementPage() {
     alert(`Generating ${type} report...`);
   };
 
-  const handleClearFilters = () => {
-    setSearchTerm('');
-    setFilterStatus('All');
-    setFilterType('All');
-  };
-
-  const handleViewDocument = (docName: string) => {
-    alert(`Viewing document: ${docName}`);
-  };
-
-  const handleDownloadDocument = (docName: string) => {
-    alert(`Downloading document: ${docName}`);
-  };
-
-  const handleUseTemplate = (templateName: string) => {
-    alert(`Using template: ${templateName}`);
-  };
-
-  const handlePreviewTemplate = (templateName: string) => {
-    alert(`Previewing template: ${templateName}`);
-  };
-
-  const handleCreateTemplate = () => {
-    alert('Creating new template...');
-  };
-
-  const handleUploadContract = () => {
-    alert('Upload contract dialog opened...');
-  };
-
-  const handleRenewalAlerts = () => {
-    alert(`Showing renewal alerts (${contractStats.expiringSoon} contracts expiring soon)`);
-  };
-
-  const handleViewTemplates = () => {
-    setActiveTab('templates');
-  };
-
-  const handleMoreAction = (action: string, contractId: string) => {
-    setShowMoreDropdown(null);
-    alert(`${action} action triggered for contract ${contractId}`);
-  };
-
-  const toggleMoreDropdown = (contractId: string) => {
-    setShowMoreDropdown(showMoreDropdown === contractId ? null : contractId);
+  const handleCreateNewTemplate = () => {
+    alert("New template created successfully!");
   };
 
   const statuses: (ContractStatus | "All")[] = ["All", "Active", "Pending", "Expired", "Under Review", "Draft", "Terminated"];
   const types: (ContractType | "All")[] = ["All", "Employment", "Contractor", "Internship", "Probation", "Consultancy"];
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-red-700 max-w-4xl mx-auto mt-10">
-        <h3 className="font-semibold">Error loading contracts</h3>
-        <p className="text-sm">{(error as any)?.message || "Failed to load contracts. Please try again."}</p>
-        <button onClick={() => window.location.reload()} className="mt-3 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all">Retry</button>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -559,7 +631,7 @@ export default function ContractManagementPage() {
                 </div>
                 <h1 className="text-3xl font-bold text-slate-900">Contract Management</h1>
                 <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
-                  {contracts?.length || 0} Contracts
+                  {contracts.length} Contracts
                 </span>
               </div>
               <p className="text-slate-600 ml-1">
@@ -568,16 +640,13 @@ export default function ContractManagementPage() {
             </div>
             <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => { setIsLoadingLocal(true); setTimeout(() => setIsLoadingLocal(false), 1000); }}
+                onClick={refreshContracts}
                 className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
               >
-                <RefreshCw className={`w-4 h-4 ${isLoadingLocal ? "animate-spin" : ""}`} />
+                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
               </button>
-              <button
-                onClick={() => alert('Exporting data...')}
-                className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
-              >
+              <button className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
                 <Download className="w-4 h-4" />
                 Export
               </button>
@@ -592,6 +661,7 @@ export default function ContractManagementPage() {
           </div>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
@@ -604,7 +674,7 @@ export default function ContractManagementPage() {
               </div>
             </div>
             <div className="mt-2 text-xs text-slate-500">
-              Across {contractStats.byType.filter((t: any) => t.count > 0).length} types
+              Across {contractStats.byType.filter(t => t.count > 0).length} types
             </div>
           </div>
 
@@ -619,7 +689,7 @@ export default function ContractManagementPage() {
               </div>
             </div>
             <div className="mt-2 text-xs text-green-600">
-              {contractStats.total > 0 ? ((contractStats.active / contractStats.total) * 100).toFixed(0) : 0}% of total
+              {((contractStats.active / contractStats.total) * 100).toFixed(0)}% of total
             </div>
           </div>
 
@@ -669,6 +739,7 @@ export default function ContractManagementPage() {
           </div>
         </div>
 
+        {/* Tabs */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-1 mb-6">
           <div className="flex flex-wrap gap-1">
             {[
@@ -693,6 +764,7 @@ export default function ContractManagementPage() {
           </div>
         </div>
 
+        {/* Overview Tab */}
         {activeTab === "overview" && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-6">
@@ -701,10 +773,10 @@ export default function ContractManagementPage() {
                 Contract Type Distribution
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {contractStats.byType.map((type: any) => (
+                {contractStats.byType.map((type) => (
                   <div key={type.type} className="bg-slate-50 rounded-xl p-4">
                     <div className="flex items-center justify-between">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(type.type)}`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(type.type as ContractType)}`}>
                         {type.type}
                       </span>
                       <span className="text-sm text-slate-500">{type.count} contracts</span>
@@ -713,11 +785,11 @@ export default function ContractManagementPage() {
                       <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"
-                          style={{ width: `${contractStats.total > 0 ? (type.count / contractStats.total) * 100 : 0}%` }}
+                          style={{ width: `${(type.count / contractStats.total) * 100}%` }}
                         />
                       </div>
                       <p className="text-xs text-slate-500 mt-1">
-                        {contractStats.total > 0 ? ((type.count / contractStats.total) * 100).toFixed(0) : 0}% of total
+                        {((type.count / contractStats.total) * 100).toFixed(0)}% of total
                       </p>
                     </div>
                   </div>
@@ -733,7 +805,7 @@ export default function ContractManagementPage() {
                 </h3>
                 <div className="space-y-3">
                   {["Active", "Pending", "Expired", "Under Review", "Draft", "Terminated"].map((status) => {
-                    const count = contracts?.filter((c: any) => c.status === status).length || 0;
+                    const count = contracts.filter(c => c.status === status).length;
                     if (count === 0) return null;
                     return (
                       <div key={status}>
@@ -754,7 +826,7 @@ export default function ContractManagementPage() {
                               status === "Draft" ? "bg-blue-500" :
                               "bg-gray-500"
                             }`}
-                            style={{ width: `${contractStats.total > 0 ? (count / contractStats.total) * 100 : 0}%` }}
+                            style={{ width: `${(count / contractStats.total) * 100}%` }}
                           />
                         </div>
                       </div>
@@ -777,26 +849,17 @@ export default function ContractManagementPage() {
                     <p className="text-sm font-medium text-slate-700">New Contract</p>
                     <p className="text-xs text-slate-500">Create from template</p>
                   </button>
-                  <button
-                    onClick={handleUploadContract}
-                    className="p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-all text-left"
-                  >
+                  <button className="p-3 bg-green-50 rounded-xl hover:bg-green-100 transition-all text-left">
                     <Upload className="w-5 h-5 text-green-600 mb-1" />
                     <p className="text-sm font-medium text-slate-700">Upload Contract</p>
                     <p className="text-xs text-slate-500">Add existing contract</p>
                   </button>
-                  <button
-                    onClick={handleViewTemplates}
-                    className="p-3 bg-purple-50 rounded-xl hover:bg-purple-100 transition-all text-left"
-                  >
+                  <button className="p-3 bg-purple-50 rounded-xl hover:bg-purple-100 transition-all text-left">
                     <FileSpreadsheet className="w-5 h-5 text-purple-600 mb-1" />
                     <p className="text-sm font-medium text-slate-700">Templates</p>
                     <p className="text-xs text-slate-500">Manage templates</p>
                   </button>
-                  <button
-                    onClick={handleRenewalAlerts}
-                    className="p-3 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition-all text-left"
-                  >
+                  <button className="p-3 bg-yellow-50 rounded-xl hover:bg-yellow-100 transition-all text-left">
                     <Bell className="w-5 h-5 text-yellow-600 mb-1" />
                     <p className="text-sm font-medium text-slate-700">Renewal Alerts</p>
                     <p className="text-xs text-slate-500">{contractStats.expiringSoon} due soon</p>
@@ -807,6 +870,7 @@ export default function ContractManagementPage() {
           </div>
         )}
 
+        {/* Contracts Tab */}
         {activeTab === "contracts" && (
           <>
             <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 border border-slate-200/60">
@@ -846,13 +910,6 @@ export default function ContractManagementPage() {
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5 pointer-events-none" />
                   </div>
-                  <button
-                    onClick={handleClearFilters}
-                    className="px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all flex items-center gap-1"
-                  >
-                    <X className="w-4 h-4" />
-                    Clear
-                  </button>
                   <div className="flex bg-slate-100 rounded-xl p-1">
                     <button
                       onClick={() => setViewMode("table")}
@@ -885,13 +942,27 @@ export default function ContractManagementPage() {
                   <table className="w-full">
                     <thead className="bg-slate-50/80 border-b border-slate-200">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Contract</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Employee</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Period</th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Salary</th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Contract
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Employee
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Period
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Salary
+                        </th>
+                        <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -906,7 +977,7 @@ export default function ContractManagementPage() {
                           </td>
                         </tr>
                       ) : (
-                        filteredContracts.map((contract: any) => (
+                        filteredContracts.map((contract) => (
                           <tr key={contract.id} className="hover:bg-slate-50/70 transition-colors cursor-pointer">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div>
@@ -917,7 +988,7 @@ export default function ContractManagementPage() {
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center gap-2">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
-                                  {contract.employeeName?.split(" ").map((n: string) => n[0]).join("") || "U"}
+                                  {contract.employeeName.split(" ").map(n => n[0]).join("")}
                                 </div>
                                 <div>
                                   <p className="font-medium text-slate-900">{contract.employeeName}</p>
@@ -956,7 +1027,7 @@ export default function ContractManagementPage() {
                                   <Eye className="w-4 h-4" />
                                 </button>
                                 <button
-                                  onClick={() => handleSendForSignature(contract)}
+                                  onClick={() => handleSendForSignature(contract.id)}
                                   className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
                                 >
                                   <Mail className="w-4 h-4" />
@@ -967,30 +1038,9 @@ export default function ContractManagementPage() {
                                 >
                                   <Download className="w-4 h-4" />
                                 </button>
-                                <div className="relative">
-                                  <button
-                                    onClick={() => toggleMoreDropdown(contract.id)}
-                                    className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </button>
-                                  {showMoreDropdown === contract.id && (
-                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-200 z-10 py-1">
-                                      <button onClick={() => handleMoreAction('Edit', contract.id)} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2">
-                                        <Edit className="w-4 h-4" /> Edit
-                                      </button>
-                                      <button onClick={() => handleMoreAction('Copy', contract.id)} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2">
-                                        <Copy className="w-4 h-4" /> Copy
-                                      </button>
-                                      <button onClick={() => {
-                                        setContractToDelete(contract.id);
-                                        setShowDeleteConfirm(true);
-                                      }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-all flex items-center gap-2">
-                                        <Trash2 className="w-4 h-4" /> Delete
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
+                                <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -1003,34 +1053,22 @@ export default function ContractManagementPage() {
                 <div className="px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50/50">
                   <p className="text-sm text-slate-600">
                     Showing <span className="font-medium">{filteredContracts.length}</span> of{" "}
-                    <span className="font-medium">{contracts?.length || 0}</span> contracts
+                    <span className="font-medium">{contracts.length}</span> contracts
                   </p>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => alert('Previous page')}
-                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all"
-                    >
+                    <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all">
                       Previous
                     </button>
                     <button className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition-all shadow-sm shadow-indigo-200">
                       1
                     </button>
-                    <button
-                      onClick={() => alert('Page 2')}
-                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all"
-                    >
+                    <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all">
                       2
                     </button>
-                    <button
-                      onClick={() => alert('Page 3')}
-                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all"
-                    >
+                    <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all">
                       3
                     </button>
-                    <button
-                      onClick={() => alert('Next page')}
-                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all"
-                    >
+                    <button className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm text-slate-600 hover:bg-white transition-all">
                       Next
                     </button>
                   </div>
@@ -1048,7 +1086,7 @@ export default function ContractManagementPage() {
                     </div>
                   </div>
                 ) : (
-                  filteredContracts.map((contract: any) => (
+                  filteredContracts.map((contract) => (
                     <div key={contract.id} className="bg-white rounded-2xl shadow-sm border border-slate-200/60 p-5 hover:shadow-md transition-all group">
                       <div className="flex items-start justify-between mb-3">
                         <div>
@@ -1063,7 +1101,7 @@ export default function ContractManagementPage() {
 
                       <div className="flex items-center gap-2 mb-3">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
-                          {contract.employeeName?.split(" ").map((n: string) => n[0]).join("") || "U"}
+                          {contract.employeeName.split(" ").map(n => n[0]).join("")}
                         </div>
                         <div>
                           <p className="font-medium text-slate-900 text-sm">{contract.employeeName}</p>
@@ -1105,10 +1143,7 @@ export default function ContractManagementPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleDownloadContract(contract.id)}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-                          >
+                          <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
                             <Download className="w-4 h-4" />
                           </button>
                         </div>
@@ -1121,6 +1156,7 @@ export default function ContractManagementPage() {
           </>
         )}
 
+        {/* Templates Tab */}
         {activeTab === "templates" && (
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1185,16 +1221,10 @@ export default function ContractManagementPage() {
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>Updated: {formatDate(template.lastUpdated)}</span>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handlePreviewTemplate(template.name)}
-                        className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all text-xs font-medium"
-                      >
+                      <button className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-all text-xs font-medium">
                         Preview
                       </button>
-                      <button
-                        onClick={() => handleUseTemplate(template.name)}
-                        className="px-3 py-1 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-all text-xs font-medium"
-                      >
+                      <button className="px-3 py-1 bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-all text-xs font-medium">
                         Use
                       </button>
                     </div>
@@ -1215,7 +1245,7 @@ export default function ContractManagementPage() {
                   </div>
                 </div>
                 <button
-                  onClick={handleCreateTemplate}
+                  onClick={handleCreateNewTemplate}
                   className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200"
                 >
                   <Plus className="w-4 h-4" />
@@ -1226,6 +1256,7 @@ export default function ContractManagementPage() {
           </div>
         )}
 
+        {/* Reports Tab */}
         {activeTab === "reports" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
@@ -1293,6 +1324,7 @@ export default function ContractManagementPage() {
           </div>
         )}
 
+        {/* Detail View */}
         {viewMode === "detail" && selectedContractData && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
@@ -1311,35 +1343,14 @@ export default function ContractManagementPage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleRenewContract(selectedContractData)}
+                  onClick={() => handleRenewContract(selectedContractData.id)}
                   className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Renew
                 </button>
                 <button
-                  onClick={() => handleAmendContract(selectedContractData)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-amber-50 transition-all flex items-center gap-2"
-                >
-                  <Edit className="w-4 h-4" />
-                  Amend
-                </button>
-                <button
-                  onClick={() => handleTerminateContract(selectedContractData)}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-red-600 hover:bg-red-50 transition-all flex items-center gap-2"
-                >
-                  <Ban className="w-4 h-4" />
-                  Terminate
-                </button>
-                <button
-                  onClick={() => window.open(`/employees/${selectedContractData.employeeId}`, '_blank')}
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  View Profile
-                </button>
-                <button
-                  onClick={() => handleSendForSignature(selectedContractData)}
+                  onClick={() => handleSendForSignature(selectedContractData.id)}
                   className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200"
                 >
                   <Mail className="w-4 h-4" />
@@ -1395,35 +1406,27 @@ export default function ContractManagementPage() {
                 </div>
               </div>
 
-              {selectedContractData.documents && selectedContractData.documents.length > 0 && (
+              {selectedContractData.documents.length > 0 && (
                 <div className="border border-slate-200 rounded-xl p-4 mb-6">
                   <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
                     <FolderOpen className="w-4 h-4 text-slate-600" />
                     Documents ({selectedContractData.documents.length})
                   </h4>
                   <div className="space-y-2">
-                    {selectedContractData.documents.map((doc: any, index: number) => (
+                    {selectedContractData.documents.map((doc, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                         <div className="flex items-center gap-3">
                           <FileText className="w-4 h-4 text-indigo-600" />
                           <div>
-                            <p className="font-medium text-slate-900 text-sm">
-                              {doc.name} <span className="text-xs text-slate-400 ml-1">v{index + 1}</span>
-                            </p>
+                            <p className="font-medium text-slate-900 text-sm">{doc.name}</p>
                             <p className="text-xs text-slate-500">{doc.size} • Uploaded: {formatDate(doc.uploadDate)}</p>
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleViewDocument(doc.name)}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-                          >
+                          <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => handleDownloadDocument(doc.name)}
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all"
-                          >
+                          <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
                             <Download className="w-4 h-4" />
                           </button>
                         </div>
@@ -1449,7 +1452,7 @@ export default function ContractManagementPage() {
                   History
                 </h4>
                 <div className="space-y-3">
-                  {selectedContractData.history?.map((item: any, index: number) => (
+                  {selectedContractData.history.map((item, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="relative">
                         <div className="w-2 h-2 rounded-full bg-indigo-600 mt-1.5"></div>
@@ -1474,10 +1477,7 @@ export default function ContractManagementPage() {
         )}
 
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
-            onClick={handleViewTemplates}
-            className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3"
-          >
+          <button className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-all flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <FileText className="w-5 h-5 text-blue-600" />
             </div>
@@ -1487,50 +1487,14 @@ export default function ContractManagementPage() {
             </div>
           </button>
         </div>
-
-        <AmendmentModal
-          isOpen={showAmendmentModal}
-          onClose={() => setShowAmendmentModal(false)}
-          contract={contractToAmend}
-          onConfirm={handleConfirmAmendment}
-        />
-        <RenewalModal
-          isOpen={showRenewalModal}
-          onClose={() => setShowRenewalModal(false)}
-          contract={contractToRenew}
-          onConfirm={handleConfirmRenewal}
-        />
-        <TerminationModal
-          isOpen={showTerminationModal}
-          onClose={() => setShowTerminationModal(false)}
-          contract={contractToTerminate}
-          onConfirm={handleConfirmTermination}
-        />
-
-        {showDeleteConfirm && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/50" onClick={() => setShowDeleteConfirm(false)}></div>
-            <div className="relative bg-white rounded-2xl w-full max-w-md mx-4 p-6 shadow-2xl">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Delete Contract</h3>
-              <p className="text-sm text-slate-600">Are you sure you want to delete this contract? This action cannot be undone.</p>
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={handleDeleteContract}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={() => setShowDeleteConfirm(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Add Contract Modal */}
+      <AddContractModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onConfirm={handleAddContract}
+      />
     </div>
   );
 }

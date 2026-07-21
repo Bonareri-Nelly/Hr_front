@@ -7,6 +7,7 @@ export const contractApi = {
   update: (id: string, data: any) => apiClient.put(`/contracts/${id}/`, data),
   delete: (id: string) => apiClient.delete(`/contracts/${id}/`),
   getExpiring: () => apiClient.get('/contracts/expiring/'),
+  approve: (id: string) => apiClient.post(`/contracts/${id}/approve/`),
   renew: (id: string, data: { new_end_date?: string; reason?: string }) =>
     apiClient.post(`/contracts/${id}/renew/`, data),
   terminate: (id: string, data: { termination_date?: string; reason?: string }) =>
