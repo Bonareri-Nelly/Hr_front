@@ -645,7 +645,7 @@ const OnboardingDashboard: React.FC = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<OnboardingCase | null>(null);
 
-  const { cases, stats, loading, refetch } = useOnboarding({});
+  const { cases, stats, loading, refetch, initiateOnboarding } = useOnboarding({});
 
   const departments = useMemo(() => {
     if (!cases) return [];
@@ -680,9 +680,21 @@ const OnboardingDashboard: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleInitiateOnboarding = (data: any) => {
-    console.log('Initiating onboarding for:', data);
-    refetch();
+  const handleInitiateOnboarding = async (data: any) => {
+    try {
+      await initiateOnboarding({
+        employeeId: data.employeeId,
+        startDate: data.startDate,
+        managerId: data.managerId,
+        department: data.department,
+        position: data.position,
+        branchId: data.branchId,
+        notes: data.notes,
+      });
+      refetch();
+    } catch (error) {
+      console.error('Failed to initiate onboarding', error);
+    }
   };
 
   if (loading) {

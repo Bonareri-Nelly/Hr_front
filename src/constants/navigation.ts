@@ -5,11 +5,13 @@ export const navigationItems: NavigationItem[] = [
   { id: "executive-dashboard", label: "Executive Dashboard", path: "/dashboard/executive", section: "Executive", icon: "LayoutDashboard" },
   { id: "reports-analytics", label: "Reports & Analytics", path: "/reports-analytics", section: "Executive", icon: "BarChart3" },
   { id: "ai-assistant", label: "AI Assistant", path: "/ai-assistant", section: "Executive", icon: "Sparkles" },
-  { id: "security-audit", label: "Security & Audit", path: "/security-audit", section: "Executive", icon: "ShieldCheck" },
-  { id: "user-profile", label: "User Profile", path: "/user-profile", section: "Executive", icon: "UserRound" },
+  { id: "user-profile", label: "User Profile", path: "/user-profile", section: "Account", icon: "UserRound" },
+  { id: "security-audit", label: "Security & Audit", path: "/security-audit", section: "Administration", icon: "ShieldCheck" },
+  { id: "system-settings", label: "System Settings", path: "/system/settings", section: "Administration", icon: "Settings" },
 
   // HR Operations Section
   { id: "hr-dashboard", label: "HR Dashboard", path: "/dashboard/hr", section: "HR Operations", icon: "Users" },
+  { id: "candidate-applications", label: "Candidate Applications", path: "/recruitment/applications", section: "HR Operations", icon: "Users" },
   { id: "department-dashboard", label: "Department Dashboard", path: "/dashboard/department", section: "HR Operations", icon: "Building2" },
   { id: "employee-lifecycle", label: "Employee Lifecycle", path: "/employees/lifecycle", section: "HR Operations", icon: "UserCheck" },
   { id: "contract-management", label: "Contract Management", path: "/contracts", section: "HR Operations", icon: "FileCheck2" },
@@ -26,7 +28,7 @@ export const navigationItems: NavigationItem[] = [
 
   // Branch Section
   { id: "branch-dashboard", label: "Branch Dashboard", path: "/dashboard/branch", section: "Branch", icon: "Building2" },
-  { id: "branch-reports", label: "Branch Reports", path: "/branch-reports", section: "Branch", icon: "BarChart3" },  // 👈 NEW
+  { id: "branch-reports", label: "Branch Reports", path: "/branch-reports", section: "Branch", icon: "BarChart3" },
 
   // Payroll Section
   { id: "payroll", label: "Payroll", path: "/payroll", section: "Payroll", icon: "WalletCards" },

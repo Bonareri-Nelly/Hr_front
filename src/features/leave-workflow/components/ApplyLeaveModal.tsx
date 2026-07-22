@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { employeeApi } from "../../../services/api/employee";
 import { leavePolicies } from "../constants/leavePolicies";
-import { mockEmployees } from "../data/mockEmployees";
 import { calculateEndDate } from "../utils/dateCalculator";
 import { getMinimumStartDate } from "../utils/leaveDates";
 
@@ -33,6 +33,7 @@ export default function ApplyLeaveModal({
   const [coveringQuery, setCoveringQuery] = useState("");
   const [step, setStep] = useState<"form" | "summary" | "success">("form");
   const [errors, setErrors] = useState({ leaveType: "", reason: "", startDate: "", endDate: "" });
+  const [coveringEmployees, setCoveringEmployees] = useState<Array<{ id: string; name: string; department: string }>>([]);
 
   const policy = leaveType ? leavePolicies[leaveType as keyof typeof leavePolicies] : null;
   const availableLeaveTypes = useMemo(
@@ -43,13 +44,28 @@ export default function ApplyLeaveModal({
     ),
     [employeeGender]
   );
-  const coveringEmployees = useMemo(() => {
-    const query = coveringQuery.trim().toLowerCase();
-    return mockEmployees.filter((employee) =>
-      !query || `${employee.name} ${employee.department}`.toLowerCase().includes(query)
-    );
+  useEffect(() => {
+    employeeApi.list()
+      .then((employees) => {
+        const mapped = (employees as Array<Record<string, unknown>>)
+          .filter((employee) => employee.is_active !== false)
+          .map((employee) => ({
+            id: String(employee.id ?? ''),
+            name: [employee.first_name, employee.last_name].filter(Boolean).join(' ') || 'Employee',
+            department: String(employee.department ?? 'Operations'),
+          }));
+
+        const query = coveringQuery.trim().toLowerCase();
+        const filtered = !query
+          ? mapped
+          : mapped.filter((employee) => `${employee.name} ${employee.department}`.toLowerCase().includes(query));
+
+        setCoveringEmployees(filtered);
+      })
+      .catch(() => setCoveringEmployees([]));
   }, [coveringQuery]);
-  const selectedCoveringEmployee = mockEmployees.find((employee) => employee.id === coveringEmployeeId);
+
+  const selectedCoveringEmployee = coveringEmployees.find((employee) => employee.id === coveringEmployeeId);
   const minimumStartDate = policy ? getMinimumStartDate(policy.noticeDays) : "";
   const totalDays = useMemo(() => {
     if (!startDate || !endDate) return "--";

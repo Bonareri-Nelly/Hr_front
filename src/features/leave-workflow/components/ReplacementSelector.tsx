@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { mockEmployees } from "../data/mockEmployees";
+import { useEffect, useMemo, useState } from "react";
+import { employeeApi } from "../../../services/api/employee";
 
 type ReplacementSelectorProps = {
   applierDepartment: string;
@@ -13,13 +13,29 @@ export default function ReplacementSelector({
   onSelect,
 }: ReplacementSelectorProps) {
   const [query, setQuery] = useState("");
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string; department: string }>>([]);
+
+  useEffect(() => {
+    employeeApi.list()
+      .then((response) => {
+        const mapped = (response as Array<Record<string, unknown>>)
+          .filter((employee) => employee.is_active !== false)
+          .map((employee) => ({
+            id: String(employee.id ?? ''),
+            name: [employee.first_name, employee.last_name].filter(Boolean).join(' ') || 'Employee',
+            department: String(employee.department ?? 'Operations'),
+          }));
+        setEmployees(mapped);
+      })
+      .catch(() => setEmployees([]));
+  }, []);
 
   const employeesInDept = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return mockEmployees
+    return employees
       .filter((e) => e.department === applierDepartment)
       .filter((e) => (q ? `${e.name}`.toLowerCase().includes(q) : true));
-  }, [applierDepartment, query]);
+  }, [applierDepartment, employees, query]);
 
   return (
     <div style={{ display: "grid", gap: 10 }}>

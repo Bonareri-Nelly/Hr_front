@@ -1,7 +1,9 @@
 const USER_PROFILE_REFERENCE_TIME = new Date("2026-04-01T12:00:00").getTime();
 
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { authApi } from "@/services/api/auth";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -117,23 +119,33 @@ interface ProfileData {
 }
 
 export default function UserProfilePage() {
+  const queryClient = useQueryClient();
+  const currentUser = useQuery({ queryKey: ["auth", "me"], queryFn: authApi.me });
+  const updateProfile = useMutation({
+    mutationFn: authApi.updateProfile,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["auth", "me"] }),
+  });
   // State Management
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "security" | "documents" | "activity">("profile");
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [showTwoFactor, setShowTwoFactor] = useState(true);
   const [notifications, setNotifications] = useState(true);
-  const [profileData, setProfileData] = useState<ProfileData>({
-    name: "Angela Njeri",
-    email: "angela.njeri@nexus.co.ke",
-    phone: "+254 711 240 816",
-    location: "Nairobi HQ",
-    department: "HR Operations",
-    role: "Payroll Admin",
-    manager: "David Kamau",
-    startDate: "2024-01-04",
-    bio: "Payroll Admin, HR Operations. Responsible for payroll execution, employee records, compliance review, and branch approval support across Nairobi HQ.",
-  });
+  const [profileData, setProfileData] = useState<ProfileData>({ name: "", email: "", phone: "", location: "", department: "", role: "", manager: "", startDate: "", bio: "" });
+  const apiProfile = currentUser.data;
+  const getRoleName = (role: unknown) => {
+    if (!role) return "";
+    if (typeof role === "string") return role;
+    if (typeof role === "object" && "name" in role) return String((role as { name?: string }).name ?? "");
+    return "";
+  };
+  const effectiveProfile = apiProfile ? {
+    ...profileData,
+    name: apiProfile.username,
+    email: apiProfile.email ?? "",
+    phone: apiProfile.phone_number ?? "",
+    role: getRoleName(apiProfile.role),
+  } : profileData;
 
   // Sample Data
   const permissions: Permission[] = [
@@ -338,9 +350,18 @@ export default function UserProfilePage() {
   };
 
   // Event Handlers
-  const handleSaveProfile = (): void => {
-    setIsEditing(false);
-    alert("Profile updated successfully!");
+  const handleSaveProfile = async (): Promise<void> => {
+    try {
+      await updateProfile.mutateAsync({ email: profileData.email || undefined, phone_number: profileData.phone || undefined });
+      setIsEditing(false);
+    } catch {
+      // The inline error below keeps the page usable without changing its layout.
+    }
+  };
+
+  const beginEditing = () => {
+    setProfileData(effectiveProfile);
+    setIsEditing(true);
   };
 
   const handleInputChange = (field: keyof ProfileData, value: string): void => {
@@ -363,6 +384,9 @@ export default function UserProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
       <div className="max-w-7xl mx-auto">
+        {currentUser.isLoading && <p className="mb-4 text-sm text-slate-500">Loading your profile…</p>}
+        {currentUser.isError && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">Unable to load your profile. Please sign in again and retry.</p>}
+        {updateProfile.isError && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{updateProfile.error.message}</p>}
         {/* Header Section */}
         <div className="mb-6">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -390,7 +414,7 @@ export default function UserProfilePage() {
                         className="border border-slate-200 rounded-lg px-3 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                       />
                     ) : (
-                      profileData.name
+                      effectiveProfile.name
                     )}
                   </h1>
                   <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-medium flex items-center gap-1">
@@ -407,7 +431,7 @@ export default function UserProfilePage() {
                       className="border border-slate-200 rounded-lg px-3 py-1 w-full focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                     />
                   ) : (
-                    profileData.bio
+                    effectiveProfile.bio || "No profile description provided."
                   )}
                 </p>
                 <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500">
@@ -421,7 +445,7 @@ export default function UserProfilePage() {
                         className="border border-slate-200 rounded-lg px-2 py-0.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                       />
                     ) : (
-                      profileData.email
+                      effectiveProfile.email
                     )}
                   </span>
                   <span className="flex items-center gap-1">
@@ -434,7 +458,7 @@ export default function UserProfilePage() {
                         className="border border-slate-200 rounded-lg px-2 py-0.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                       />
                     ) : (
-                      profileData.phone
+                      effectiveProfile.phone || "Not provided"
                     )}
                   </span>
                   <span className="flex items-center gap-1">
@@ -447,7 +471,7 @@ export default function UserProfilePage() {
                         className="border border-slate-200 rounded-lg px-2 py-0.5 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                       />
                     ) : (
-                      profileData.location
+                      effectiveProfile.location || "Not provided"
                     )}
                   </span>
                 </div>
@@ -470,13 +494,13 @@ export default function UserProfilePage() {
                     className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200"
                   >
                     <Save className="w-4 h-4" />
-                    Save Changes
+                    {updateProfile.isPending ? "Saving…" : "Save Changes"}
                   </button>
                 </>
               ) : (
                 <>
                   <button
-                    onClick={() => setIsEditing(true)}
+                    onClick={beginEditing}
                     className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
                   >
                     <Edit className="w-4 h-4" />
@@ -604,14 +628,14 @@ export default function UserProfilePage() {
                         {isEditing ? (
                           <input
                             type={item.type || "text"}
-                            value={profileData[item.field]}
+                            value={effectiveProfile[item.field]}
                             onChange={(e) => handleInputChange(item.field, e.target.value)}
                             className="border border-slate-200 rounded-lg px-2 py-1 w-full focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
                           />
                         ) : item.field === "startDate" ? (
-                          formatDate(profileData[item.field])
+                          formatDate(effectiveProfile[item.field])
                         ) : (
-                          profileData[item.field]
+                          effectiveProfile[item.field] || "Not provided"
                         )}
                       </p>
                     </div>

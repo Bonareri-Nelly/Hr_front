@@ -21,6 +21,7 @@ import {
   LayoutDashboard,
   MessageCircleQuestion,
   Scale,
+  Settings,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -32,8 +33,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import { navigationSections } from "../../constants/navigation";
-import { canViewModule } from "../../services/permissions";
+import { getAllowedNavigationSections } from "../../services/permissions";
+import LogoutButton from "./LogoutButton";
 
 const iconMap: Record<string, LucideIcon> = {
   BadgeDollarSign,
@@ -58,6 +59,7 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutDashboard,
   MessageCircleQuestion,
   Scale,
+  Settings,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -67,8 +69,10 @@ const iconMap: Record<string, LucideIcon> = {
   Users,
   WalletCards,
 };
-import { moduleSections } from "../../features/moduleRoutes";
+
 export default function Sidebar() {
+  const allowedSections = getAllowedNavigationSections();
+
   return (
     <nav className="sidebar" aria-label="Primary navigation">
       <div className="sidebar-brand">
@@ -80,11 +84,11 @@ export default function Sidebar() {
       </div>
 
       <div className="sidebar-sections">
-        {navigationSections.map((section) => (
+        {allowedSections.map((section) => (
           <section className="nav-section" key={section.label}>
             <div className="nav-section-label">{section.label}</div>
             <div className="nav-links">
-              {section.items.filter((item) => canViewModule(item.id)).map((item) => {
+              {section.items.map((item) => {
                 const Icon = iconMap[item.icon] ?? LayoutDashboard;
 
                 return (
@@ -101,6 +105,10 @@ export default function Sidebar() {
             </div>
           </section>
         ))}
+      </div>
+
+      <div className="sidebar-footer">
+        <LogoutButton />
       </div>
     </nav>
   );
