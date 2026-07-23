@@ -1,4 +1,7 @@
-import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
+// Compatibility module: older features import this path. Keep all requests on
+// the shared authenticated client defined in api.ts.
+export { default } from "./api";
+/*
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api/",
@@ -62,3 +65,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+*/

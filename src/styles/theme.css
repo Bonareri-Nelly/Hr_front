@@ -615,11 +615,11 @@ a {
   background-color: var(--navy-deepest) !important;
 }
 
-.reports-analytics-page :is(.hover\\:bg-blue-100:hover, .hover\\:bg-blue-400:hover) {
+.reports-analytics-page :is(.hover\:bg-blue-100:hover, .hover\:bg-blue-400:hover) {
   background-color: var(--gold-light) !important;
 }
 
-.reports-analytics-page :is(.hover\\:text-blue-800:hover, .focus\\:border-blue-700:focus) {
+.reports-analytics-page :is(.hover\:text-blue-800:hover, .focus\:border-blue-700:focus) {
   color: var(--bronze) !important;
   border-color: var(--bronze) !important;
 }

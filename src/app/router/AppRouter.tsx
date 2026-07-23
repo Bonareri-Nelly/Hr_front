@@ -1,7 +1,7 @@
 // src/app/router/AppRouter.tsx
 import { Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import DashboardLayout from "../../layouts/dashboardLayout";
+import DashboardLayout from "../../layouts/DashboardLayout";
 import Login from "../../pages/login";
 import { canViewModule, getDefaultRouteForRole, hasActiveSession } from "../../services/permissions";
 import { appRoutes, type AppRoute } from "./routes";
