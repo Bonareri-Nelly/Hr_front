@@ -1402,10 +1402,12 @@ function DashboardTab({ employeePerformance, cycles, role }: any) {
     return { name: c.name, rate: Math.round((completed / c.employeeStatus.length) * 100) };
   });
 
-  const departments = ['Engineering', 'Finance', 'HR', 'Sales', 'Operations', 'Customer Support'];
-  const deptCompletionRates = departments.map(dept => ({
-    name: dept,
-    rate: Math.round(50 + Math.random() * 45),
+  const deptCompletionRates = Object.values(employees.reduce((groups: Record<string, EmployeePerformance[]>, employee) => {
+    (groups[employee.department || 'Unassigned'] ||= []).push(employee);
+    return groups;
+  }, {})).map((group) => ({
+    name: group[0].department || 'Unassigned',
+    rate: group.length ? Math.round((group.filter(employee => employee.currentCycleStatus === 'completed').length / group.length) * 100) : 0,
   }));
 
   return (
