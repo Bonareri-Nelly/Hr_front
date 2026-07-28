@@ -1,5 +1,5 @@
 // src/features/offboarding/components/ChecklistView.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -19,6 +19,7 @@ import {
   MessageSquare
 } from 'lucide-react';
 import type { ChecklistItem } from '../types';
+import { apiClient } from '@/services/api/client';
 
 interface ChecklistViewProps {
   caseId: string;
@@ -72,8 +73,15 @@ const mockChecklist: ChecklistItem[] = [
   // Add more checklist items...
 ];
 
-export const ChecklistView: React.FC<ChecklistViewProps> = () => {
-  const [items, setItems] = useState<ChecklistItem[]>(mockChecklist);
+export const ChecklistView: React.FC<ChecklistViewProps> = ({ caseId }) => {
+  const [items, setItems] = useState<ChecklistItem[]>([]);
+
+  useEffect(() => {
+    apiClient.get('/hr-operations/offboarding-checklist-items/', { params: { case: caseId } }).then((response) => {
+      const records = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      setItems(records.map((item: any) => ({ id: String(item.id), caseId: String(item.case), category: item.category, item: item.item, description: item.description, status: String(item.status || 'PENDING').toLowerCase().replace(/_/g, '-'), owner: String(item.owner || ''), ownerName: item.owner_name || '', ownerRole: 'hr-admin', dueDate: item.due_date, completedDate: item.completed_date, notes: item.notes, required: item.required, order: item.order })));
+    }).catch(() => setItems([]));
+  }, [caseId]);
 
   const getCategoryIcon = (category: string) => {
     const icons = {
@@ -122,10 +130,15 @@ export const ChecklistView: React.FC<ChecklistViewProps> = () => {
             'waived': 'pending',
           };
           const nextStatus = statusMap[item.status as keyof typeof statusMap] ?? 'pending';
+          const completedDate = nextStatus === 'completed' ? new Date().toISOString().slice(0, 10) : null;
+          apiClient.patch(`/hr-operations/offboarding-checklist-items/${itemId}/`, {
+            status: nextStatus.replace(/-/g, '_').toUpperCase(),
+            completed_date: completedDate,
+          }).catch(() => undefined);
           return {
             ...item,
             status: nextStatus as ChecklistItem['status'],
-            completedDate: nextStatus === 'completed' ? new Date().toISOString() : undefined,
+            completedDate: completedDate || undefined,
           };
         }
         return item;

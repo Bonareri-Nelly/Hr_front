@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { VerificationError, BankFileHistoryItem, BankPaymentPreview } from '..//types/bankIntegration';
+import { apiClient } from '@/services/api/client';
 
 export default function BankIntegration() {
   // CONFIGURABLE SETTING: Branch Consolidation Scope State Switcher
@@ -7,30 +8,40 @@ export default function BankIntegration() {
   const [selectedBranch, setSelectedBranch] = useState<string>('Nairobi HQ');
 
   // INTERACTIVE WORKFLOW STATES
-  const [selectedBatch] = useState<string>('PR-2026-06-C');
-  const [isBatchApproved] = useState<boolean>(true);
+  const [selectedBatch, setSelectedBatch] = useState<string>('');
+  const [isBatchApproved, setIsBatchApproved] = useState<boolean>(false);
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
   const [feedbackType, setFeedbackType] = useState<'success' | 'error' | 'warning'>('success');
 
-  // pre-disbursement verification error log dataset
-  const verificationErrors: VerificationError[] = [
-    { employeeId: "NX-001420", name: "David Ochieng", issue: "missing account" },
-    { employeeId: "NX-001551", name: "Mercy Cherop", issue: "invalid length" }
-  ];
+  const [verificationErrors, setVerificationErrors] = useState<VerificationError[]>([]);
 
   // Bank file generation item preview payload matrix
-  const paymentPreviews: BankPaymentPreview[] = [
+  const legacyPaymentPreviews: BankPaymentPreview[] = [
     { employeeName: "Nancy Karanja", maskedAccount: "••••••••4821", bankName: "Equity Bank", amount: 185005, reference: "PAY-NX001247" },
     { employeeName: "Lilian Wambui", maskedAccount: "••••••••9941", bankName: "KCB Bank", amount: 142300, reference: "PAY-NX001550" },
     { employeeName: "Brian Omondi", maskedAccount: "••••••••1102", bankName: "NCBA Bank", amount: 165450, reference: "PAY-NX001391" }
   ];
 
   // Historical file registry database rows tracking audit logs
-  const [historyLog, setHistoryLog] = useState<BankFileHistoryItem[]>([
+  const [legacyHistoryLog, setLegacyHistoryLog] = useState<BankFileHistoryItem[]>([
     { id: "BF-062", batchRef: "PR-2026-06-01", dateGenerated: "01 Jul 2026, 09:12 AM", generatedBy: "Finance Admin (James M.)", totalAmount: 84650200, status: "confirmed", discrepancy: false },
     { id: "BF-063", batchRef: "PR-2026-06-02", dateGenerated: "01 Jul 2026, 11:34 AM", generatedBy: "Finance Admin (James M.)", totalAmount: 57954800, status: "sent", discrepancy: false },
     { id: "BF-064", batchRef: "PR-2026-06-C", dateGenerated: "Today, 08:15 AM", generatedBy: "Finance Admin (James M.)", totalAmount: 142605000, status: "pending", discrepancy: true }
   ]);
+  const [paymentPreviews, setPaymentPreviews] = useState<BankPaymentPreview[]>([]);
+  const [historyLog, setHistoryLog] = useState<BankFileHistoryItem[]>([]);
+
+  useEffect(() => {
+    apiClient.get('/payroll/bank-payments/').then((response) => {
+      const payments = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      const batch = String(payments[0]?.payroll_run ?? '');
+      setSelectedBatch(batch); setIsBatchApproved(Boolean(batch));
+      setPaymentPreviews(payments.filter((payment: any) => String(payment.payroll_run) === batch).map((payment: any) => ({ employeeName: payment.employee_name || `Employee #${payment.employee}`, maskedAccount: payment.account_number ? `••••${String(payment.account_number).slice(-4)}` : 'Unavailable', bankName: payment.bank_name || 'Unassigned', amount: Number(payment.amount || 0), reference: `PAY-${payment.employee_number || payment.employee}` })));
+      setVerificationErrors(payments.filter((payment: any) => !payment.bank_name || !payment.account_number || String(payment.account_number).length < 6).map((payment: any) => ({ employeeId: payment.employee_number || String(payment.employee), name: payment.employee_name || `Employee #${payment.employee}`, issue: !payment.account_number ? 'missing account' : !payment.bank_name ? 'missing bank' : 'invalid length' })));
+      const byRun = new Map<string, any[]>(); payments.forEach((payment: any) => { const key = String(payment.payroll_run); byRun.set(key, [...(byRun.get(key) || []), payment]); });
+      setHistoryLog([...byRun.entries()].map(([run, items]) => ({ id: `BF-${run}`, batchRef: run, dateGenerated: items[0]?.created_at || '', generatedBy: 'System', totalAmount: items.reduce((total, item) => total + Number(item.amount || 0), 0), status: items.some((item) => item.status === 'FAILED') ? 'failed' : items.every((item) => item.status === 'PAID') ? 'confirmed' : items.some((item) => item.status === 'PROCESSING') ? 'sent' : 'pending', discrepancy: items.some((item) => item.status === 'FAILED') })));
+    }).catch(() => { setFeedbackType('error'); setFeedbackMsg('Unable to load bank payment data.'); });
+  }, []);
 
   // Handler 1: Mock decoupled file exporter conversion service layer
   const handleExportCSV = () => {

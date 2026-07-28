@@ -1,39 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { MyPerformanceData } from '../types/performance';
+import { apiClient } from '@/services/api/client';
 
 export default function MyPerformance() {
-  // Comprehensive mock data block matching the weighted scoring model and feature requirements
-  const performanceData: MyPerformanceData = {
-    overallScore: 4.2,
-    maxOverallScore: 5.0,
-    ratingBand: "Exceeds Expectations",
-    trend: "improved",
-    daysRemaining: 5,
-    nextReviewDate: "8 Jul 2026",
-    breakdown: [
-      { label: "Goal Achievement", weight: 40, score: 4.5, maxScore: 5.0, summary: "Strong execution across core features." },
-      { label: "Competency Rating", weight: 30, score: 4.0, maxScore: 5.0, summary: "Solid leadership and code quality skills." },
-      { label: "Attendance History", weight: 15, score: 4.9, maxScore: 5.0, summary: "Excellent presence consistency this month." },
-      { label: "Manager Feedback", weight: 15, score: 3.8, maxScore: 5.0, summary: "Constructive collaboration metrics registered." }
-    ],
-    goals: [
-      { id: "G-101", title: "Ship authentication module integration paths", progress: 100, status: "completed" },
-      { id: "G-102", title: "Mentor two internal junior frontend engineers", progress: 65, status: "in progress" },
-      { id: "G-103", title: "Reduce total production deploy layout time by 20%", progress: 40, status: "at risk" }
-    ],
-    competencies: [
-      { name: "Technical Communication", rating: 4.5, managerComment: "Articulates architecture changes clearly to Python teams.", suggestedTraining: "Advanced System Design Docs" },
-      { name: "Team Alignment & Synergy", rating: 4.0, managerComment: "Always supportive during blocker resolution sessions.", suggestedTraining: "Collaborative Git Workflows" },
-      { name: "Problem Solving Velocity", rating: 3.5, managerComment: "Good delivery, focus on narrowing debugging loops.", suggestedTraining: "Chrome DevTools Optimization Mastery" }
-    ],
-    managerFeedback: "Excellent technical depth, actively supports team growth. Highly dependable during the June payroll release cycle.",
-    incrementEligible: true,
-    history: [
-      { cycle: "Jun 2025 cycle", score: 3.8, milestone: "Joined Nairobi HQ" },
-      { cycle: "Dec 2025 cycle", score: 4.0, milestone: "Promoted to Senior" },
-      { cycle: "Jun 2026 cycle", score: 4.2, milestone: "Annual Review Window Open" }
-    ]
-  };
+  const [performanceData, setPerformanceData] = useState<MyPerformanceData>({ overallScore: 0, maxOverallScore: 5, ratingBand: 'Not yet rated', trend: 'steady', daysRemaining: 0, nextReviewDate: 'Not scheduled', breakdown: [], goals: [], competencies: [], managerFeedback: '', incrementEligible: false, history: [] });
+  useEffect(() => { apiClient.get<MyPerformanceData>('/performance/my-summary/').then((response) => setPerformanceData(response.data)).catch(() => undefined); }, []);
 
   // State Management for Interactive/Unique Features
   const [activeExpandedComponent, setActiveExpandedComponent] = useState<string | null>(null);

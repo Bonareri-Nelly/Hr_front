@@ -1,5 +1,5 @@
 // src/features/offboarding/components/OffboardingCaseDetails.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -21,13 +21,14 @@ import { AssetsView } from './AssetsView';
 import { FinalSettlementView } from './FinalSettlementView';
 import { ExitInterviewView } from './ExitInterview';
 import type { OffboardingCase } from '../types';
+import { offboardingService } from '../services/offboarding.service';
 
 interface OffboardingCaseDetailsProps {
   caseId: string;
   onClose: () => void;
 }
 
-// Mock data - replace with actual API call
+/* Legacy fixture retained as a comment only; details load from the API.
 const mockCase: OffboardingCase = {
   id: 'off-001',
   employeeId: 'emp-001',
@@ -57,12 +58,18 @@ const mockCase: OffboardingCase = {
   daysUntilLastDay: 14,
   notes: 'Employee has been with company for 3 years. Good performance record.'
 };
+*/
 
 export const OffboardingCaseDetails: React.FC<OffboardingCaseDetailsProps> = ({
   caseId,
 }) => {
-  const [caseData] = useState<OffboardingCase>(mockCase);
+  const [caseData, setCaseData] = useState<OffboardingCase | null>(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    offboardingService.getCases().then((cases) => setCaseData(cases.find((item) => item.id === caseId) || null)).finally(() => setLoading(false));
+  }, [caseId]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -73,6 +80,9 @@ export const OffboardingCaseDetails: React.FC<OffboardingCaseDetailsProps> = ({
     };
     return styles[status as keyof typeof styles] || styles.pending;
   };
+
+  if (loading) return <div className="p-6 text-sm text-gray-400">Loading offboarding case…</div>;
+  if (!caseData) return <div className="p-6 text-sm text-gray-400">Offboarding case not found.</div>;
 
   return (
     <div className="space-y-6">

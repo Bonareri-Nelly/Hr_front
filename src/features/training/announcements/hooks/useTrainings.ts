@@ -3,7 +3,7 @@
 // ==========================================
 
 import { useState, useCallback, useEffect } from 'react';
-import { CURRENT_USER, MOCK_EMPLOYEES } from '../constants';
+import { CURRENT_USER } from '../constants';
 import { Training, TrainingFormData, TrainingStatus } from '../types';
 import { apiClient } from '@/services/api/client';
 
@@ -11,6 +11,7 @@ export const useTrainings = () => {
   const [trainings, setTrainings] = useState<Training[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Array<{ id: string; name: string; branch: string; department: string }>>([]);
 
   const mapTraining = (item: any): Training => ({ id: String(item.id), title: item.title, description: item.description || '', category: 'general', delivery: item.location ? 'in_person' : 'online', dateTime: item.start_date || null, location: item.location || null, capacity: null, mandatory: Boolean(item.is_mandatory), audience: { type: 'company', targets: [] }, deadline: item.end_date || null, status: Object.fromEntries((item.enrollments || []).map((enrollment: any) => [String(enrollment.employee), enrollment.status === 'ATTENDED' ? 'completed' : 'not_started'])) });
 
@@ -19,6 +20,13 @@ export const useTrainings = () => {
       const items = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
       setTrainings(items.map(mapTraining)); setError(null);
     }).catch(() => setError('Failed to load trainings')).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    apiClient.get('/employees/').then((response) => {
+      const records = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      setEmployees(records.map((employee: any) => ({ id: String(employee.id), name: employee.full_name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim(), branch: employee.branch_name || '', department: employee.department_name || '' })));
+    }).catch(() => setEmployees([]));
   }, []);
 
   // Get trainings visible to current user
@@ -82,7 +90,7 @@ export const useTrainings = () => {
 
   // Get compliance data
   const getComplianceData = useCallback(() => {
-    return MOCK_EMPLOYEES.map(emp => {
+    return employees.map(emp => {
       const assignedTrainings = trainings.filter(t => {
         const type = t.audience.type;
         if (type === 'company') return true;
@@ -111,7 +119,7 @@ export const useTrainings = () => {
         percentage
       };
     });
-  }, [trainings]);
+  }, [employees, trainings]);
 
   return {
     trainings,

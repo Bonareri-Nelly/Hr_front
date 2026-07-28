@@ -1,5 +1,6 @@
 import type { DisciplinaryCase } from "../types";
-import { mockCases } from "../data/mockCases";
+import { useQuery } from "@tanstack/react-query";
+import { resources } from "../../../services/api/resources";
 import StatusBadge from "./StatusBadge";
 import PriorityBadge from "./PriorityBadge";
 import { Eye } from "lucide-react";
@@ -9,6 +10,14 @@ interface CasesTableProps {
 }
 
 const CasesTable = ({ onSelectCase }: CasesTableProps) => {
+    const cases = useQuery({ queryKey: ["disciplinary-cases-table"], queryFn: () => resources.disciplinaryCases.list() });
+    const records = (cases.data ?? []).map((item: any): DisciplinaryCase => ({
+        id: String(item.id), complaintId: String(item.id), incidentId: String(item.id), employee: item.employee_name || `Employee #${item.employee}`,
+        department: "—", complaint: item.description || "—", priority: item.severity === "MINOR" ? "Minor" : "Major",
+        status: ({ OPEN: "Pending Review", UNDER_INVESTIGATION: "Pending Review", HEARING_SCHEDULED: "Hearing Scheduled", RESOLVED: "Decision Issued", APPEALED: "Appealed", CLOSED: "Closed" } as Record<string, DisciplinaryCase["status"]>)[item.status] || "Pending Review",
+        nextAction: item.status === "HEARING_SCHEDULED" ? "Conduct Hearing" : item.status === "CLOSED" ? "Case Closed" : "Schedule Hearing",
+        assignedTo: "HR", hearing: item.hearing_date ? { date: item.hearing_date, time: "", venue: "", platform: "Physical", status: "Scheduled", notes: "", rescheduleHistory: [] } : undefined,
+    }));
     return (
         <div
             className="overflow-hidden rounded-xl border"
@@ -64,7 +73,7 @@ const CasesTable = ({ onSelectCase }: CasesTableProps) => {
                     </thead>
 
                     <tbody>
-                        {mockCases.map((item) => (
+                        {records.map((item) => (
                             <tr
                                 key={item.id}
                                 onClick={() => onSelectCase(item)}

@@ -1,5 +1,5 @@
 // src/features/offboarding/components/ExitInterviewView.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -26,6 +26,7 @@ import {
   Send,
 } from 'lucide-react';
 import type { ExitInterview } from '../types';
+import { apiClient } from '@/services/api/client';
 
 interface ExitInterviewViewProps {
   caseId: string;
@@ -64,10 +65,20 @@ const mockInterview: ExitInterview = {
   isConfidential: true
 };
 
-export const ExitInterviewView: React.FC<ExitInterviewViewProps> = () => {
+export const ExitInterviewView: React.FC<ExitInterviewViewProps> = ({ caseId }) => {
   const [interview, setInterview] = useState<ExitInterview>(mockInterview);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(interview);
+
+  useEffect(() => {
+    apiClient.get('/hr-operations/offboarding-exit-interviews/', { params: { case: caseId } }).then((response) => {
+      const records = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      const item = records[0];
+      if (!item) return;
+      const value: ExitInterview = { id: String(item.id), caseId: String(item.case), employeeId: '', primaryReason: item.primary_reason || '', feedback: item.feedback || [], overallRating: item.overall_rating || 0, wouldRecommend: item.would_recommend || 'maybe', additionalComments: item.additional_comments || '', submittedBy: 'hr-admin', submittedDate: item.submitted_at || '', isConfidential: item.is_confidential };
+      setInterview(value); setFormData(value);
+    }).catch(() => undefined);
+  }, [caseId]);
 
   const getRatingStars = (rating: number) => {
     return (
@@ -98,6 +109,7 @@ export const ExitInterviewView: React.FC<ExitInterviewViewProps> = () => {
   };
 
   const handleSubmit = () => {
+    apiClient.patch(`/hr-operations/offboarding-exit-interviews/${interview.id}/`, { primary_reason: formData.primaryReason, feedback: formData.feedback, overall_rating: formData.overallRating, would_recommend: formData.wouldRecommend, additional_comments: formData.additionalComments, is_confidential: formData.isConfidential }).catch(() => undefined);
     setInterview(formData);
     setIsEditing(false);
   };

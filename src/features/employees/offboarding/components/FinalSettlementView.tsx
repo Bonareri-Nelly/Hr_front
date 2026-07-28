@@ -1,5 +1,5 @@
 // src/features/offboarding/components/FinalSettlementView.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -16,6 +16,7 @@ import {
   Calculator,
 } from 'lucide-react';
 import type { FinalSettlement } from '../types';
+import { apiClient } from '@/services/api/client';
 
 interface FinalSettlementViewProps {
   caseId: string;
@@ -46,10 +47,22 @@ const mockSettlement: FinalSettlement = {
   updatedAt: '2024-12-01',
 };
 
-export const FinalSettlementView: React.FC<FinalSettlementViewProps> = () => {
+export const FinalSettlementView: React.FC<FinalSettlementViewProps> = ({ caseId }) => {
   const [settlement, setSettlement] = useState<FinalSettlement>(mockSettlement);
   const [isEditing, setIsEditing] = useState(false);
   const [editedSettlement, setEditedSettlement] = useState(settlement);
+
+  useEffect(() => {
+    apiClient.get('/hr-operations/offboarding-final-settlements/', { params: { case: caseId } }).then((response) => {
+      const records = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      const item = records[0];
+      if (!item) return;
+      const earnings = Number(item.pro_rated_salary || 0) + Number(item.leave_encashment || 0) + Number(item.pending_reimbursements || 0) + Number(item.other_earnings || 0);
+      const deductions = Number(item.loan_deductions || 0) + Number(item.asset_non_return_deduction || 0) + Number(item.other_deductions || 0);
+      const value: FinalSettlement = { id: String(item.id), caseId: String(item.case), employeeId: '', proRatedSalary: Number(item.pro_rated_salary || 0), leaveEncashment: Number(item.leave_encashment || 0), pendingReimbursements: Number(item.pending_reimbursements || 0), otherEarnings: Number(item.other_earnings || 0), totalEarnings: earnings, loanDeductions: Number(item.loan_deductions || 0), assetNonReturnDeduction: Number(item.asset_non_return_deduction || 0), noticePeriodShortfall: 0, otherDeductions: Number(item.other_deductions || 0), totalDeductions: deductions, netPay: earnings - deductions, finalPAYE: 0, finalNSSF: 0, finalNHIF: 0, finalHousingLevy: 0, status: String(item.status || 'DRAFT').toLowerCase().replace(/_/g, '-') as FinalSettlement['status'], notes: item.notes || '', createdAt: '', updatedAt: '' };
+      setSettlement(value); setEditedSettlement(value);
+    }).catch(() => undefined);
+  }, [caseId]);
 
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -70,6 +83,7 @@ export const FinalSettlementView: React.FC<FinalSettlementViewProps> = () => {
   };
 
   const handleSaveSettlement = () => {
+    apiClient.patch(`/hr-operations/offboarding-final-settlements/${settlement.id}/`, { pro_rated_salary: editedSettlement.proRatedSalary, leave_encashment: editedSettlement.leaveEncashment, pending_reimbursements: editedSettlement.pendingReimbursements, other_earnings: editedSettlement.otherEarnings, loan_deductions: editedSettlement.loanDeductions, asset_non_return_deduction: editedSettlement.assetNonReturnDeduction, other_deductions: editedSettlement.otherDeductions, status: editedSettlement.status.replace(/-/g, '_').toUpperCase(), notes: editedSettlement.notes || '' }).catch(() => undefined);
     setSettlement(editedSettlement);
     setIsEditing(false);
   };

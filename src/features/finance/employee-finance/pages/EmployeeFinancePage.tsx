@@ -1,5 +1,35 @@
 import React, { useState } from 'react';
 import type { FullFinancialProfile, BankDisbursementRecord } from '../types/employeeFinance';
+import { apiClient } from '@/services/api/client';
+
+const toFinancialProfile = (employee: any, financial: any, history: any[]): FullFinancialProfile => ({
+  summary: {
+    name: financial.full_name || employee.full_name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim(),
+    id: financial.employee_number || employee.employee_number,
+    branch: employee.branch_name || employee.branch?.name || 'Unassigned',
+    department: employee.department_name || employee.department?.name || 'Unassigned',
+    grade: employee.job_grade || 'Not assigned',
+    status: employee.employment_status || 'Unknown',
+    grossSalary: Number(financial.gross_salary || 0),
+  },
+  breakdown: {
+    basic: Number(financial.basic_salary || 0),
+    allowances: [
+      ['Housing allowance', financial.house_allowance], ['Transport allowance', financial.transport_allowance],
+      ['Medical allowance', financial.medical_allowance], ['Other allowance', financial.other_allowance],
+    ].filter(([, value]) => Number(value) > 0).map(([label, value]) => ({ label: String(label), value: Number(value) })),
+    deductions: [],
+  },
+  identifiers: {
+    taxPin: financial.tax_pin || '', nssf: financial.social_security_number || '',
+    shif: financial.health_insurance_number || '',
+    isComplete: Boolean(financial.tax_pin && financial.social_security_number && financial.health_insurance_number),
+  },
+  bankDetails: { bankName: financial.bank_name || '', accountNumber: financial.bank_account_number || '', branchCode: financial.bank_branch || '' },
+  history: history.map((entry: any) => ({ date: entry.effective_date, previous: Number(entry.previous_salary || 0), updated: Number(entry.new_salary || 0), approvedBy: entry.changed_by_name || 'System' })),
+  disbursements: [],
+  notes: [],
+});
 
 export default function EmployeeFinancialProfile() {
   // SEARCH GATE STATES
@@ -14,45 +44,25 @@ export default function EmployeeFinancialProfile() {
   const [newNoteText, setNewNoteText] = useState<string>('');
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
 
-  // Individual dataset mirroring Nancy's database parameters with audit context
-  const mockEmployeeDb: { [key: string]: FullFinancialProfile } = {
-    "NX-001247": {
-      summary: { name: "Nancy Wanjiku Karanja", id: "NX-001247", branch: "Nairobi HQ", department: "Engineering", grade: "E4", status: "Active", grossSalary: 245000 },
-      breakdown: {
-        basic: 185000,
-        allowances: [{ label: "Housing allowance", value: 45000 }, { label: "Transport allowance", value: 15000 }],
-        deductions: [{ label: "PAYE Tax", value: 52460 }, { label: "NSSF matching", value: 2160 }, { label: "SHIF Premium", value: 1700 }, { label: "Housing levy", value: 3675 }]
-      },
-      identifiers: { taxPin: "A001247895K", nssf: "NSSF-9948210", shif: "SHIF-8830114", isComplete: true },
-      bankDetails: { bankName: "Equity Bank Kenya", accountNumber: "1240182474821", branchCode: "EQ-001" },
-      history: [
-        { date: "01 Apr 2024", previous: 220000, updated: 245000, approvedBy: "Finance Exec (Mary C.)" },
-        { date: "14 Mar 2022", previous: 0, updated: 220000, approvedBy: "HR Admin Board" }
-      ],
-      disbursements: [
-        { period: "June 2026", runRef: "PR-2026-06-C", status: "confirmed", amount: 185005 },
-        { period: "May 2026", runRef: "PR-2026-05-01", status: "confirmed", amount: 185005 },
-        { period: "Apr 2026", runRef: "PR-2026-04-01", status: "failed", amount: 185005, reason: "Account closed or invalid routing segment" }
-      ],
-      notes: [
-        { timestamp: "01 Jul 2026, 09:14 AM", author: "James M. (Finance)", text: "Re-verified details following the Apr failure. Employee provided updated Equity coordinates." }
-      ]
-    }
-  };
-
-  // Handler 1: Secure Search Gateway with Mandatory Audit Logger Hook
-  const handleProfileSearch = (e: React.FormEvent) => {
+  // Handler 1: Secure search gateway backed by the employee financial APIs.
+  const handleProfileSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanId = searchQuery.trim().toUpperCase();
-    const profile = mockEmployeeDb[cleanId];
-
-    if (profile) {
-      setActiveProfile(profile);
+    const employeeNumber = searchQuery.trim();
+    if (!employeeNumber) return;
+    try {
+      const employeesResponse = await apiClient.get('/employees/', { params: { search: employeeNumber } });
+      const employees = Array.isArray(employeesResponse.data) ? employeesResponse.data : employeesResponse.data.results || [];
+      const employee = employees.find((item: any) => String(item.employee_number).toLowerCase() === employeeNumber.toLowerCase());
+      if (!employee) throw new Error('not-found');
+      const [financialResponse, historyResponse] = await Promise.all([
+        apiClient.get(`/employees/${employee.id}/financial-profile/`),
+        apiClient.get(`/employees/${employee.id}/salary-history/`),
+      ]);
+      setActiveProfile(toFinancialProfile(employee, financialResponse.data, historyResponse.data || []));
       const timestamp = new Date().toLocaleString();
-      // SECURITY COMPLIANCE RULE: Log access immediately to the immutable trail store
-      setAuditLog(prev => [`AUDIT: Profile ${cleanId} accessed by Finance Admin on ${timestamp}`, ...prev]);
+      setAuditLog(prev => [`AUDIT: Profile ${employeeNumber} accessed on ${timestamp}`, ...prev]);
       setFeedbackMsg('');
-    } else {
+    } catch {
       setActiveProfile(null);
       setFeedbackMsg("No employee profile found. Access query matches zero direct file indexes.");
     }
@@ -77,15 +87,24 @@ export default function EmployeeFinancialProfile() {
   };
 
   // Handler 3: Routing Payroll Adjustment Request Workbench
-  const handleInitiateAdjustment = (e: React.FormEvent) => {
+  const handleInitiateAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adjustmentAmount || !adjustmentReason.trim() || !activeProfile) return;
-
-    // PROTECTION RULE: Route through status pending workflow, do not mutate database directly
-    setFeedbackMsg(`Workflow Triggered: ${adjustmentType} of KES ${Number(adjustmentAmount).toLocaleString()} initiated for ${activeProfile.summary.name}. Request routed to system approver queue.`);
-    setAdjustmentAmount('');
-    setAdjustmentReason('');
-    setTimeout(() => setFeedbackMsg(''), 6000);
+    try {
+      const employeesResponse = await apiClient.get('/employees/', { params: { search: activeProfile.summary.id } });
+      const employees = Array.isArray(employeesResponse.data) ? employeesResponse.data : employeesResponse.data.results || [];
+      const employee = employees.find((item: any) => item.employee_number === activeProfile.summary.id);
+      if (!employee) throw new Error('not-found');
+      await apiClient.post(`/employees/${employee.id}/salary-adjustment/`, {
+        new_salary: adjustmentAmount,
+        adjustment_type: adjustmentType.startsWith('Correction') ? 'INCREMENT' : adjustmentType.startsWith('One-off Deduction') ? 'DECREMENT' : 'OTHER',
+        effective_date: new Date().toISOString().slice(0, 10), reason: adjustmentReason, update_active_contract: false,
+      });
+      setFeedbackMsg(`Salary adjustment submitted for ${activeProfile.summary.name}.`);
+      setAdjustmentAmount(''); setAdjustmentReason('');
+    } catch {
+      setFeedbackMsg('Unable to submit the salary adjustment. Please verify the adjustment details.');
+    }
   };
 
   return (

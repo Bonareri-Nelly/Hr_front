@@ -131,15 +131,6 @@ interface EmployeePerformance {
 // MOCK DATA
 // ============================================================
 
-const mockEmployees = [
-  { id: 'emp1', name: 'Sarah Kimani', department: 'Engineering', branch: 'Nairobi HQ', role: 'Senior Engineer' },
-  { id: 'emp2', name: 'James Ochieng', department: 'Finance', branch: 'Nairobi HQ', role: 'Finance Manager' },
-  { id: 'emp3', name: 'Grace Wanjiku', department: 'HR', branch: 'Nairobi HQ', role: 'HR Business Partner' },
-  { id: 'emp4', name: 'Peter Ndungu', department: 'Sales', branch: 'Mombasa', role: 'Sales Lead' },
-  { id: 'emp5', name: 'Mary Akinyi', department: 'Operations', branch: 'Kisumu', role: 'Ops Manager' },
-  { id: 'emp6', name: 'Robert Otieno', department: 'Customer Support', branch: 'Nairobi HQ', role: 'Support Lead' },
-];
-
 const defaultRatingScale = [
   { value: 1, label: 'Needs Improvement' },
   { value: 2, label: 'Below Expectations' },
