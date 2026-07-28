@@ -3,13 +3,27 @@
 // ==========================================
 
 import { useState, useEffect, useCallback } from 'react';
-import { MOCK_ANNOUNCEMENTS, CURRENT_USER } from '../constants';
+import { CURRENT_USER } from '../constants';
 import { Announcement, AnnouncementFormData } from '../types';
+import { apiClient } from '@/services/api/client';
 
 export const useAnnouncements = () => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>(MOCK_ANNOUNCEMENTS);
-  const [loading, setLoading] = useState(false);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const mapAnnouncement = (item: any): Announcement => ({
+    id: String(item.id), title: item.title, body: item.body, category: 'general',
+    audience: { type: item.audience === 'ALL' ? 'company' : item.audience === 'BRANCH' ? 'branch' : item.audience === 'DEPARTMENT' ? 'department' : 'individual', targets: item.target_branch ? [item.target_branch] : item.target_department ? [item.target_department] : [] },
+    priority: item.is_pinned ? 'urgent' : 'normal', requiresAck: false, postedBy: item.posted_by_name || '', postedAt: item.publish_at, expiresAt: item.expires_at, acknowledgedBy: [],
+  });
+
+  useEffect(() => {
+    apiClient.get('/hr-operations/announcements/active/').then((response) => {
+      const items = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      setAnnouncements(items.map(mapAnnouncement)); setError(null);
+    }).catch(() => setError('Failed to load announcements')).finally(() => setLoading(false));
+  }, []);
 
   // Get announcements visible to current user
   const getVisibleAnnouncements = useCallback(() => {
@@ -24,25 +38,11 @@ export const useAnnouncements = () => {
   }, [announcements]);
 
   // Create new announcement
-  const createAnnouncement = useCallback((data: AnnouncementFormData) => {
+  const createAnnouncement = useCallback(async (data: AnnouncementFormData) => {
     setLoading(true);
     try {
-      const newAnnouncement: Announcement = {
-        id: `ann-${Date.now()}`,
-        title: data.title,
-        body: data.body,
-        category: data.category,
-        audience: {
-          type: data.audience,
-          targets: data.targets
-        },
-        priority: data.priority,
-        requiresAck: data.requiresAck,
-        postedBy: CURRENT_USER.name,
-        postedAt: new Date().toISOString(),
-        expiresAt: data.expiry || null,
-        acknowledgedBy: []
-      };
+      const response = await apiClient.post('/hr-operations/announcements/', { title: data.title, body: data.body, audience: data.audience === 'company' ? 'ALL' : data.audience.toUpperCase(), target_branch: data.audience === 'branch' ? data.targets[0] || '' : '', target_department: data.audience === 'department' ? data.targets[0] || '' : '', is_pinned: data.priority === 'urgent', publish_at: new Date().toISOString(), expires_at: data.expiry });
+      const newAnnouncement = mapAnnouncement(response.data);
       setAnnouncements(prev => [newAnnouncement, ...prev]);
       setError(null);
       return newAnnouncement;

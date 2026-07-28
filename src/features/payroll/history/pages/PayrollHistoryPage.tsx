@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Clock,
   Search,
@@ -57,6 +57,7 @@ import {
   Clock as ClockIcon,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { apiClient } from "@/services/api/client";
 
 interface PayrollHistoryRecord {
   id: string;
@@ -157,9 +158,9 @@ export default function PayrollHistoryPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [selectedPeriods, setSelectedPeriods] = useState<string[]>([]);
+  const [payrollHistory, setPayrollHistory] = useState<PayrollHistoryRecord[]>([]);
 
-  // Sample payroll history data
-  const payrollHistory: PayrollHistoryRecord[] = [
+  /* Removed sample payroll history data. The screen now uses the payroll API.
     {
       id: "ph1",
       runName: "March 2026 Payroll",
@@ -547,7 +548,24 @@ export default function PayrollHistoryPage() {
       ],
       employees: [],
     },
-  ];
+  ]; */
+
+  useEffect(() => {
+    const unwrap = (payload: any) => Array.isArray(payload) ? payload : payload?.results ?? [];
+    setIsLoading(true);
+    Promise.all([apiClient.get("/payroll/runs/"), apiClient.get("/payroll/payslips/")]).then(([runsResponse, payslipsResponse]) => {
+      const payslips = unwrap(payslipsResponse.data);
+      setPayrollHistory(unwrap(runsResponse.data).map((run: any): PayrollHistoryRecord => {
+        const runPayslips = payslips.filter((payslip: any) => String(payslip.payroll_run) === String(run.id));
+        const gross = runPayslips.reduce((sum: number, item: any) => sum + Number(item.gross_pay || 0), 0);
+        const net = runPayslips.reduce((sum: number, item: any) => sum + Number(item.net_pay || 0), 0);
+        const deductions = runPayslips.reduce((sum: number, item: any) => sum + Number(item.total_deductions || 0), 0);
+        const taxes = runPayslips.reduce((sum: number, item: any) => sum + Number(item.tax_amount || 0), 0);
+        const statusMap: Record<string, PayrollHistoryRecord["status"]> = { FINALIZED: "Completed", APPROVED: "Processing", PENDING_APPROVAL: "Processing", CANCELLED: "Cancelled", DRAFT: "Processing" };
+        return { id: String(run.id), runName: `Payroll ${run.month}/${run.year}`, period: { start: `${run.year}-${String(run.month).padStart(2, "0")}-01`, end: `${run.year}-${String(run.month).padStart(2, "0")}-28` }, paymentDate: run.approved_at || run.processed_at || run.created_at, processedDate: run.processed_at || run.created_at, status: statusMap[run.status] || "Processing", totalEmployees: runPayslips.length, totalGross: gross, totalNet: net, totalDeductions: deductions, totalBonuses: 0, totalTaxes: taxes, totalBenefits: 0, department: "All Departments", processedBy: run.processed_by_name || "", approvedBy: run.approved_by_name, paymentMethod: "Bank Transfer", metrics: { averageSalary: runPayslips.length ? gross / runPayslips.length : 0, highestPay: Math.max(0, ...runPayslips.map((item: any) => Number(item.gross_pay || 0))), lowestPay: runPayslips.length ? Math.min(...runPayslips.map((item: any) => Number(item.gross_pay || 0))) : 0, payrollCostRatio: 0, overtimeTotal: 0, leaveAdjustments: 0 }, breakdown: { byDepartment: [], byEmploymentType: [] }, history: [], employees: runPayslips.map((item: any) => ({ id: String(item.employee), name: item.employee_name || `Employee ${item.employee}`, position: "", department: "", grossPay: Number(item.gross_pay || 0), netPay: Number(item.net_pay || 0), deductions: Number(item.total_deductions || 0), status: "Paid" })) };
+      }));
+    }).catch(() => setPayrollHistory([])).finally(() => setIsLoading(false));
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {

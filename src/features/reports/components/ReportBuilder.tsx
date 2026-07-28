@@ -54,57 +54,42 @@ export const ReportBuilder = ({ data }: ReportBuilderProps) => {
       return;
     }
 
-    // Generate mock data based on selected metrics
-    const mockData = generateMockData(selectedMetrics);
-    setGeneratedReport(mockData);
+    setGeneratedReport(generateReportData(selectedMetrics));
   };
 
-  const generateMockData = (metrics: string[]) => {
-    // Create a dataset with months as categories
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    const dataset = months.map((month, idx) => {
-      const row: any = { month };
-      metrics.forEach((metric) => {
-        let value;
-        switch (metric) {
-          case 'headcount':
-            value = 1180 + idx * 15 + Math.floor(Math.random() * 20);
-            break;
-          case 'turnover':
-            value = (6 + Math.random() * 5).toFixed(1);
-            break;
-          case 'newHires':
-            value = Math.floor(15 + Math.random() * 20);
-            break;
-          case 'exits':
-            value = Math.floor(8 + Math.random() * 12);
-            break;
-          case 'totalPayroll':
-            value = 13600000 + idx * 300000 + Math.floor(Math.random() * 50000);
-            break;
-          case 'avgSalary':
-            value = 82000 + idx * 2000 + Math.floor(Math.random() * 1000);
-            break;
-          case 'budgetVariance':
-            value = (Math.random() * 200000 - 50000).toFixed(0);
-            break;
-          case 'complianceScore':
-            value = (94 + Math.random() * 5).toFixed(1);
-            break;
-          case 'benefitsUtilization':
-            value = (60 + Math.random() * 30).toFixed(0);
-            break;
-          case 'performanceScore':
-            value = (3.5 + Math.random() * 1.5).toFixed(1);
-            break;
-          default:
-            value = 0;
-        }
-        row[metric] = value;
-      });
+  const generateReportData = (metrics: string[]) => {
+    const headcount = data?.workforce?.headcount ?? [];
+    const payroll = data?.payroll?.total ?? [];
+    const performance = data?.performance?.trend ?? [];
+    const labels = Array.from(new Set([
+      ...headcount.map((item: any) => item.month),
+      ...payroll.map((item: any) => item.month),
+      ...performance.map((item: any) => item.cycle),
+    ].filter(Boolean)));
+    const rows = labels.length ? labels : ['Current'];
+
+    return rows.map((month) => {
+      const workforceRow = headcount.find((item: any) => item.month === month) ?? {};
+      const payrollRow = payroll.find((item: any) => item.month === month) ?? {};
+      const performanceRow = performance.find((item: any) => item.cycle === month) ?? {};
+      const employeeCount = Number(workforceRow.total ?? data?.summary?.totalEmployees ?? 0);
+      const payrollAmount = Number(payrollRow.amount ?? 0);
+      const values: Record<string, number> = {
+        headcount: employeeCount,
+        turnover: Number(data?.summary?.turnoverRate ?? 0),
+        newHires: Number(workforceRow.newHires ?? 0),
+        exits: Number(workforceRow.exits ?? 0),
+        totalPayroll: payrollAmount,
+        avgSalary: employeeCount > 0 ? Math.round(payrollAmount / employeeCount) : 0,
+        budgetVariance: Number(data?.payroll?.budget?.actual ?? 0) - Number(data?.payroll?.budget?.budget ?? 0),
+        complianceScore: Number(data?.summary?.complianceScore ?? 0),
+        benefitsUtilization: Number(data?.summary?.benefitsUtilization ?? 0),
+        performanceScore: Number(performanceRow.avgScore ?? data?.summary?.avgPerformance ?? 0),
+      };
+      const row: Record<string, string | number> = { month };
+      metrics.forEach((metric) => { row[metric] = values[metric] ?? 0; });
       return row;
     });
-    return dataset;
   };
 
   const renderChart = () => {

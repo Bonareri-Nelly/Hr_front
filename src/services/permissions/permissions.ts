@@ -97,5 +97,9 @@ export function getModulePermissions(role = getCurrentUserRole()): ModulePermiss
 }
 
 export function hasActiveSession(): boolean {
-  return Boolean(localStorage.getItem("hr_payroll_access_token") ?? localStorage.getItem("access_token"));
+  return Boolean(
+    localStorage.getItem("accessToken") ??
+      localStorage.getItem("hr_payroll_access_token") ??
+      localStorage.getItem("access_token"),
+  );
 }

@@ -630,7 +630,7 @@ function CyclesTab({ cycles, setCycles, role, onShowToast }: any) {
       createdBy: 'HR Admin',
     };
 
-    setCycles(prev => [cycle, ...prev]);
+    setCycles((prev: AppraisalCycle[]) => [cycle, ...prev]);
     setIsCreating(false);
     setNewCycle({
       name: '',
@@ -795,7 +795,7 @@ function CyclesTab({ cycles, setCycles, role, onShowToast }: any) {
                     <button
                       className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                       onClick={() => {
-                        setCycles(prev => prev.map(c => c.id === cycle.id ? { ...c, status: 'in_progress' } : c));
+                        setCycles((prev: AppraisalCycle[]) => prev.map((c: AppraisalCycle) => c.id === cycle.id ? { ...c, status: 'in_progress' } : c));
                         onShowToast(`Cycle "${cycle.name}" started`, 'success');
                       }}
                     >
@@ -833,7 +833,7 @@ function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmploye
     dueDate: '',
   });
 
-  const employees = Object.values(employeePerformance);
+  const employees = Object.values(employeePerformance) as EmployeePerformance[];
 
   const displayEmployees = role === 'employee'
     ? employees.filter(e => e.employeeId === 'emp1')
@@ -866,7 +866,7 @@ function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmploye
       changeLog: [],
     };
 
-    setEmployeePerformance(prev => ({
+    setEmployeePerformance((prev: Record<string, EmployeePerformance>) => ({
       ...prev,
       [selectedEmp.employeeId]: {
         ...selectedEmp,
@@ -1039,7 +1039,7 @@ function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmplo
     type: 'self' as ReviewType,
   });
 
-  const employees = Object.values(employeePerformance);
+  const employees = Object.values(employeePerformance) as EmployeePerformance[];
 
   const displayEmployees = role === 'employee'
     ? employees.filter(e => e.employeeId === 'emp1')
@@ -1064,7 +1064,7 @@ function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmplo
       isAnonymous: false,
     };
 
-    setEmployeePerformance(prev => ({
+    setEmployeePerformance((prev: Record<string, EmployeePerformance>) => ({
       ...prev,
       [selectedEmp.employeeId]: {
         ...selectedEmp,
@@ -1236,7 +1236,7 @@ function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmplo
 // ============================================================
 
 function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmployeeId, role }: any) {
-  const employees = Object.values(employeePerformance);
+  const employees = Object.values(employeePerformance) as EmployeePerformance[];
 
   const displayEmployees = role === 'employee'
     ? employees.filter(e => e.employeeId === 'emp1')
@@ -1259,7 +1259,7 @@ function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmploy
       declining: 'text-red-600',
       stable: 'text-amber-600',
     };
-    return map[trend] || 'text-gray-600';
+    return map[trend as keyof typeof map] || 'text-gray-600';
   };
 
   const getTrendIcon = (trend: string) => {
@@ -1268,7 +1268,7 @@ function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmploy
       declining: TrendingDown,
       stable: Minus,
     };
-    return map[trend] || Minus;
+    return map[trend as keyof typeof map] || Minus;
   };
 
   return (
@@ -1383,7 +1383,7 @@ function HistoryTab({ employeePerformance, selectedEmployeeId, setSelectedEmploy
 // ============================================================
 
 function DashboardTab({ employeePerformance, cycles, role }: any) {
-  const employees = Object.values(employeePerformance);
+  const employees = Object.values(employeePerformance) as EmployeePerformance[];
 
   const totalEmployees = employees.length;
   const activeCycles = cycles.filter((c: AppraisalCycle) => c.status === 'in_progress').length;
@@ -1548,7 +1548,7 @@ function Toast({ message, type, onClose }: any) {
     info: 'bg-blue-50 text-blue-700 border-blue-200',
   };
   return (
-    <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg ${colors[type] || colors.info}`}>
+    <div className={`fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg ${colors[type as keyof typeof colors] || colors.info}`}>
       <span className="text-sm">{message}</span>
       <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><X className="w-4 h-4" /></button>
     </div>
@@ -1565,7 +1565,7 @@ export default function PerformanceOversightPage() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
   const [cycles, setCycles] = useState<AppraisalCycle[]>([]);
-  const [employeePerformance, setEmployeePerformance] = useState(mockEmployeePerformance);
+  const [employeePerformance, setEmployeePerformance] = useState<Record<string, EmployeePerformance>>({});
 
   const handleShowToast = (message: string, type: string) => {
     setToast({ message, type });

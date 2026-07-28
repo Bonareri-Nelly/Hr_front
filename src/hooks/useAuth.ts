@@ -9,6 +9,11 @@ export const useAuth = () => {
     onSuccess: (response) => {
       localStorage.setItem('accessToken', response.data.access);
       localStorage.setItem('refreshToken', response.data.refresh);
+      localStorage.setItem('hr_payroll_access_token', response.data.access);
+      localStorage.setItem('hr_payroll_refresh_token', response.data.refresh);
+      localStorage.setItem('access_token', response.data.access);
+      localStorage.setItem('refresh_token', response.data.refresh);
+      localStorage.setItem('current_user', JSON.stringify(response.data.user));
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
     },
   });
@@ -19,6 +24,11 @@ export const useAuth = () => {
     onSettled: () => {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
+      localStorage.removeItem('hr_payroll_access_token');
+      localStorage.removeItem('hr_payroll_refresh_token');
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('current_user');
       queryClient.setQueryData(['currentUser'], null);
     },
   });

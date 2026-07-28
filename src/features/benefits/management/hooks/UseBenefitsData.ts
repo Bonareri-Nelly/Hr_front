@@ -150,7 +150,8 @@ export const useBenefitsData = ({
         setError(null);
         return;
 
-        // Mock data
+        /* Legacy mock implementation retained only as commented reference while the
+           dashboard is served by the API calls above.
         const mockData: BenefitsData = {
           totalEligible: 425,
           totalEnrolled: 356,
@@ -321,6 +322,7 @@ export const useBenefitsData = ({
 
         setData(filteredData);
         setError(null);
+        */
       } catch (err) {
         setError(err as Error);
       } finally {

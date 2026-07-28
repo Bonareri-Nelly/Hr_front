@@ -222,7 +222,7 @@ export default function FinanceDashboard() {
         <section className="panel">
           <div className="panel-header">
             <h3 className="panel-title">Payroll Cost Trend</h3>
-            <Link className="panel-action" to="/payroll/multi-currency-gl">Forecast</Link>
+            <Link className="panel-action" to="/payroll/history">History</Link>
           </div>
           <div className="panel-body">
             <div className="mini-chart" aria-label="Payroll cost trend index">

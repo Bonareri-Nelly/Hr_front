@@ -12,7 +12,7 @@ import { QuickStats } from '../components/QuickStats';
 import { Users, DollarSign, Clock, ShieldCheck, Download } from 'lucide-react';
 
 export default function HrDashboardPage() {
-  const [userBranch] = useState<string | undefined>(undefined);
+  const [userBranch] = useState("");
   const { getHRDashboard } = useDashboard();
   const { data: dashboardData, isLoading, error } = getHRDashboard(userBranch);
 

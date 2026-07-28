@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   BadgeDollarSign,
   Banknote,
-  Building2,
   CalendarClock,
   CheckCircle2,
   ClipboardCheck,
@@ -29,8 +28,7 @@ type PayrollPageKey =
   | "history"
   | "tax"
   | "bank"
-  | "compensation"
-  | "gl";
+  | "compensation";
 
 type Metric = { label: string; value: string; meta: string; tone: Tone };
 type Action = { title: string; owner: string; due: string; tone: Tone };
@@ -365,49 +363,6 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     ],
     note: "Compensation data is the payroll source of truth and should be locked as a dated snapshot for every payroll run.",
   },
-  gl: {
-    kicker: "Finance posting",
-    title: "Multi-Currency & GL Integration",
-    subtitle: "Map payroll costs to currencies, departments, branches, accounts, cost centers, and finance posting journals.",
-    primaryAction: "Post Journal",
-    secondaryAction: "Recalculate FX",
-    icon: Building2,
-    metrics: [
-      { label: "GL amount", value: "KES 18.6M", meta: "Balanced", tone: "success" },
-      { label: "Cost centers", value: "14", meta: "2 unmapped", tone: "warning" },
-      { label: "Currencies", value: "3", meta: "KES/USD/EUR", tone: "info" },
-      { label: "Posting blocks", value: "2", meta: "Mapping needed", tone: "danger" },
-    ],
-    focus: {
-      title: "GL posting is balanced but blocked by two unmapped cost centers.",
-      detail: "Complete cost-center mapping and confirm FX rates before finance posts the payroll journal.",
-      stats: [["KES 18.6M", "Journal"], ["14", "Centers"], ["2", "Blocks"]],
-    },
-    tableTitle: "Posting Lines",
-    tableAction: "Open journal",
-    tableActionPath: "/payroll/multi-currency-gl",
-    tableHeaders: ["Line", "Account", "Cost center", "Amount", "Status"],
-    rows: [
-      ["Basic pay", "Staff costs", "Operations", "KES 12.4M", "Mapped", "success"],
-      ["Benefits", "Benefits", "HR", "KES 2.6M", "Mapped", "success"],
-      ["Overtime", "Staff costs", "Operations", "KES 1.6M", "Review", "warning"],
-      ["Allowances", "Allowances", "Field Sales", "KES 920K", "Blocked", "danger"],
-    ],
-    actionsTitle: "GL Tasks",
-    actions: [
-      { title: "Map two allowance cost centers", owner: "Finance", due: "Today", tone: "danger" },
-      { title: "Confirm overtime posting account", owner: "Payroll", due: "Today", tone: "warning" },
-      { title: "Refresh FX rates", owner: "Finance", due: "Tomorrow", tone: "info" },
-    ],
-    signalsTitle: "Posting Readiness",
-    signals: [
-      { label: "Journal balanced", value: "KES 0 variance", percent: 100, tone: "success" },
-      { label: "Cost centers mapped", value: "12 / 14", percent: 86, tone: "warning" },
-      { label: "FX rates confirmed", value: "2 / 3", percent: 67, tone: "warning" },
-      { label: "Posting blocks cleared", value: "0 / 2", percent: 20, tone: "danger" },
-    ],
-    note: "GL integration closes the loop between payroll approval and finance reporting by posting balanced, auditable journals.",
-  },
 };
 
 function ActionIcon({ tone }: { tone: Tone }) {
@@ -435,9 +390,8 @@ function getPayrollTarget(page: PayrollPageKey, slot: PayrollTargetSlot, label: 
     approval: { primary: "/payroll/bank-integration", assign: "/dashboard/branch?branch_id=eldoret", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
     history: { checks: "/payroll/bank-integration" },
     tax: { primary: "/payroll/bank-integration", assign: "/payroll/compensation", checks: "/payroll/approval", evidence: "/payroll/history" },
-    bank: { primary: "/payroll/multi-currency-gl", assign: "/payroll/approval", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
+    bank: { primary: "/dashboard/finance", assign: "/payroll/approval", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
     compensation: { primary: "/payroll/creation", assign: "/dashboard/executive?branch_id=eldoret", checks: "/payroll/creation", evidence: "/payroll/history" },
-    gl: { assign: "/dashboard/finance", checks: "/payroll/bank-integration", evidence: "/payroll/history" },
   };
 
   const path = routes[page][slot];

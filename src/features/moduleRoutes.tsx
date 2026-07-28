@@ -7,7 +7,6 @@ import {
   Building2,
   CalendarCheck,
   CalendarClock,
-  ChartNoAxesCombined,
   ClipboardCheck,
   ClipboardList,
   CreditCard,
@@ -56,7 +55,6 @@ import FinanceDashboard from "./finance-dashboard";
 import HrDashboard from "./hr-dashboard";
 import LeaveApprovals from "./leave-approvals";
 import LeaveWorkflow from "./leave-workflow";
-import MultiCurrencyGlIntegration from "./multi-currency-gl-integration";
 import MyAnnouncements from "./my-announcements";
 import MyAttendance from "./my-attendance";
 import MyBenefits from "./my-benefits";

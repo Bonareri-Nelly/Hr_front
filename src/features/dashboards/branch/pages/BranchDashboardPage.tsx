@@ -81,6 +81,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { apiClient } from "@/services/api/client";
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -90,7 +91,7 @@ interface TeamMember {
   name: string;
   position: string;
   department: string;
-  status: "Present" | "Absent" | "Late" | "On Leave" | "Remote";
+  status: "Present" | "Absent" | "Late" | "On Leave" | "Remote" | "Not Recorded";
   checkIn?: string;
   checkOut?: string;
   avatar?: string;
@@ -628,20 +629,20 @@ const mockDepartmentSummary: DepartmentSummary[] = [
 
 // ==================== MAIN COMPONENT ====================
 export default function BranchDashboardPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(mockLeaveRequests);
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(mockAttendanceRecords);
-  const [tasks, setTasks] = useState<BranchTask[]>(mockTasks);
-  const [announcements, setAnnouncements] = useState<BranchAnnouncement[]>(mockAnnouncements);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>(mockRecentActivities);
-  const [payrollSummary, setPayrollSummary] = useState<PayrollSummary>(mockPayrollSummary);
-  const [departmentSummary, setDepartmentSummary] = useState<DepartmentSummary[]>(mockDepartmentSummary);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [tasks, setTasks] = useState<BranchTask[]>([]);
+  const [announcements, setAnnouncements] = useState<BranchAnnouncement[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [payrollSummary, setPayrollSummary] = useState<PayrollSummary>({ totalPayroll: 0, processedPayroll: 0, pendingPayroll: 0, totalDeductions: 0, totalBonuses: 0, totalAllowances: 0, paye: 0, nssf: 0, nhif: 0, housingLevy: 0, shif: 0 });
+  const [departmentSummary, setDepartmentSummary] = useState<DepartmentSummary[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "team" | "attendance" | "tasks" | "announcements">("overview");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
@@ -660,6 +661,68 @@ export default function BranchDashboardPage() {
   const [showEditAnnouncementModal, setShowEditAnnouncementModal] = useState(false);
 
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const unwrap = (response: any) => Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+
+  const loadDashboard = async () => {
+    setIsLoading(true);
+    try {
+      const [employeesResponse, leaveResponse, attendanceResponse, announcementsResponse] = await Promise.all([
+        apiClient.get("/employees/"),
+        apiClient.get("/leave/requests/"),
+        apiClient.get("/attendance/records/"),
+        apiClient.get("/hr-operations/announcements/"),
+      ]);
+      const employees = unwrap(employeesResponse);
+      const attendance = unwrap(attendanceResponse);
+      const attendanceByEmployee = new Map<string, any>(attendance.filter((record: any) => record.date === selectedDate).map((record: any) => [String(record.employee), record]));
+      const statusMap: Record<string, TeamMember["status"]> = { PRESENT: "Present", LATE: "Late", ABSENT: "Absent", ON_LEAVE: "On Leave" };
+      const members = employees.map((employee: any): TeamMember => {
+        const record = attendanceByEmployee.get(String(employee.id));
+        return {
+          id: String(employee.id), name: employee.full_name || `${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || employee.employee_number,
+          position: employee.designation_name || "", department: employee.department_name || "Unassigned",
+          status: statusMap[record?.status] || "Not Recorded", checkIn: record?.check_in_time ? new Date(record.check_in_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-",
+          checkOut: record?.check_out_time ? new Date(record.check_out_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "-",
+          avatar: employee.profile_photo, email: employee.work_email || employee.personal_email || "", phone: employee.phone_number || "", joinDate: employee.hire_date,
+          employmentType: employee.employment_type === "CONTRACT" ? "Contract" : employee.employment_type === "INTERN" ? "Intern" : employee.employment_type === "CASUAL" ? "Part-time" : "Full-time",
+          salary: Number(employee.gross_salary || employee.basic_salary || 0),
+          attendance: { present: 0, absent: 0, late: 0, overtime: 0, totalDays: 0 }, leaveBalance: { annual: 0, sick: 0, personal: 0 },
+        };
+      });
+      setTeamMembers(members);
+      setLeaveRequests(unwrap(leaveResponse).map((leave: any): LeaveRequest => ({
+        id: String(leave.id), employee: leave.employee_name || members.find((member: TeamMember) => member.id === String(leave.employee))?.name || `Employee ${leave.employee}`,
+        employeeId: String(leave.employee), type: "Other", startDate: leave.start_date, endDate: leave.end_date, days: Number(leave.total_days || 0),
+        status: leave.status === "REJECTED" ? "Rejected" : leave.status === "CANCELLED" ? "Cancelled" : leave.status === "APPROVED" || leave.status === "HR_APPROVED" ? "Approved" : "Pending",
+        reason: leave.reason || "", submitted: leave.created_at, approvedBy: leave.hr_approved_by || leave.manager_approved_by, approvedDate: leave.hr_approved_at || leave.manager_approved_at,
+      })));
+      const byDate = new Map<string, AttendanceRecord>();
+      attendance.forEach((record: any) => {
+        const item = byDate.get(record.date) || { date: record.date, present: 0, absent: 0, late: 0, onLeave: 0, total: 0, overtime: 0 };
+        item.total += 1; item.overtime += Number(record.overtime_hours || 0);
+        if (record.status === "PRESENT" || record.status === "OVERTIME") item.present += 1;
+        else if (record.status === "LATE") item.late += 1;
+        else if (record.status === "ON_LEAVE") item.onLeave += 1;
+        else if (record.status === "ABSENT") item.absent += 1;
+        byDate.set(record.date, item);
+      });
+      setAttendanceRecords([...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)));
+      setAnnouncements(unwrap(announcementsResponse).filter((item: any) => item.is_active !== false).map((item: any): BranchAnnouncement => ({ id: String(item.id), title: item.title, content: item.body, date: item.publish_at, type: item.is_pinned ? "Urgent" : "Info", author: item.posted_by_name || "System", expiresAt: item.expires_at })));
+      setPayrollSummary((previous) => ({ ...previous, totalPayroll: members.reduce((total: number, member: TeamMember) => total + member.salary, 0) }));
+      const departments = new Map<string, DepartmentSummary>();
+      members.forEach((member: TeamMember) => {
+        const item = departments.get(member.department) || { name: member.department, employees: 0, head: "", attendanceRate: 0, presentToday: 0, totalEmployees: 0 };
+        item.employees += 1; item.totalEmployees += 1; if (member.status === "Present") item.presentToday += 1;
+        item.attendanceRate = item.totalEmployees ? Math.round((item.presentToday / item.totalEmployees) * 100) : 0; departments.set(member.department, item);
+      });
+      setDepartmentSummary([...departments.values()]);
+    } catch {
+      showToast("Could not load dashboard data. Please try again.", "error");
+    } finally { setIsLoading(false); }
+  };
+
+  useEffect(() => { loadDashboard(); }, [selectedDate]);
 
   // ==================== CALCULATIONS ====================
   const totalEmployees = teamMembers.length;
@@ -846,11 +909,7 @@ export default function BranchDashboardPage() {
   };
 
   const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      showToast("Dashboard refreshed!", "success");
-    }, 1000);
+    loadDashboard().then(() => showToast("Dashboard refreshed!", "success"));
   };
 
   // ==================== EDIT HANDLERS ====================

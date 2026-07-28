@@ -40,7 +40,7 @@ export const PayrollOverview = ({ data }: { data: PayrollData }) => {
     red: 'bg-red-50 text-red-600',
   };
 
-  const maxAmount = Math.max(...data.trend.map(d => d.amount));
+  const maxAmount = Math.max(...data.trend.map(d => d.amount), 1);
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6">

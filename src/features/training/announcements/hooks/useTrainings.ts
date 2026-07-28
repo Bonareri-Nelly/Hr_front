@@ -2,14 +2,24 @@
 // HOOK: useTrainings
 // ==========================================
 
-import { useState, useCallback } from 'react';
-import { MOCK_TRAININGS, CURRENT_USER, MOCK_EMPLOYEES } from '../constants';
+import { useState, useCallback, useEffect } from 'react';
+import { CURRENT_USER, MOCK_EMPLOYEES } from '../constants';
 import { Training, TrainingFormData, TrainingStatus } from '../types';
+import { apiClient } from '@/services/api/client';
 
 export const useTrainings = () => {
-  const [trainings, setTrainings] = useState<Training[]>(MOCK_TRAININGS as Training[]);
-  const [loading, setLoading] = useState(false);
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const mapTraining = (item: any): Training => ({ id: String(item.id), title: item.title, description: item.description || '', category: 'general', delivery: item.location ? 'in_person' : 'online', dateTime: item.start_date || null, location: item.location || null, capacity: null, mandatory: Boolean(item.is_mandatory), audience: { type: 'company', targets: [] }, deadline: item.end_date || null, status: Object.fromEntries((item.enrollments || []).map((enrollment: any) => [String(enrollment.employee), enrollment.status === 'ATTENDED' ? 'completed' : 'not_started'])) });
+
+  useEffect(() => {
+    apiClient.get('/hr-operations/trainings/').then((response) => {
+      const items = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      setTrainings(items.map(mapTraining)); setError(null);
+    }).catch(() => setError('Failed to load trainings')).finally(() => setLoading(false));
+  }, []);
 
   // Get trainings visible to current user
   const getVisibleTrainings = useCallback(() => {
@@ -54,37 +64,11 @@ export const useTrainings = () => {
   }, []);
 
   // Create new training
-  const createTraining = useCallback((data: TrainingFormData) => {
+  const createTraining = useCallback(async (data: TrainingFormData) => {
     setLoading(true);
     try {
-      // Assign status to all employees in audience
-      const statusObj: Record<string, TrainingStatus> = {};
-      const targetEmployees = MOCK_EMPLOYEES.filter(emp => {
-        if (data.audience === 'company') return true;
-        if (data.audience === 'branch') return data.targets.includes(emp.branch);
-        if (data.audience === 'department') return data.targets.includes(emp.department);
-        if (data.audience === 'individual') return data.targets.includes(emp.id);
-        return false;
-      });
-      targetEmployees.forEach(emp => { statusObj[emp.id] = 'not_started'; });
-
-      const newTraining: Training = {
-        id: `train-${Date.now()}`,
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        delivery: data.delivery,
-        dateTime: data.dateTime || null,
-        location: data.location || null,
-        capacity: data.capacity || null,
-        mandatory: data.mandatory,
-        audience: {
-          type: data.audience,
-          targets: data.targets
-        },
-        deadline: data.deadline || null,
-        status: statusObj
-      };
+      const response = await apiClient.post('/hr-operations/trainings/', { title: data.title, description: data.description, trainer_name: '', start_date: data.dateTime || new Date().toISOString().slice(0, 10), end_date: data.deadline || data.dateTime || new Date().toISOString().slice(0, 10), location: data.location || '', is_mandatory: data.mandatory, status: 'SCHEDULED' });
+      const newTraining = mapTraining(response.data);
       setTrainings(prev => [newTraining, ...prev]);
       setError(null);
       return newTraining;

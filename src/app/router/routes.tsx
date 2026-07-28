@@ -34,9 +34,6 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   // FIX: Use the correct import path and ensure default export
   "announcements-training": lazy(() => 
     import("../../features/training/announcements/pages/AnnouncementsTrainingPage")
-      .then((module) => ({
-        default: module.default || module.AnnouncementsTrainingPage
-      }))
   ),
   
   "benefits-management": lazy(() => 
@@ -53,7 +50,6 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "tax-compliance": lazy(() => import("../../features/payroll/tax-compliance")),
   "bank-integration": lazy(() => import("../../features/payroll/bank-integration")),
   "compensation-data": lazy(() => import("../../features/payroll/compensation-data")),
-  "multi-currency-gl-integration": lazy(() => import("../../features/payroll/multi-currency-gl")),
   "finance-dashboard": lazy(() => import("../../features/dashboards/finance")),
   "bank-integration-accounts": lazy(() => import("../../features/finance/bank-integration")),
   "tax-compliance-accounts": lazy(() => import("../../features/finance/tax-compliance")),

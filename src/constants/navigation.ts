@@ -38,7 +38,6 @@ export const navigationItems: NavigationItem[] = [
   { id: "tax-compliance", label: "Tax & Compliance", path: "/payroll/tax-compliance", section: "Payroll", icon: "FileText" },
   { id: "bank-integration", label: "Bank Integration", path: "/payroll/bank-integration", section: "Payroll", icon: "Landmark" },
   { id: "compensation-data", label: "Compensation Data", path: "/payroll/compensation", section: "Payroll", icon: "CreditCard" },
-  { id: "multi-currency-gl-integration", label: "Multi-Currency & GL Integration", path: "/payroll/multi-currency-gl", section: "Payroll", icon: "ChartNoAxesCombined" },
 
   // Finance Section
   { id: "finance-dashboard", label: "Finance Dashboard", path: "/dashboard/finance", section: "Finance", icon: "Banknote" },

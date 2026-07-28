@@ -1,5 +1,5 @@
 // src/features/employees/offboarding/pages/Dashboard.tsx
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { 
   Users, 
   Clock, 
@@ -64,67 +64,16 @@ import {
 } from '@/components/ui/tabs';
 import { useOffboarding } from '../hooks/useOffboarding';
 import type { OffboardingCase, Employee, UploadedFile } from '../types';
+import { apiClient } from '@/services/api/client';
 
-// Mock employees data for search
-const MOCK_EMPLOYEES: Employee[] = [
-  { id: 'emp-001', name: 'Jane Doe', email: 'jane.doe@optimum.com', department: 'Engineering', position: 'Senior Software Engineer', branchId: 'branch-1', branchName: 'Headquarters' },
-  { id: 'emp-002', name: 'John Smith', email: 'john.smith@optimum.com', department: 'Sales', position: 'Sales Manager', branchId: 'branch-2', branchName: 'North Region' },
-  { id: 'emp-003', name: 'Mary Johnson', email: 'mary.johnson@optimum.com', department: 'Marketing', position: 'Marketing Specialist', branchId: 'branch-3', branchName: 'South Region' },
-  { id: 'emp-004', name: 'Robert Wilson', email: 'robert.wilson@optimum.com', department: 'Finance', position: 'Accountant', branchId: 'branch-4', branchName: 'East Region' },
-  { id: 'emp-005', name: 'Sarah Brown', email: 'sarah.brown@optimum.com', department: 'Human Resources', position: 'HR Manager', branchId: 'branch-1', branchName: 'Headquarters' },
-  { id: 'emp-006', name: 'Michael Davis', email: 'michael.davis@optimum.com', department: 'IT', position: 'IT Support Specialist', branchId: 'branch-5', branchName: 'West Region' },
-  { id: 'emp-007', name: 'Emily Wilson', email: 'emily.wilson@optimum.com', department: 'Operations', position: 'Operations Manager', branchId: 'branch-2', branchName: 'North Region' },
-];
-
-// Mock Performance Data
-const mockPerformanceData = {
-  employeeId: 'emp-001',
-  currentRating: 4.2,
-  lastReviewDate: '2024-11-15',
-  averageRating: 4.0,
-  totalReviews: 3,
-  performanceHistory: [
-    {
-      id: 'perf-001',
-      employeeId: 'emp-001',
-      reviewPeriod: 'Q4 2024',
-      overallRating: 4.2,
-      ratings: [
-        { category: 'Technical Skills', score: 4, maxScore: 5, comments: 'Excellent technical abilities' },
-        { category: 'Communication', score: 4, maxScore: 5, comments: 'Good team communication' },
-        { category: 'Leadership', score: 3, maxScore: 5, comments: 'Developing leadership skills' },
-        { category: 'Problem Solving', score: 5, maxScore: 5, comments: 'Outstanding problem solver' },
-        { category: 'Teamwork', score: 4, maxScore: 5, comments: 'Great team player' },
-      ],
-      strengths: ['Technical expertise', 'Problem solving', 'Mentoring juniors'],
-      areasForImprovement: ['Public speaking', 'Strategic thinking'],
-      goalsAchieved: ['Completed AI project', 'Led sprint team', 'Improved code quality'],
-      managerComments: 'Excellent performer with great potential for growth.',
-      reviewerName: 'John Manager',
-      reviewDate: '2024-11-15',
-    },
-    {
-      id: 'perf-002',
-      employeeId: 'emp-001',
-      reviewPeriod: 'Q3 2024',
-      overallRating: 4.0,
-      ratings: [
-        { category: 'Technical Skills', score: 4, maxScore: 5, comments: 'Strong technical skills' },
-        { category: 'Communication', score: 3, maxScore: 5, comments: 'Good communication' },
-        { category: 'Leadership', score: 3, maxScore: 5, comments: 'Shows leadership potential' },
-        { category: 'Problem Solving', score: 4, maxScore: 5, comments: 'Good problem solver' },
-        { category: 'Teamwork', score: 4, maxScore: 5, comments: 'Works well with team' },
-      ],
-      strengths: ['Code quality', 'Team collaboration', 'Meeting deadlines'],
-      areasForImprovement: ['Documentation', 'Delegation'],
-      goalsAchieved: ['Delivered product features', 'Improved testing coverage'],
-      managerComments: 'Consistent performer with good results.',
-      reviewerName: 'John Manager',
-      reviewDate: '2024-08-15',
-    },
-  ],
-  recentStrengths: ['Technical expertise', 'Problem solving', 'Team collaboration'],
-  recentImprovements: ['Communication', 'Strategic thinking'],
+const performanceData = {
+  currentRating: 0,
+  lastReviewDate: null as string | null,
+  averageRating: 0,
+  totalReviews: 0,
+  performanceHistory: [] as any[],
+  recentStrengths: [] as string[],
+  recentImprovements: [] as string[],
 };
 
 // Stat Card Component
@@ -168,12 +117,28 @@ const EmployeeSearch: React.FC<{
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    apiClient.get('/employees/').then((response) => {
+      const records = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
+      setEmployees(records.map((employee: any): Employee => ({
+        id: String(employee.id),
+        name: employee.full_name || `${employee.first_name ?? ''} ${employee.last_name ?? ''}`.trim() || employee.employee_number || `Employee ${employee.id}`,
+        email: employee.email || employee.user?.email || '',
+        department: employee.department_name || employee.department?.name || '',
+        position: employee.position_name || employee.position?.title || employee.job_title || '',
+        branchId: String(employee.branch_id || employee.branch?.id || ''),
+        branchName: employee.branch_name || employee.branch?.name || '',
+      })));
+    }).catch(() => setEmployees([]));
+  }, []);
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     if (term.length > 0) {
-      const results = MOCK_EMPLOYEES.filter(emp =>
+      const results = employees.filter(emp =>
         emp.name.toLowerCase().includes(term.toLowerCase()) ||
         emp.email.toLowerCase().includes(term.toLowerCase()) ||
         emp.id.toLowerCase().includes(term.toLowerCase())
@@ -921,7 +886,7 @@ const EmployeeDetailsModal: React.FC<{
                           <p className="text-xs text-gray-400">Current Performance Rating</p>
                           <div className="flex items-center gap-2">
                             <span className="text-2xl font-bold text-gold-400">
-                              {mockPerformanceData.currentRating}
+                              {performanceData.currentRating || '—'}
                             </span>
                             <span className="text-sm text-gray-400">/ 5.0</span>
                           </div>
@@ -938,18 +903,18 @@ const EmployeeDetailsModal: React.FC<{
                     <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                       <p className="text-xs text-gray-400">Last Performance Review</p>
                       <p className="text-white font-semibold">
-                        {new Date(mockPerformanceData.lastReviewDate).toLocaleDateString('en-US', {
+                        {performanceData.lastReviewDate ? new Date(performanceData.lastReviewDate).toLocaleDateString('en-US', {
                           month: 'long',
                           year: 'numeric'
-                        })}
+                        }) : 'No review recorded'}
                       </p>
-                      <p className="text-xs text-gray-400">Total Reviews: {mockPerformanceData.totalReviews}</p>
+                      <p className="text-xs text-gray-400">Total Reviews: {performanceData.totalReviews}</p>
                     </div>
                     <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                       <p className="text-xs text-gray-400">Average Rating</p>
                       <div className="flex items-center gap-2">
                         <span className="text-2xl font-bold text-white">
-                          {mockPerformanceData.averageRating}
+                          {performanceData.averageRating || '—'}
                         </span>
                         <span className="text-sm text-gray-400">/ 5.0</span>
                       </div>
@@ -979,10 +944,10 @@ const EmployeeDetailsModal: React.FC<{
                           <div className="h-3 w-32 bg-navy-700 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-green-500 rounded-full" 
-                              style={{ width: `${(mockPerformanceData.averageRating / 5) * 100}%` }}
+                              style={{ width: `${(performanceData.averageRating / 5) * 100}%` }}
                             />
                           </div>
-                          <span className="text-sm text-white">{mockPerformanceData.averageRating.toFixed(1)}</span>
+                          <span className="text-sm text-white">{performanceData.averageRating ? performanceData.averageRating.toFixed(1) : 'No data'}</span>
                         </div>
                       </div>
                       <div>
@@ -1011,7 +976,7 @@ const EmployeeDetailsModal: React.FC<{
                   <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                     <h4 className="text-sm font-medium text-gray-400 mb-3">Performance History</h4>
                     <div className="space-y-3">
-                      {mockPerformanceData.performanceHistory.map((review, index) => (
+                      {performanceData.performanceHistory.map((review, index) => (
                         <div key={index} className="border-b border-gold-500/10 pb-3 last:border-0">
                           <div className="flex items-center justify-between">
                             <div>
@@ -1053,7 +1018,7 @@ const EmployeeDetailsModal: React.FC<{
                     <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                       <h4 className="text-sm font-medium text-green-400 mb-2">Recent Strengths</h4>
                       <ul className="space-y-1">
-                        {mockPerformanceData.recentStrengths.map((strength, index) => (
+                      {performanceData.recentStrengths.map((strength, index) => (
                           <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
                             <CheckCircle className="h-3 w-3 text-green-400" />
                             {strength}
@@ -1064,7 +1029,7 @@ const EmployeeDetailsModal: React.FC<{
                     <div className="bg-navy-800/50 p-4 rounded-lg border border-gold-500/10">
                       <h4 className="text-sm font-medium text-yellow-400 mb-2">Areas for Improvement</h4>
                       <ul className="space-y-1">
-                        {mockPerformanceData.recentImprovements.map((item, index) => (
+                      {performanceData.recentImprovements.map((item, index) => (
                           <li key={index} className="flex items-center gap-2 text-sm text-gray-300">
                             <AlertCircle className="h-3 w-3 text-yellow-400" />
                             {item}

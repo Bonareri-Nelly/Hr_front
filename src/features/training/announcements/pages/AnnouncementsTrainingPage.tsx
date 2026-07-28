@@ -3,7 +3,7 @@ import { resources, type ApiRecord } from "../../../../services/api/resources";
 
 const text = (item: ApiRecord, field: string) => String(item[field] ?? "—");
 
-export default function AnnouncementsTrainingPage() {
+export default function AnnouncementsTrainingPage({ employeeOnly: _employeeOnly = false }: { employeeOnly?: boolean }) {
   const announcements = useQuery({ queryKey: ["announcements"], queryFn: () => resources.announcements.list() });
   const trainings = useQuery({ queryKey: ["trainings"], queryFn: () => resources.trainings.list() });
   const error = announcements.error ?? trainings.error;
