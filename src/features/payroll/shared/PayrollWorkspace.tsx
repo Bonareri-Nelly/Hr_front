@@ -385,7 +385,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Posting Lines",
     tableAction: "Open journal",
-    tableActionPath: "/payroll/multi-currency-gl",
+    tableActionPath: "/payroll/history",
     tableHeaders: ["Line", "Account", "Cost center", "Amount", "Status"],
     rows: [
       ["Basic pay", "Staff costs", "Operations", "KES 12.4M", "Mapped", "success"],
@@ -435,7 +435,7 @@ function getPayrollTarget(page: PayrollPageKey, slot: PayrollTargetSlot, label: 
     approval: { primary: "/payroll/bank-integration", assign: "/dashboard/branch?branch_id=eldoret", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
     history: { checks: "/payroll/bank-integration" },
     tax: { primary: "/payroll/bank-integration", assign: "/payroll/compensation", checks: "/payroll/approval", evidence: "/payroll/history" },
-    bank: { primary: "/payroll/multi-currency-gl", assign: "/payroll/approval", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
+    bank: { primary: "/payroll/history", assign: "/payroll/approval", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
     compensation: { primary: "/payroll/creation", assign: "/dashboard/executive?branch_id=eldoret", checks: "/payroll/creation", evidence: "/payroll/history" },
     gl: { assign: "/dashboard/finance", checks: "/payroll/bank-integration", evidence: "/payroll/history" },
   };

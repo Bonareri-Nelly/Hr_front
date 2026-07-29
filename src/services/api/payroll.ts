@@ -37,6 +37,6 @@ export const payrollApi = {
   listPayslips: async () => unwrapList((await api.get<PayslipDto[] | { results: PayslipDto[] }>("payroll/payslips/")).data),
   listBankPayments: async () => unwrapList((await api.get("payroll/bank-payments/")).data),
   listComponents: async () => unwrapList((await api.get("payroll/components/")).data),
-  listCurrencies: async () => unwrapList((await api.get("payroll/currencies/")).data),
+
   listPolicies: async () => unwrapList((await api.get("payroll/policies/")).data),
 };

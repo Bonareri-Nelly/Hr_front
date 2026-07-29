@@ -7,7 +7,7 @@ const STORAGE_KEY = "hr_payroll_system_settings";
 const defaultSettings: Setting[] = [
   { id: "company_name", label: "Company name", value: "Optimum Computer Solutions", type: "text", description: "Used in system-facing labels and exports." },
   { id: "timezone", label: "Timezone", value: "Africa/Nairobi", type: "select", options: ["Africa/Nairobi", "Africa/Lagos", "Africa/Johannesburg"], description: "The default timezone for dates and time-based workflows." },
-  { id: "currency", label: "Currency", value: "KES", type: "select", options: ["KES", "USD", "EUR", "GBP"], description: "Default currency shown in payroll and financial summaries." },
+  { id: "currency", label: "Currency", value: "KES", type: "text", description: "Default currency shown in payroll and financial summaries. Fixed to KES." },
   { id: "email_notifications", label: "Email notifications", value: true, type: "toggle", description: "Send workflow notifications to users by email." },
   { id: "two_factor_auth", label: "Two-factor authentication", value: false, type: "toggle", description: "Require an additional verification factor at sign-in." },
   { id: "session_timeout", label: "Session timeout (minutes)", value: "30", type: "text", description: "Time before an inactive session expires." },

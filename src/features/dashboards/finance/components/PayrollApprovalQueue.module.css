@@ -1,54 +1,57 @@
 .approvalQueue {
-  background: var(--color-surface, #ffffff);
-  border-radius: var(--border-radius-lg, 8px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
   padding: 16px;
-  box-shadow: var(--shadow-sm, 0 2px 4px rgba(0,0,0,0.1));
+  box-shadow: 0 2px 8px oklch(18% 0.02 255 / 8%);
 }
 
 .tabs {
   display: flex;
-  gap: 8px;
-  border-bottom: 2px solid var(--color-border, #e0e0e0);
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
   margin-bottom: 16px;
 }
 
 .tab {
-  padding: 10px 20px;
+  padding: 9px 14px;
   border: none;
+  border-bottom: 2px solid transparent;
   background: transparent;
   cursor: pointer;
-  font-weight: 500;
-  color: var(--color-text-secondary, #7f8c8d);
-  border-bottom: 3px solid transparent;
-  transition: all 0.2s ease;
+  font-weight: 800;
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  transition: color 150ms ease, border-color 150ms ease;
 }
 
 .tab:hover {
-  color: var(--color-text-primary, #2c3e50);
+  color: var(--ink);
 }
 
 .tab.active {
-  color: var(--color-primary, #3498db);
-  border-bottom-color: var(--color-primary, #3498db);
+  color: var(--ink);
+  border-bottom-color: var(--gold);
 }
 
 .batchList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   max-height: 500px;
   overflow-y: auto;
 }
 
 .batchCard {
-  border: 1px solid var(--color-border, #e0e0e0);
-  border-radius: var(--border-radius-md, 6px);
-  padding: 16px;
-  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 14px 16px;
+  background: var(--surface);
+  transition: box-shadow 0.15s ease;
 }
 
 .batchCard:hover {
-  box-shadow: var(--shadow-md, 0 4px 6px rgba(0,0,0,0.1));
+  box-shadow: 0 4px 14px oklch(18% 0.02 255 / 10%);
 }
 
 .batchHeader {
@@ -59,13 +62,15 @@
 }
 
 .batchInfo h4 {
-  margin: 0;
-  color: var(--color-text-primary, #2c3e50);
+  margin: 0 0 3px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .batchPeriod {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary, #7f8c8d);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
 }
 
 .batchAmount {
@@ -73,50 +78,56 @@
 }
 
 .amount {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--color-text-primary, #2c3e50);
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--ink);
   display: block;
+  font-feature-settings: "tnum";
 }
 
 .employeeCount {
-  font-size: 0.85rem;
-  color: var(--color-text-secondary, #7f8c8d);
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 .batchDetails {
   display: flex;
-  gap: 16px;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary, #7f8c8d);
-  margin-bottom: 12px;
+  gap: 14px;
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
 }
 
 .status {
+  display: inline-flex;
+  align-items: center;
   padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .status.pending {
-  background: #f39c12;
-  color: white;
+  background: var(--warning-bg);
+  color: oklch(48% 0.08 80);
 }
 
 .status.review {
-  background: #3498db;
-  color: white;
+  background: var(--info-bg);
+  color: var(--info);
 }
 
 .status.flagged {
-  background: #e74c3c;
-  color: white;
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .status.approved {
-  background: #2ecc71;
-  color: white;
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .batchActions {
@@ -126,43 +137,46 @@
 }
 
 .actionButton {
-  padding: 6px 16px;
+  padding: 6px 14px;
   border: none;
-  border-radius: var(--border-radius-sm, 4px);
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-weight: 800;
+  font-size: 0.72rem;
+  transition: opacity 0.15s ease;
 }
 
 .actionButton.approve {
-  background: #2ecc71;
+  background: var(--success);
   color: white;
 }
 
 .actionButton.approve:hover {
-  background: #27ae60;
+  opacity: 0.85;
 }
 
 .actionButton.reject {
-  background: #e74c3c;
+  background: var(--danger);
   color: white;
 }
 
 .actionButton.reject:hover {
-  background: #c0392b;
+  opacity: 0.85;
 }
 
-.actionButton.flag {
-  background: #f39c12;
-  color: white;
+.actionButton.review {
+  background: var(--background);
+  color: var(--ink);
+  border: 1px solid var(--border);
 }
 
-.actionButton.flag:hover {
-  background: #d68910;
+.actionButton.review:hover {
+  background: var(--border-subtle);
 }
 
 .emptyState {
+  padding: 32px 24px;
   text-align: center;
-  padding: 40px 20px;
-  color: var(--color-text-secondary, #7f8c8d);
+  color: var(--text-muted);
+  font-size: 0.79rem;
 }

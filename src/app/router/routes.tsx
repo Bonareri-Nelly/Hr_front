@@ -53,7 +53,7 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "tax-compliance": lazy(() => import("../../features/payroll/tax-compliance")),
   "bank-integration": lazy(() => import("../../features/payroll/bank-integration")),
   "compensation-data": lazy(() => import("../../features/payroll/compensation-data")),
-  "multi-currency-gl-integration": lazy(() => import("../../features/payroll/multi-currency-gl")),
+
   "finance-dashboard": lazy(() => import("../../features/dashboards/finance")),
   "bank-integration-accounts": lazy(() => import("../../features/finance/bank-integration")),
   "tax-compliance-accounts": lazy(() => import("../../features/finance/tax-compliance")),
