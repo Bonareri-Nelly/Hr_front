@@ -38,7 +38,9 @@ export const useBenefitsData = ({ branchId, selectedBranch }: UseBenefitsDataPro
         });
         contributions.forEach((contribution) => {
           const enrollment = enrollments.find((item) => String(item.id) === str(contribution, "enrollment"));
-          const plan = plans.find((item) => String(item.id) === str(enrollment ?? {}, "benefit_plan") || String(item.id) === str(enrollment ?? {}, "plan"));
+          const plan = enrollment
+            ? plans.find((item) => String(item.id) === str(enrollment, "benefit_plan") || String(item.id) === str(enrollment, "plan"))
+            : undefined;
           const category = plan ? (str(plan, "category") || str(plan, "name") || "Uncategorised") : "Uncategorised";
           const current = categoryMap.get(category) ?? { enrolled: 0, cost: 0 };
           current.cost += number(contribution.amount ?? contribution.employer_contribution ?? contribution.total_amount); categoryMap.set(category, current);

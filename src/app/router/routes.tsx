@@ -35,7 +35,7 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "announcements-training": lazy(() => 
     import("../../features/training/announcements/pages/AnnouncementsTrainingPage")
       .then((module) => ({
-        default: module.default || module.AnnouncementsTrainingPage
+        default: module.default
       }))
   ),
   
