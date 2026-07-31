@@ -25,7 +25,7 @@ export default function CandidateApplicationsPage() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Applicant | null>(null);
   const [decision, setDecision] = useState<{ applicant: Applicant; stage: "Shortlisted" | "Rejected" } | null>(null);
-  const [candidateView, setCandidateView] = useState(false);
+  const [candidateView, setCandidateView] = useState(() => window.location.pathname.startsWith("/apply/"));
   const [linkMessage, setLinkMessage] = useState("");
   const visible = useMemo(() => applicants.filter((a) => (filter === "All" || a.stage === filter) && `${a.name} ${a.id} ${a.role}`.toLowerCase().includes(query.toLowerCase())), [applicants, filter, query]);
   useEffect(() => { api.get<RecruitmentApplicationDto[]>("/hr-operations/recruitment-applications/").then(({ data }) => setApplicants(data.map(fromApi))).catch(() => setLinkMessage("Could not load recruitment applications.")); }, []);

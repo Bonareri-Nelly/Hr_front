@@ -81,6 +81,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { resources } from "@/services/api/resources";
 
 type Tone = "success" | "warning" | "danger" | "info" | "neutral";
 
@@ -261,7 +262,7 @@ export default function BranchDashboardPage() {
   const [showPayrollModal, setShowPayrollModal] = useState(false);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<string>("All");
-  const [activeBranchName] = useState("Nairobi Branch");
+  const [activeBranchName] = useState("Eldoret Branch");
 
   // Edit state
   const [editingEmployee, setEditingEmployee] = useState<TeamMember | null>(null);
@@ -457,12 +458,38 @@ export default function BranchDashboardPage() {
     showToast("Task marked as complete!", "success");
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const [employees, leave, attendance, announcementsData] = await Promise.all([
+        resources.employees.list({ branch_name: activeBranchName }),
+        resources.leaveRequests.list({ branch_name: activeBranchName }),
+        resources.attendanceRecords.list({ branch_name: activeBranchName }),
+        resources.announcements.list({ branch_name: activeBranchName }),
+      ]);
+      setTeamMembers(employees.map((employee) => ({
+        id: String(employee.id),
+        name: String(employee.full_name ?? (`${employee.first_name ?? ""} ${employee.last_name ?? ""}`.trim() || "Unnamed employee")),
+        position: String(employee.designation_name ?? employee.designation ?? "—"),
+        department: String(employee.department_name ?? employee.department ?? "—"),
+        status: "Present",
+        email: String(employee.email ?? "—"),
+        phone: String(employee.phone ?? "—"),
+        joinDate: String(employee.hire_date ?? employee.join_date ?? new Date().toISOString()),
+        employmentType: "Full-time",
+        salary: Number(employee.salary ?? 0),
+        attendance: { present: 0, absent: 0, late: 0, overtime: 0, totalDays: 0 },
+        leaveBalance: { annual: 0, sick: 0, personal: 0 },
+      })));
+      setLeaveRequests(leave.map((item) => ({ id: String(item.id), employee: String(item.employee_name ?? item.employee ?? "—"), employeeId: String(item.employee ?? ""), type: "Annual", startDate: String(item.start_date ?? ""), endDate: String(item.end_date ?? ""), days: Number(item.days ?? item.total_days ?? 0), status: String(item.status ?? "Pending") as LeaveRequest["status"], reason: String(item.reason ?? ""), submitted: String(item.created_at ?? "") })));
+      setAttendanceRecords(attendance.map((item) => ({ date: String(item.date ?? ""), present: Number(item.present ?? 0), absent: Number(item.absent ?? 0), late: Number(item.late ?? 0), onLeave: Number(item.on_leave ?? 0), total: Number(item.total ?? 0), overtime: Number(item.overtime ?? 0) })));
+      setAnnouncements(announcementsData.map((item) => ({ id: String(item.id), title: String(item.title ?? "Announcement"), content: String(item.content ?? item.message ?? ""), date: String(item.created_at ?? item.date ?? ""), type: "Info", author: String(item.author_name ?? item.author ?? "HR") })));
+      showToast("Eldoret Branch dashboard refreshed from APIs.", "success");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Could not refresh dashboard data.", "error");
+    } finally {
       setIsLoading(false);
-      showToast("Dashboard refreshed!", "success");
-    }, 1000);
+    }
   };
 
   // ==================== EDIT HANDLERS ====================
@@ -642,13 +669,7 @@ export default function BranchDashboardPage() {
                   </span>
                 )}
               </button>
-              <button
-                onClick={handleAddEmployee}
-                className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200"
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Employee
-              </button>
+
             </div>
           </div>
         </div>
