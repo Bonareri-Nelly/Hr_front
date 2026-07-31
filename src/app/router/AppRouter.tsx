@@ -4,7 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import DashboardLayout from "../../layouts/dashboardLayout";
 import Login from "../../pages/login";
 import { canViewModule, getDefaultRouteForRole, hasActiveSession } from "../../services/permissions";
-import { appRoutes, type AppRoute } from "./routes";
+import { appRoutes, CandidateApplicationRoute, type AppRoute } from "./routes";
 
 function DashboardRedirect() {
   if (!hasActiveSession()) return <Navigate to="/" replace />;
@@ -25,6 +25,7 @@ export function AppRouter() {
       <Suspense fallback={<div className="app-main">Loading...</div>}>
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/apply/:slug" element={<CandidateApplicationRoute />} />
 
           <Route element={<DashboardLayout />}>
             <Route path="/dashboard" element={<DashboardRedirect />} />

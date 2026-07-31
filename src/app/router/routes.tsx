@@ -84,6 +84,8 @@ const createFallbackRoute = (item: NavigationItem): LazyExoticComponent<Componen
     default: () => <ModulePlaceholderPage title={item.label} />,
   }));
 
+export const CandidateApplicationRoute = routeComponents["candidate-applications"]!;
+
 export const appRoutes: AppRoute[] = navigationItems.map((item) => ({
   ...item,
   Component: routeComponents[item.id] ?? createFallbackRoute(item),
