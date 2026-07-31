@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ReviewLeaveModal from "./components/ReviewLeaveModal";
 import LeaveReportsAuditModal from "./components/LeaveReportsAuditModal";
 
@@ -7,6 +7,7 @@ import {
   type LeaveRequest,
 } from "./utils/approvalWorkflow";
 import { LEAVE_STATUS } from "../../constants/leaveStatus";
+import { leaveApi } from "../../services/api/leave";
 
 
 
@@ -50,44 +51,28 @@ export default function LeaveApprovals() {
 
 
 
-  const [requests, setRequests] = useState<LeaveRequest[]>([
-    {
-      id: 1,
-      employee: "Jane Smith",
-      department: "ICT",
-      employeeRole: ROLES.EMPLOYEE,
-      submittedByRole: ROLES.EMPLOYEE,
-      leaveType: "Annual Leave",
-      startDate: "2026-08-01",
-      endDate: "2026-08-05",
-      days: 5,
-      status: LEAVE_STATUS.PENDING,
-      workflowStage: "Pending Department Head Approval",
-      currentApprover: {
-        role: ROLES.DEPARTMENT_HEAD,
-        department: "ICT",
-      },
-      approvalHistory: [],
-    },
-    {
-      id: 2,
-      employee: "Peter Mwangi",
-      department: "ICT",
-      employeeRole: ROLES.EMPLOYEE,
-      submittedByRole: ROLES.EMPLOYEE,
-      leaveType: "Sick Leave",
-      startDate: "2026-08-10",
-      endDate: "2026-08-12",
-      days: 3,
-      status: LEAVE_STATUS.PENDING,
-      workflowStage: "Pending Department Head Approval",
-      currentApprover: {
-        role: ROLES.DEPARTMENT_HEAD,
-        department: "ICT",
-      },
-      approvalHistory: [],
-    },
-  ]);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    leaveApi.listRequests()
+      .then((items) => setRequests((items as Array<Record<string, unknown>>).map((item) => ({
+        id: Number(item.id),
+        employee: String(item.employee_name ?? item.employee ?? "—"),
+        department: String(item.department_name ?? item.department ?? ""),
+        employeeRole: ROLES.EMPLOYEE,
+        submittedByRole: ROLES.EMPLOYEE,
+        leaveType: String(item.leave_type_name ?? item.leave_type ?? "Leave"),
+        startDate: String(item.start_date ?? ""),
+        endDate: String(item.end_date ?? ""),
+        days: Number(item.days ?? item.total_days ?? 0),
+        status: String(item.status ?? LEAVE_STATUS.PENDING) as LeaveRequest["status"],
+        workflowStage: "Pending Department Head Approval",
+        currentApprover: { role: ROLES.DEPARTMENT_HEAD, department: String(item.department_name ?? item.department ?? "") },
+        approvalHistory: [],
+      }))))
+      .catch(() => setLoadError("Unable to load leave approvals from the API."));
+  }, []);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -210,34 +195,24 @@ export default function LeaveApprovals() {
 
 
 
-  const handleApprove = () => {
+  const handleApprove = async () => {
     if (!selectedRequest) return;
-
-    alert("Leave request approved.");
-
-    setRequests((prev) =>
-      prev.filter((r) => r.id !== selectedRequest.id)
-    );
-
+    await leaveApi.managerApprove(selectedRequest.id, { comment: "Approved from leave approvals workspace." });
+    setRequests((prev) => prev.filter((r) => r.id !== selectedRequest.id));
     setSelectedId(null);
   };
 
-  const handleReject = () => {
+  const handleReject = async () => {
     if (!selectedRequest) return;
-
-    alert("Leave request rejected.");
-
-    setRequests((prev) =>
-      prev.filter((r) => r.id !== selectedRequest.id)
-    );
-
+    await leaveApi.reject(selectedRequest.id, { reason: "Rejected from leave approvals workspace." });
+    setRequests((prev) => prev.filter((r) => r.id !== selectedRequest.id));
     setSelectedId(null);
   };
 
   return (
     <div className="dashboard-page">
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", flexWrap: "wrap" }}>
-        <div><h1 className="page-title">Leave Approvals</h1><p className="page-subtitle">Review leave requests assigned to you.</p></div>
+        <div><h1 className="page-title">Leave Approvals</h1><p className="page-subtitle">Review leave requests assigned to you from the live leave workflow API.</p>{loadError && <p className="alert alert-error">{loadError}</p>}</div>
         <button className="button button-secondary" onClick={() => setReportsOpen(true)}>Reports &amp; Audit</button>
       </div>
 

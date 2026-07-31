@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { employeeApi } from "../../../services/api/employee";
+import { leaveApi } from "../../../services/api/leave";
 import { leavePolicies } from "../constants/leavePolicies";
 import { calculateEndDate } from "../utils/dateCalculator";
 import { getMinimumStartDate } from "../utils/leaveDates";
@@ -8,6 +9,7 @@ type ApplyLeaveModalProps = {
   open: boolean;
   onClose: () => void;
   employeeGender: "Male" | "Female";
+  onSubmitted?: () => void;
   setSelectedLeave: React.Dispatch<React.SetStateAction<{
     startDate: string;
     endDate: string;
@@ -22,6 +24,7 @@ export default function ApplyLeaveModal({
   open,
   onClose,
   employeeGender,
+  onSubmitted,
   setSelectedLeave,
 }: ApplyLeaveModalProps) {
   const [leaveType, setLeaveType] = useState("");
@@ -34,6 +37,8 @@ export default function ApplyLeaveModal({
   const [step, setStep] = useState<"form" | "summary" | "success">("form");
   const [errors, setErrors] = useState({ leaveType: "", reason: "", startDate: "", endDate: "" });
   const [coveringEmployees, setCoveringEmployees] = useState<Array<{ id: string; name: string; department: string }>>([]);
+  const [apiLeaveTypes, setApiLeaveTypes] = useState<Array<Record<string, unknown>>>([]);
+  const [submitError, setSubmitError] = useState("");
 
   const policy = leaveType ? leavePolicies[leaveType as keyof typeof leavePolicies] : null;
   const availableLeaveTypes = useMemo(
@@ -45,6 +50,7 @@ export default function ApplyLeaveModal({
     [employeeGender]
   );
   useEffect(() => {
+    leaveApi.listTypes().then((types) => setApiLeaveTypes(types as Array<Record<string, unknown>>)).catch(() => setApiLeaveTypes([]));
     employeeApi.list()
       .then((employees) => {
         const mapped = (employees as Array<Record<string, unknown>>)
@@ -79,6 +85,17 @@ export default function ApplyLeaveModal({
       setEndDate(formatDate(calculateEndDate(new Date(startDate), policy.fixedDays, policy.countsWeekends, policy.countsPublicHolidays)));
     }
   }, [policy, startDate]);
+
+  const submitRequest = async () => {
+    setSubmitError("");
+    const user = JSON.parse(localStorage.getItem("current_user") ?? localStorage.getItem("user") ?? "{}");
+    const employeeId = user.employee_id ?? localStorage.getItem("employee_id");
+    const apiType = apiLeaveTypes.find((item) => String(item.name ?? "").toLowerCase().includes(String(policy?.label ?? leaveType).toLowerCase().split(" ")[0]));
+    if (!employeeId || !apiType?.id) { setSubmitError("Your employee profile or leave type is not configured in the API."); return; }
+    await leaveApi.createRequest({ employee_id: employeeId, leave_type_id: String(apiType.id), start_date: startDate, end_date: endDate, reason });
+    onSubmitted?.();
+    setStep("success");
+  };
 
   if (!open) return null;
 
@@ -142,10 +159,11 @@ export default function ApplyLeaveModal({
           <SummaryRow label="Leave Type" value={policy?.label ?? "-"} /><SummaryRow label="Reason" value={reason} /><SummaryRow label="Start Date" value={startDate} /><SummaryRow label="End Date" value={endDate} /><SummaryRow label="Relieving Employee" value={selectedCoveringEmployee?.name ?? "Not selected"} />
         </div>}
         {step === "success" && <div style={{ textAlign: "center", padding: "24px 0" }}><div style={{ fontSize: "2.5rem" }}>✓</div><h2>Leave Request Submitted</h2><p style={{ color: "var(--text-secondary)" }}>Your leave request has been forwarded for review.</p></div>}
+      {submitError && <p style={{ color: "var(--danger)", fontSize: ".8rem" }}>{submitError}</p>}
       </div>
       <div style={footerStyle}>
         {step === "form" && <><button className="button button-secondary" onClick={resetAndClose}>Cancel</button><button className="button button-primary" onClick={() => validate() && setStep("summary")}>Review Request</button></>}
-        {step === "summary" && <><button className="button button-secondary" onClick={() => setStep("form")}>Edit</button><button className="button button-primary" onClick={() => setStep("success")}>Submit Request</button></>}
+        {step === "summary" && <><button className="button button-secondary" onClick={() => setStep("form")}>Edit</button><button className="button button-primary" onClick={submitRequest}>Submit Request</button></>}
         {step === "success" && <button className="button button-primary" onClick={resetAndClose}>Done</button>}
       </div>
     </div>

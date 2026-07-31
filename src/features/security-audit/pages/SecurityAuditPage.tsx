@@ -111,53 +111,7 @@ const securityMetrics: SecurityMetric[] = [];
 
 const securityEvents: SecurityEvent[] = [];
 
-const auditLogs: AuditLog[] = [
-  {
-    id: "AUD-2026-001",
-    timestamp: "2026-07-08 09:45:12",
-    user: "angela.njeri@company.com",
-    action: "Payroll Run Approval",
-    resource: "Payroll - July 2026",
-    ip: "192.168.1.120",
-    status: "success",
-  },
-  {
-    id: "AUD-2026-002",
-    timestamp: "2026-07-08 09:30:05",
-    user: "brian.otieno@company.com",
-    action: "User Role Update",
-    resource: "User: emp-045",
-    ip: "192.168.1.45",
-    status: "success",
-  },
-  {
-    id: "AUD-2026-003",
-    timestamp: "2026-07-08 09:15:44",
-    user: "grace.wanjiru@company.com",
-    action: "Security Policy Change",
-    resource: "MFA Policy",
-    ip: "192.168.1.78",
-    status: "failure",
-  },
-  {
-    id: "AUD-2026-004",
-    timestamp: "2026-07-08 08:55:30",
-    user: "sam.mwangi@company.com",
-    action: "Data Export",
-    resource: "Employee Records - 214 records",
-    ip: "192.168.1.90",
-    status: "success",
-  },
-  {
-    id: "AUD-2026-005",
-    timestamp: "2026-07-08 08:30:18",
-    user: "mercy.achieng@company.com",
-    action: "API Key Regeneration",
-    resource: "API Key: payroll-service",
-    ip: "192.168.1.34",
-    status: "pending",
-  },
-];
+const auditLogs: AuditLog[] = [];
 
 const complianceItems: ComplianceItem[] = [
   {
