@@ -42,8 +42,6 @@ export const navigationItems: NavigationItem[] = [
 
   // Finance Section
   { id: "finance-dashboard", label: "Finance Dashboard", path: "/dashboard/finance", section: "Finance", icon: "Banknote" },
-  { id: "bank-integration-accounts", label: "Bank Integration (Accounts)", path: "/finance/bank-integration", section: "Finance", icon: "Landmark" },
-  { id: "tax-compliance-accounts", label: "Tax & Compliance (Accounts)", path: "/finance/tax-compliance", section: "Finance", icon: "FileText" },
   { id: "benefits-management-accounts", label: "Benefits Management (Accounts)", path: "/finance/benefits", section: "Finance", icon: "HandCoins" },
   { id: "employee-finance", label: "Employee Finance", path: "/finance/employee", section: "Finance", icon: "BriefcaseBusiness" },
   { id: "finance-grievances", label: "Finance Grievances", path: "/finance/finance-grievances", section: "Finance", icon: "MessageCircleQuestion" },

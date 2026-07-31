@@ -14,31 +14,8 @@ export default function EmployeeFinancialProfile() {
   const [newNoteText, setNewNoteText] = useState<string>('');
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
 
-  // Individual dataset mirroring Nancy's database parameters with audit context
-  const mockEmployeeDb: { [key: string]: FullFinancialProfile } = {
-    "NX-001247": {
-      summary: { name: "Nancy Wanjiku Karanja", id: "NX-001247", branch: "Nairobi HQ", department: "Engineering", grade: "E4", status: "Active", grossSalary: 245000 },
-      breakdown: {
-        basic: 185000,
-        allowances: [{ label: "Housing allowance", value: 45000 }, { label: "Transport allowance", value: 15000 }],
-        deductions: [{ label: "PAYE Tax", value: 52460 }, { label: "NSSF matching", value: 2160 }, { label: "SHIF Premium", value: 1700 }, { label: "Housing levy", value: 3675 }]
-      },
-      identifiers: { taxPin: "A001247895K", nssf: "NSSF-9948210", shif: "SHIF-8830114", isComplete: true },
-      bankDetails: { bankName: "Equity Bank Kenya", accountNumber: "1240182474821", branchCode: "EQ-001" },
-      history: [
-        { date: "01 Apr 2024", previous: 220000, updated: 245000, approvedBy: "Finance Exec (Mary C.)" },
-        { date: "14 Mar 2022", previous: 0, updated: 220000, approvedBy: "HR Admin Board" }
-      ],
-      disbursements: [
-        { period: "June 2026", runRef: "PR-2026-06-C", status: "confirmed", amount: 185005 },
-        { period: "May 2026", runRef: "PR-2026-05-01", status: "confirmed", amount: 185005 },
-        { period: "Apr 2026", runRef: "PR-2026-04-01", status: "failed", amount: 185005, reason: "Account closed or invalid routing segment" }
-      ],
-      notes: [
-        { timestamp: "01 Jul 2026, 09:14 AM", author: "James M. (Finance)", text: "Re-verified details following the Apr failure. Employee provided updated Equity coordinates." }
-      ]
-    }
-  };
+  // No seeded financial employee DB — rely on backend APIs or user queries
+  const mockEmployeeDb: { [key: string]: FullFinancialProfile } = {};
 
   // Handler 1: Secure Search Gateway with Mandatory Audit Logger Hook
   const handleProfileSearch = (e: React.FormEvent) => {

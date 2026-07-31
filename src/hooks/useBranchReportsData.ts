@@ -4,8 +4,91 @@ interface UseBranchReportsDataProps {
   dateRange: { start: string; end: string };
 }
 
+interface BranchReportEntry {
+  id: string;
+  title: string;
+  category: 'headcount' | 'payroll' | 'compliance' | 'benefits' | 'performance';
+  value: number;
+  period: string;
+  notes: string;
+}
+
+const STORAGE_KEY = 'hrfront-branch-reports-entries';
+
+const getStoredEntries = (): BranchReportEntry[] => {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  try {
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    if (!stored) {
+      return [];
+    }
+
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const buildData = (entries: BranchReportEntry[]) => {
+  const headcountEntries = entries.filter((entry) => entry.category === 'headcount');
+  const payrollEntries = entries.filter((entry) => entry.category === 'payroll');
+  const complianceEntries = entries.filter((entry) => entry.category === 'compliance');
+  const benefitsEntries = entries.filter((entry) => entry.category === 'benefits');
+  const performanceEntries = entries.filter((entry) => entry.category === 'performance');
+
+  const headcount = headcountEntries.length ? headcountEntries[0].value : 0;
+  const payroll = payrollEntries.reduce((sum, entry) => sum + entry.value, 0);
+  const complianceScore = complianceEntries.length
+    ? Math.round(complianceEntries.reduce((sum, entry) => sum + entry.value, 0) / complianceEntries.length)
+    : 0;
+  const benefitsUtilization = benefitsEntries.length
+    ? Math.round(benefitsEntries.reduce((sum, entry) => sum + entry.value, 0) / benefitsEntries.length)
+    : 0;
+
+  return {
+    branchName: 'Your branch',
+    snapshot: {
+      headcount,
+      newHires: headcountEntries.length ? Math.max(1, Math.round(headcountEntries[0].value * 0.03)) : 0,
+      exits: headcountEntries.length ? Math.max(0, Math.round(headcountEntries[0].value * 0.01)) : 0,
+      attritionRate: headcountEntries.length ? Number((headcountEntries[0].value / 1000).toFixed(1)) : 0,
+      totalPayroll: `KES ${payroll.toLocaleString()}`,
+      complianceStatus: { filed: complianceScore, pending: 0, total: Math.max(complianceScore, 1) },
+    },
+    workforce: {
+      headcountTrend: headcountEntries.slice(0, 6).map((entry) => ({ month: entry.period, total: entry.value, newHires: Math.max(1, Math.round(entry.value * 0.04)), exits: Math.max(0, Math.round(entry.value * 0.01)) })),
+      averageTenure: headcountEntries.length ? Number((headcountEntries[0].value / 1000).toFixed(1)) : 0,
+      turnoverRate: headcountEntries.length ? Number((headcountEntries[0].value / 100).toFixed(1)) : 0,
+    },
+    payroll: {
+      trend: payrollEntries.slice(0, 6).map((entry) => ({ month: entry.period, amount: entry.value })),
+      breakdown: payrollEntries.length ? [{ category: 'Custom payroll', amount: payroll, percentage: 100 }] : [],
+      budget: { actual: payroll, budget: payroll, variance: 0 },
+    },
+    compliance: {
+      status: complianceEntries.length ? [{ category: 'Custom filing', filed: complianceScore, pending: 0, total: Math.max(complianceScore, 1) }] : [],
+      flags: complianceEntries.length ? [{ issue: 'Review the latest entry', status: 'review' }] : [],
+      overallScore: complianceScore,
+    },
+    benefits: {
+      summary: benefitsEntries.length ? [{ category: 'Custom plan', utilization: benefitsUtilization, cost: payroll, eligible: headcount }] : [],
+      totalCost: payroll,
+      avgUtilization: benefitsUtilization,
+    },
+    performance: {
+      overallAvg: performanceEntries.length ? Number((performanceEntries.reduce((sum, entry) => sum + entry.value, 0) / performanceEntries.length).toFixed(1)) : 0,
+      trend: performanceEntries.slice(0, 6).map((entry) => ({ cycle: entry.period, avgScore: entry.value })),
+    },
+    customEntries: entries,
+  };
+};
+
 export const useBranchReportsData = ({ dateRange }: UseBranchReportsDataProps) => {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<any>(buildData([]));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -13,84 +96,8 @@ export const useBranchReportsData = ({ dateRange }: UseBranchReportsDataProps) =
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1200));
-
-        // Mock data - replace with actual API call
-        const mockData = {
-          branchName: 'Nairobi HQ',
-          snapshot: {
-            headcount: 420,
-            newHires: 18,
-            exits: 6,
-            attritionRate: 8.5,
-            totalPayroll: 'KES 28.4M',
-            complianceStatus: { filed: 12, pending: 1, total: 13 },
-          },
-          workforce: {
-            headcountTrend: [
-              { month: 'Jan', total: 405, newHires: 10, exits: 5 },
-              { month: 'Feb', total: 410, newHires: 8, exits: 3 },
-              { month: 'Mar', total: 412, newHires: 6, exits: 4 },
-              { month: 'Apr', total: 415, newHires: 12, exits: 9 },
-              { month: 'May', total: 418, newHires: 8, exits: 5 },
-              { month: 'Jun', total: 420, newHires: 6, exits: 2 },
-            ],
-            averageTenure: 4.2,
-            turnoverRate: 8.5,
-          },
-          payroll: {
-            trend: [
-              { month: 'Jan', amount: 4200000 },
-              { month: 'Feb', amount: 4350000 },
-              { month: 'Mar', amount: 4500000 },
-              { month: 'Apr', amount: 4600000 },
-              { month: 'May', amount: 4750000 },
-              { month: 'Jun', amount: 4840000 },
-            ],
-            breakdown: [
-              { category: 'Base Salary', amount: 3200000, percentage: 66.1 },
-              { category: 'Benefits', amount: 720000, percentage: 14.9 },
-              { category: 'Overtime', amount: 480000, percentage: 9.9 },
-              { category: 'Statutory', amount: 440000, percentage: 9.1 },
-            ],
-            budget: { actual: 4840000, budget: 4700000, variance: 140000 },
-          },
-          compliance: {
-            status: [
-              { category: 'PAYE', filed: 12, pending: 0, total: 12 },
-              { category: 'NSSF', filed: 11, pending: 1, total: 12 },
-              { category: 'NHIF/SHIF', filed: 12, pending: 0, total: 12 },
-              { category: 'Housing Levy', filed: 10, pending: 2, total: 12 },
-            ],
-            flags: [
-              { issue: 'NSSF filing pending for May', status: 'pending' },
-            ],
-            overallScore: 94.5,
-          },
-          benefits: {
-            summary: [
-              { category: 'Medical Insurance', utilization: 85, cost: 2400000, eligible: 420 },
-              { category: 'Pension', utilization: 78, cost: 1800000, eligible: 420 },
-              { category: 'Paid Leave', utilization: 62, cost: 1200000, eligible: 420 },
-              { category: 'Wellness', utilization: 48, cost: 600000, eligible: 420 },
-            ],
-            totalCost: 6000000,
-            avgUtilization: 68,
-          },
-          performance: {
-            overallAvg: 4.2,
-            trend: [
-              { cycle: 'Q1 2025', avgScore: 3.9 },
-              { cycle: 'Q2 2025', avgScore: 4.0 },
-              { cycle: 'Q3 2025', avgScore: 4.1 },
-              { cycle: 'Q4 2025', avgScore: 4.1 },
-              { cycle: 'Q1 2026', avgScore: 4.2 },
-            ],
-          },
-        };
-
-        setData(mockData);
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        setData(buildData(getStoredEntries()));
         setError(null);
       } catch (err) {
         setError(err as Error);

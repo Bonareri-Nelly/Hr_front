@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { 
-  BarChart3, 
-  Users, 
-  DollarSign, 
-  Shield, 
-  Gift, 
+import { useState, type FormEvent } from 'react';
+import {
+  BarChart3,
+  Users,
+  DollarSign,
+  Shield,
+  Gift,
   TrendingUp,
   Calendar,
   Clock,
-  BookOpen
+  BookOpen,
+  Plus,
 } from 'lucide-react';
 import { FilterBar } from '../components/FilterBar';
 import { ReportBuilder } from '../components/ReportBuilder';
@@ -23,6 +24,7 @@ import { useReportsData } from '../../../hooks/useReportsData';
 
 type TimeRange = 'monthly' | 'quarterly' | 'annual';
 type ViewMode = 'overview' | 'builder' | 'scheduled';
+type ReportCategory = 'headcount' | 'payroll' | 'compliance' | 'benefits' | 'performance';
 
 export default function ReportsAnalyticsPage() {
   const [timeRange, setTimeRange] = useState<TimeRange>('monthly');
@@ -33,8 +35,15 @@ export default function ReportsAnalyticsPage() {
     start: '2026-01-01',
     end: '2026-06-30',
   });
+  const [entryForm, setEntryForm] = useState({
+    title: '',
+    category: 'headcount' as ReportCategory,
+    value: '',
+    period: '',
+    notes: '',
+  });
 
-  const { data, loading, error } = useReportsData({
+  const { data, loading, error, addEntry } = useReportsData({
     timeRange,
     branch: selectedBranch,
     department: selectedDepartment,
@@ -42,6 +51,31 @@ export default function ReportsAnalyticsPage() {
   });
 
   const scopeLabel = selectedBranch === 'all' ? 'All Branches' : selectedBranch;
+
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+
+    if (!entryForm.title || !entryForm.period || !entryForm.value) {
+      return;
+    }
+
+    addEntry({
+      id: `entry-${Date.now()}`,
+      title: entryForm.title,
+      category: entryForm.category,
+      value: Number(entryForm.value),
+      period: entryForm.period,
+      notes: entryForm.notes,
+    });
+
+    setEntryForm({
+      title: '',
+      category: 'headcount',
+      value: '',
+      period: '',
+      notes: '',
+    });
+  };
 
   return (
     <div className="dashboard-page reports-analytics-page">
@@ -61,42 +95,27 @@ export default function ReportsAnalyticsPage() {
             <Calendar className="w-4 h-4" />
             {dateRange.start} - {dateRange.end}
           </button>
-          <ExportButton 
-            data={data} 
-            fileName={`executive-report-${selectedBranch}`} 
-          />
+          <ExportButton data={data} fileName={`executive-report-${selectedBranch}`} />
         </div>
       </div>
 
       <div className="reports-analytics-tabs">
         <button
           onClick={() => setViewMode('overview')}
-          className={`reports-analytics-tab ${
-            viewMode === 'overview'
-              ? 'reports-analytics-tab-active'
-              : ''
-          }`}
+          className={`reports-analytics-tab ${viewMode === 'overview' ? 'reports-analytics-tab-active' : ''}`}
         >
           Overview
         </button>
         <button
           onClick={() => setViewMode('builder')}
-          className={`reports-analytics-tab ${
-            viewMode === 'builder'
-              ? 'reports-analytics-tab-active'
-              : ''
-          }`}
+          className={`reports-analytics-tab ${viewMode === 'builder' ? 'reports-analytics-tab-active' : ''}`}
         >
           <BookOpen className="w-4 h-4 inline mr-1" />
           Report Builder
         </button>
         <button
           onClick={() => setViewMode('scheduled')}
-          className={`reports-analytics-tab ${
-            viewMode === 'scheduled'
-              ? 'reports-analytics-tab-active'
-              : ''
-          }`}
+          className={`reports-analytics-tab ${viewMode === 'scheduled' ? 'reports-analytics-tab-active' : ''}`}
         >
           <Clock className="w-4 h-4 inline mr-1" />
           Scheduled Reports
@@ -117,7 +136,7 @@ export default function ReportsAnalyticsPage() {
 
       {loading && (
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-700"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--bronze)]"></div>
         </div>
       )}
 
@@ -129,6 +148,81 @@ export default function ReportsAnalyticsPage() {
 
       {!loading && !error && data && (
         <div className="space-y-6">
+          <form onSubmit={handleSubmit} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <Plus className="w-4 h-4 text-[var(--bronze)]" />
+              <h3 className="text-lg font-semibold">Add your own report data</h3>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <input
+                className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2"
+                placeholder="Title"
+                value={entryForm.title}
+                onChange={(event) => setEntryForm((current) => ({ ...current, title: event.target.value }))}
+              />
+              <select
+                className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2"
+                value={entryForm.category}
+                onChange={(event) => setEntryForm((current) => ({ ...current, category: event.target.value as ReportCategory }))}
+              >
+                <option value="headcount">Headcount</option>
+                <option value="payroll">Payroll</option>
+                <option value="compliance">Compliance</option>
+                <option value="benefits">Benefits</option>
+                <option value="performance">Performance</option>
+              </select>
+              <input
+                className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2"
+                type="number"
+                placeholder="Value"
+                value={entryForm.value}
+                onChange={(event) => setEntryForm((current) => ({ ...current, value: event.target.value }))}
+              />
+              <input
+                className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2"
+                placeholder="Period"
+                value={entryForm.period}
+                onChange={(event) => setEntryForm((current) => ({ ...current, period: event.target.value }))}
+              />
+              <input
+                className="rounded-lg border border-[var(--border)] bg-transparent px-3 py-2"
+                placeholder="Notes"
+                value={entryForm.notes}
+                onChange={(event) => setEntryForm((current) => ({ ...current, notes: event.target.value }))}
+              />
+            </div>
+            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-[var(--text-secondary)]">Entries are stored locally in your browser and will appear in the analytics cards immediately.</p>
+              <button type="submit" className="rounded-lg bg-[var(--navy-deepest)] px-4 py-2 text-sm font-semibold text-white">
+                Save entry
+              </button>
+            </div>
+          </form>
+
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold">Saved entries</h3>
+              <span className="text-sm text-[var(--text-secondary)]">{data.customEntries?.length || 0} saved</span>
+            </div>
+            {data.customEntries?.length ? (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {data.customEntries.map((entry: any) => (
+                  <div key={entry.id} className="rounded-lg border border-[var(--border)] p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">{entry.title}</p>
+                      <span className="rounded-full bg-[var(--gold-light)] px-2 py-1 text-xs text-[var(--bronze)]">{entry.category}</span>
+                    </div>
+                    <p className="mt-2 text-sm text-[var(--text-secondary)]">{entry.period}</p>
+                    <p className="text-lg font-semibold">{entry.value}</p>
+                    {entry.notes ? <p className="text-sm text-[var(--text-secondary)]">{entry.notes}</p> : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--text-secondary)]">No entries yet. Add one above to start populating your analytics.</p>
+            )}
+          </div>
+
           {viewMode === 'overview' && (
             <>
               <ExecutiveSummary data={data} scope={scopeLabel} />
@@ -145,13 +239,8 @@ export default function ReportsAnalyticsPage() {
             </>
           )}
 
-          {viewMode === 'builder' && (
-            <ReportBuilder data={data} />
-          )}
-
-          {viewMode === 'scheduled' && (
-            <ScheduledReports />
-          )}
+          {viewMode === 'builder' && <ReportBuilder data={data} />}
+          {viewMode === 'scheduled' && <ScheduledReports />}
         </div>
       )}
     </div>

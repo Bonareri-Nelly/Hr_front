@@ -5,7 +5,7 @@ import api from "../../../../services/api/api";
 
 type Employee = { id: number; employee_number: string; full_name: string; work_email: string; personal_email: string; phone_number: string; employment_status: string; employment_type: string; hire_date: string; termination_date?: string | null; branch?: number | null; department?: number | null; designation?: number | null };
 const list = <T,>(value: T[] | { results?: T[] }) => Array.isArray(value) ? value : value.results ?? [];
-const label = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+const label = (value: string) => value.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (char: string) => char.toUpperCase());
 
 export default function EmployeeLifecyclePage() {
   const [search, setSearch] = useState("");

@@ -603,6 +603,10 @@ a {
   color: var(--ink);
 }
 
+.reports-analytics-page svg {
+  color: var(--bronze);
+}
+
 .reports-analytics-page :is(.bg-blue-50, .bg-blue-100) {
   background-color: var(--gold-light) !important;
 }

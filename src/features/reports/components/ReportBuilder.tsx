@@ -54,9 +54,17 @@ export const ReportBuilder = ({ data }: ReportBuilderProps) => {
       return;
     }
 
-    // Generate mock data based on selected metrics
-    const mockData = generateMockData(selectedMetrics);
-    setGeneratedReport(mockData);
+    // Prefer using real/custom entries from the provided data if available
+    if (data?.customEntries && Array.isArray(data.customEntries) && data.customEntries.length > 0) {
+      // Simple mapping: take up to 6 recent entries and map to a month-like period
+      const rows = data.customEntries.slice(0, 6).map((e: any) => ({ month: e.period || e.id, ...{ [selectedMetrics[0]]: e.value } }));
+      setGeneratedReport(rows);
+      return;
+    }
+
+    // No live data available—set an empty generated report and prompt the user
+    setGeneratedReport([]);
+    alert('No live report data available. Add entries on the Reports page to build custom reports.');
   };
 
   const generateMockData = (metrics: string[]) => {
