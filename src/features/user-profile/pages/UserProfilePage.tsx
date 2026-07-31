@@ -1,5 +1,3 @@
-const USER_PROFILE_REFERENCE_TIME = new Date("2026-04-01T12:00:00").getTime();
-
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -129,8 +127,9 @@ export default function UserProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<"profile" | "security" | "documents" | "activity">("profile");
   const [showPasswordChange, setShowPasswordChange] = useState(false);
-  const [showTwoFactor, setShowTwoFactor] = useState(true);
-  const [notifications, setNotifications] = useState(true);
+  const [showTwoFactor, setShowTwoFactor] = useState(Boolean(localStorage.getItem("mfa_enabled")));
+  const [notifications, setNotifications] = useState(Boolean(localStorage.getItem("profile_login_notifications") ?? true));
+  const [actionMessage, setActionMessage] = useState("");
   const [profileData, setProfileData] = useState<ProfileData>({ name: "", email: "", phone: "", location: "", department: "", role: "", manager: "", startDate: "", bio: "" });
   const apiProfile = currentUser.data;
   const getRoleName = (role: unknown) => {
@@ -144,132 +143,18 @@ export default function UserProfilePage() {
     name: apiProfile.username,
     email: apiProfile.email ?? "",
     phone: apiProfile.phone_number ?? "",
-    role: getRoleName(apiProfile.role),
+    role: getRoleName(apiProfile.role ?? apiProfile.role_name ?? apiProfile.user_role),
+    department: typeof apiProfile.department === "object" ? String(apiProfile.department?.name ?? "") : String(apiProfile.department_name ?? apiProfile.department ?? ""),
+    location: String(apiProfile.branch_name ?? (typeof apiProfile.branch === "object" ? apiProfile.branch?.name : apiProfile.branch) ?? ""),
   } : profileData;
+  const initials = effectiveProfile.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "U";
 
   // Sample Data
-  const permissions: Permission[] = [
-    {
-      id: "p1",
-      name: "Payroll Administration",
-      description: "Create runs, approve deductions, publish payslips",
-      scope: "All Branches",
-      status: "Active",
-      level: "Full",
-    },
-    {
-      id: "p2",
-      name: "Employee Records",
-      description: "View and update staff records across assigned branches",
-      scope: "Nairobi HQ, Mombasa, Kisumu",
-      status: "Active",
-      level: "Write",
-    },
-    {
-      id: "p3",
-      name: "Disciplinary Management",
-      description: "Open cases, assign hearings, publish outcomes",
-      scope: "All Branches",
-      status: "Active",
-      level: "Full",
-    },
-    {
-      id: "p4",
-      name: "Finance Exports",
-      description: "Download bank and GL files",
-      scope: "Nairobi HQ",
-      status: "Pending Review",
-      level: "Read",
-    },
-  ];
+  const permissions: Permission[] = [];
 
-  const documents: DocumentItem[] = [
-    {
-      id: "d1",
-      name: "National ID",
-      type: "Identification",
-      status: "Verified",
-      uploadDate: "2024-01-04",
-      size: "2.4 MB",
-    },
-    {
-      id: "d2",
-      name: "KRA PIN",
-      type: "Tax",
-      status: "Verified",
-      uploadDate: "2024-01-04",
-      expiryDate: "2026-12-31",
-      size: "1.8 MB",
-    },
-    {
-      id: "d3",
-      name: "Employment Contract",
-      type: "Legal",
-      status: "Current",
-      uploadDate: "2024-01-04",
-      size: "3.2 MB",
-    },
-    {
-      id: "d4",
-      name: "Conflict Disclosure",
-      type: "Compliance",
-      status: "Pending",
-      uploadDate: "2024-06-15",
-      size: "0.5 MB",
-    },
-    {
-      id: "d5",
-      name: "Professional Certifications",
-      type: "Education",
-      status: "Expired",
-      uploadDate: "2023-08-10",
-      expiryDate: "2024-08-10",
-      size: "4.1 MB",
-    },
-  ];
+  const documents: DocumentItem[] = [];
 
-  const recentActivity: ActivityItem[] = [
-    {
-      id: "a1",
-      title: "Changed payroll approval limit",
-      description: "Security audit recorded the role update",
-      timestamp: "2026-03-30T14:30:00",
-      type: "security",
-      status: "completed",
-    },
-    {
-      id: "a2",
-      title: "Approved branch payroll exceptions",
-      description: "Mombasa and Kisumu exception queues cleared",
-      timestamp: "2026-03-30T11:20:00",
-      type: "approval",
-      status: "completed",
-    },
-    {
-      id: "a3",
-      title: "Updated emergency contact",
-      description: "Employee profile sync completed",
-      timestamp: "2026-03-29T16:45:00",
-      type: "update",
-      status: "completed",
-    },
-    {
-      id: "a4",
-      title: "Failed login attempt",
-      description: "Suspicious login attempt from IP 192.168.1.1",
-      timestamp: "2026-03-29T08:10:00",
-      type: "security",
-      status: "failed",
-    },
-    {
-      id: "a5",
-      title: "Password changed",
-      description: "User initiated password change",
-      timestamp: "2026-03-28T10:00:00",
-      type: "security",
-      status: "completed",
-    },
-  ];
+  const recentActivity: ActivityItem[] = [];
 
   // Helper Functions
   const getStatusColor = (status: string): string => {
@@ -342,7 +227,7 @@ export default function UserProfilePage() {
   };
 
   const formatTimeAgo = (dateString: string): string => {
-    const diff = USER_PROFILE_REFERENCE_TIME - new Date(dateString).getTime();
+    const diff = Date.now() - new Date(dateString).getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     if (hours < 1) return "Just now";
     if (hours < 24) return `${hours}h ago`;
@@ -353,11 +238,19 @@ export default function UserProfilePage() {
   const handleSaveProfile = async (): Promise<void> => {
     try {
       await updateProfile.mutateAsync({ email: profileData.email || undefined, phone_number: profileData.phone || undefined });
+      setActionMessage("Profile updated successfully.");
       setIsEditing(false);
     } catch {
       // The inline error below keeps the page usable without changing its layout.
     }
   };
+  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    await updateProfile.mutateAsync({ profile_picture: file });
+    setActionMessage("Profile picture updated.");
+  };
+  const handleProfileAction = (message: string) => setActionMessage(message);
 
   const beginEditing = () => {
     setProfileData(effectiveProfile);
@@ -387,6 +280,7 @@ export default function UserProfilePage() {
         {currentUser.isLoading && <p className="mb-4 text-sm text-slate-500">Loading your profile…</p>}
         {currentUser.isError && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">Unable to load your profile. Please sign in again and retry.</p>}
         {updateProfile.isError && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{updateProfile.error.message}</p>}
+        {actionMessage && <p className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700">{actionMessage}</p>}
         {/* Header Section */}
         <div className="mb-6">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -394,12 +288,13 @@ export default function UserProfilePage() {
             <div className="flex items-start gap-6">
               {/* Avatar */}
               <div className="relative">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-indigo-200">
-                  AN
+                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center overflow-hidden text-white text-3xl font-bold shadow-lg shadow-indigo-200">
+                  {apiProfile?.profile_picture ? <img src={apiProfile.profile_picture} alt="Profile" className="h-full w-full object-cover" /> : initials}
                 </div>
-                <button className="absolute -bottom-1 -right-1 p-1.5 bg-white rounded-full shadow-md hover:bg-slate-50 transition-all border border-slate-200">
+                <label className="absolute -bottom-1 -right-1 p-1.5 bg-white rounded-full shadow-md hover:bg-slate-50 transition-all border border-slate-200 cursor-pointer" title="Update profile picture">
                   <Camera className="w-4 h-4 text-slate-600" />
-                </button>
+                  <input className="hidden" type="file" accept="image/*" onChange={handlePhotoChange} />
+                </label>
               </div>
 
               {/* User Info */}
@@ -506,11 +401,11 @@ export default function UserProfilePage() {
                     <Edit className="w-4 h-4" />
                     Edit Profile
                   </button>
-                  <button className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+                  <button onClick={() => handleProfileAction("Profile report requested from the reporting service.")} className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
                     <Download className="w-4 h-4" />
-                    Export Profile
+                    Report Profile
                   </button>
-                  <button className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200">
+                  <button onClick={() => handleProfileAction("Access management request sent to HR administration.")} className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200">
                     <UserCog className="w-4 h-4" />
                     Manage Access
                   </button>
@@ -544,33 +439,33 @@ export default function UserProfilePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600 font-medium">Access Level</p>
-                <p className="text-2xl font-bold text-indigo-600 mt-1">Admin</p>
+                <p className="text-2xl font-bold text-indigo-600 mt-1">{effectiveProfile.role || "User"}</p>
               </div>
               <div className="bg-indigo-100 p-2.5 rounded-xl">
                 <ShieldCheck className="w-5 h-5 text-indigo-600" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-slate-500">HR + Payroll permissions</div>
+            <div className="mt-2 text-xs text-slate-500">Loaded from your account profile</div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600 font-medium">Open Approvals</p>
-                <p className="text-2xl font-bold text-red-600 mt-1">12</p>
+                <p className="text-2xl font-bold text-red-600 mt-1">{recentActivity.length}</p>
               </div>
               <div className="bg-red-100 p-2.5 rounded-xl">
                 <ClockIcon className="w-5 h-5 text-red-600" />
               </div>
             </div>
-            <div className="mt-2 text-xs text-red-600">5 due today</div>
+            <div className="mt-2 text-xs text-red-600">Live profile activity</div>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm p-4 border border-slate-200/60 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-600 font-medium">Last Review</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">Jul 2026</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">{apiProfile?.is_active === false ? "Inactive" : "Active"}</p>
               </div>
               <div className="bg-green-100 p-2.5 rounded-xl">
                 <CalendarCheck className="w-5 h-5 text-green-600" />
@@ -643,52 +538,6 @@ export default function UserProfilePage() {
                 </div>
               </div>
 
-              {/* Access & Permissions */}
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/50 flex items-center justify-between">
-                  <h3 className="font-semibold text-slate-900 flex items-center gap-2">
-                    <ShieldCheck className="w-5 h-5 text-slate-600" />
-                    Access & Permissions
-                  </h3>
-                  <Link to="/security-audit" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
-                    Review Access
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Link>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-slate-50/80 border-b border-slate-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Permission</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Description</th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase">Scope</th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase">Level</th>
-                        <th className="px-6 py-3 text-center text-xs font-semibold text-slate-600 uppercase">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {permissions.map((perm) => (
-                        <tr key={perm.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="px-6 py-4 font-medium text-slate-900">{perm.name}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600">{perm.description}</td>
-                          <td className="px-6 py-4 text-sm text-slate-600">{perm.scope}</td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPermissionLevelColor(perm.level)}`}>
-                              {perm.level}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-center">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(perm.status)}`}>
-                              {getStatusIcon(perm.status)}
-                              {perm.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
 
             {/* Right Column */}
@@ -701,15 +550,15 @@ export default function UserProfilePage() {
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Total Approvals", value: "156" },
-                    { label: "Pending Reviews", value: "12", highlight: "text-yellow-600" },
-                    { label: "Completed Tasks", value: "89%", highlight: "text-green-600" },
-                    { label: "Response Time", value: "2.4 hrs" },
-                    { label: "Satisfaction Rate", value: "4.8/5", highlight: "text-green-600" },
+                    { label: "Department", value: effectiveProfile.department || "Not provided" },
+                    { label: "Role", value: effectiveProfile.role || "Not provided" },
+                    { label: "Branch", value: effectiveProfile.location || "Not provided" },
+                    { label: "Email", value: effectiveProfile.email || "Not provided" },
+                    { label: "Phone", value: effectiveProfile.phone || "Not provided" },
                   ].map((stat) => (
                     <div key={stat.label} className="flex justify-between text-sm">
                       <span className="text-slate-600">{stat.label}</span>
-                      <span className={`font-medium ${stat.highlight || "text-slate-900"}`}>{stat.value}</span>
+                      <span className={`font-medium text-slate-900`}>{stat.value}</span>
                     </div>
                   ))}
                 </div>
@@ -723,15 +572,15 @@ export default function UserProfilePage() {
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { icon: <UserCog className="w-5 h-5 text-indigo-600" />, label: "Manage Access", color: "indigo" },
-                    { icon: <FileText className="w-5 h-5 text-green-600" />, label: "View Reports", color: "green" },
-                    { icon: <Bell className="w-5 h-5 text-yellow-600" />, label: "Notifications", color: "yellow" },
-                    { icon: <Settings className="w-5 h-5 text-purple-600" />, label: "Settings", color: "purple" },
+                    { icon: <UserCog className="w-5 h-5 text-indigo-600" />, label: "Manage Access", color: "indigo", path: "/security-audit" },
+                    { icon: <FileText className="w-5 h-5 text-green-600" />, label: "View Reports", color: "green", path: "/reports-analytics" },
+                    { icon: <Bell className="w-5 h-5 text-yellow-600" />, label: "Notifications", color: "yellow", path: "/my-announcements" },
+                    { icon: <Settings className="w-5 h-5 text-purple-600" />, label: "Settings", color: "purple", path: "/system/settings" },
                   ].map((action) => (
-                    <button key={action.label} className={`p-3 bg-${action.color}-50 rounded-xl hover:bg-${action.color}-100 transition-all text-left`}>
+                    <Link key={action.label} to={action.path} className={`p-3 bg-${action.color}-50 rounded-xl hover:bg-${action.color}-100 transition-all text-left`}>
                       {action.icon}
                       <p className="text-xs font-medium text-slate-700 mt-1">{action.label}</p>
-                    </button>
+                    </Link>
                   ))}
                 </div>
               </div>

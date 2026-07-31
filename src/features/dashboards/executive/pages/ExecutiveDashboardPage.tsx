@@ -1,5 +1,5 @@
-import { Download, FileText, Mail, Pin, Store } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Download, FileText, Mail, Pin } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import AttendanceLeaveOverview from "../components/AttendanceLeaveOverview";
 import BenefitsOverview from "../components/BenefitsOverview";
 import BranchScopeSelector from "../components/BranchScopeSelector";
@@ -17,12 +17,12 @@ import { ALL_BRANCHES_VALUE, executiveScopeNote } from "../constants/executiveDa
 import { useExecutiveDashboard } from "../hooks/useExecutiveDashboard";
 
 export default function ExecutiveDashboardPage() {
+  const navigate = useNavigate();
   const { branches, data, selectedBranchId, setSelectedBranch } = useExecutiveDashboard();
-  const branchManagerBranchId =
-    selectedBranchId === ALL_BRANCHES_VALUE ? branches[0]?.id : selectedBranchId;
-  const branchManagerPath = branchManagerBranchId
-    ? `/dashboard/branch?branch_id=${branchManagerBranchId}`
-    : "/dashboard/branch";
+  const handleBranchChange = (branchId: string) => {
+    setSelectedBranch(branchId);
+    if (branchId !== ALL_BRANCHES_VALUE) navigate(`/dashboard/hr?branch_id=${branchId}`);
+  };
 
   return (
     <div className="dashboard-page executive-dashboard">
@@ -39,18 +39,14 @@ export default function ExecutiveDashboardPage() {
           <BranchScopeSelector
             branches={branches}
             selectedBranchId={selectedBranchId}
-            onBranchChange={setSelectedBranch}
+            onBranchChange={handleBranchChange}
           />
           <div className="action-row">
-            <Link className="button button-primary" to={branchManagerPath}>
-              <Store aria-hidden="true" size={15} />
-              Branch Manager
-            </Link>
-            <Link className="button button-secondary" to="/reports-analytics">
+            <Link className="button button-primary" to="/reports-analytics?view=company-comparison">
               <FileText aria-hidden="true" size={15} />
               Compare
             </Link>
-            <Link className="button button-secondary" to="/ai-assistant">
+            <Link className="button button-secondary" to="/ai-assistant?prompt=executive-digest">
               <Mail aria-hidden="true" size={15} />
               Digest
             </Link>
@@ -82,6 +78,15 @@ export default function ExecutiveDashboardPage() {
           <div className="metric-label">Risk</div>
           <div className="metric-value">{data.summary.attritionRate}%</div>
           <div className="metric-meta">Weighted attrition rate</div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header"><h3 className="panel-title">Company Overview</h3></div>
+        <div className="panel-body usability-grid">
+          <div className="note"><strong>Operating branch:</strong> Eldoret Branch</div>
+          <div className="note"><strong>Company scope:</strong> workforce, payroll, attendance, leave, compliance, benefits, performance, and HR risk.</div>
+          <div className="note"><strong>Live drill-down:</strong> select Eldoret Branch to open the HR dashboard for operational follow-up.</div>
         </div>
       </section>
 

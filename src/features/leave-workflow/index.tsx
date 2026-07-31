@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ApplyLeaveModal from "./components/ApplyLeaveModal";
 import LeaveCalendar from "./components/LeaveCalendar";
@@ -28,6 +28,7 @@ export default function LeaveWorkflow() {
   const [openModal, setOpenModal] = useState(false);
   const [openEntitlements, setOpenEntitlements] = useState(false);
   const [openReplacementDemo, setOpenReplacementDemo] = useState(false);
+  const [isLoadingLeave, setIsLoadingLeave] = useState(false);
 
   const [selectedLeave, setSelectedLeave] = useState({
     startDate: "",
@@ -35,9 +36,6 @@ export default function LeaveWorkflow() {
     leaveType: "",
     status: "planned",
   });
-
-  // HR toggle (local demo - there is no auth/role in this repo)
-  const [actingAsHrOfficer, setActingAsHrOfficer] = useState(false);
 
   const [entitlements, setEntitlements] = useState<LeaveEntitlements>(
     initialEntitlements
@@ -55,20 +53,11 @@ export default function LeaveWorkflow() {
     ];
   }, [entitlements]);
 
-  // Replacement workflow state (local mock)
   const [replacementState, setReplacementState] = useState<ReplacementWorkflowState>(
-    () => ({
-      status: "idle",
-      applierDepartment: "Engineering",
-      attempts: [],
-      currentEmployeeId: null,
-      currentAttemptNumber: 0,
-    })
+    () => ({ status: "idle", applierDepartment: "", attempts: [], currentEmployeeId: null, currentAttemptNumber: 0 })
   );
 
-  // The applierDepartment is mocked (no auth/department context in this repo).
-  // If you later connect this to real employee context, we can replace it.
-  const applierDepartment = replacementState.applierDepartment;
+  const applierDepartment = loggedInEmployee?.department ?? replacementState.applierDepartment;
 
   const currentPolicyRequiresSubstitute = useMemo(() => {
     // Selected leave.leaveType holds the leavePolicies key in ApplyLeaveModal.
@@ -83,6 +72,7 @@ export default function LeaveWorkflow() {
 
   useEffect(() => {
     const loadData = async () => {
+      setIsLoadingLeave(true);
       try {
         const [employees, leaveTypes, leaveRequests] = await Promise.all([
           employeeApi.list().catch(() => []),
@@ -92,8 +82,8 @@ export default function LeaveWorkflow() {
 
         const currentEmployee = (employees as Array<Record<string, unknown>>)[0];
         setLoggedInEmployee({
-          name: [currentEmployee?.first_name, currentEmployee?.last_name].filter(Boolean).join(' ') || 'Employee',
-          department: String(currentEmployee?.department ?? 'Operations'),
+          name: [currentEmployee?.first_name, currentEmployee?.last_name].filter(Boolean).join(' ') || 'Current employee',
+          department: String(currentEmployee?.department_name ?? currentEmployee?.department ?? ''),
           gender: (currentEmployee?.gender === 'F' || currentEmployee?.gender === 'Female' ? 'Female' : 'Male') as "Male" | "Female",
         });
 
@@ -112,25 +102,11 @@ export default function LeaveWorkflow() {
           };
         });
 
-        setRecentRequests(mappedRequests.length ? mappedRequests : [
-          {
-            id: 1,
-            type: 'Annual Leave',
-            period: 'No requests yet',
-            days: 0,
-            status: 'Pending',
-          },
-        ]);
+        setRecentRequests(mappedRequests);
       } catch {
-        setRecentRequests([
-          {
-            id: 1,
-            type: 'Annual Leave',
-            period: 'Unable to load requests',
-            days: 0,
-            status: 'Pending',
-          },
-        ]);
+        setRecentRequests([]);
+      } finally {
+        setIsLoadingLeave(false);
       }
     };
 
@@ -155,12 +131,8 @@ export default function LeaveWorkflow() {
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <button
-            className="button button-secondary"
-            onClick={() => setActingAsHrOfficer((v) => !v)}
-            style={{ display: "flex", alignItems: "center", gap: 8 }}
-          >
-            {actingAsHrOfficer ? "✓ Acting as HR Officer" : "Act as HR Officer"}
+          <button className="button button-secondary" onClick={() => window.location.reload()} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <RefreshCw size={14} /> Refresh
           </button>
 
           <button
@@ -210,7 +182,7 @@ export default function LeaveWorkflow() {
             Pending Requests
           </div>
           <div style={{ fontSize: "1.35rem", fontWeight: 700 }}>
-            1
+            {recentRequests.filter((request) => request.status.toLowerCase().includes("pending")).length}
           </div>
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
             Awaiting Approval
@@ -222,7 +194,7 @@ export default function LeaveWorkflow() {
             Approved
           </div>
           <div style={{ fontSize: "1.35rem", fontWeight: 700 }}>
-            3
+            {recentRequests.filter((request) => request.status.toLowerCase().includes("approved")).length}
           </div>
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
             This Year
@@ -256,7 +228,7 @@ export default function LeaveWorkflow() {
               </thead>
 
               <tbody>
-                {recentRequests.map((leave) => (
+                {isLoadingLeave ? <tr><td colSpan={4}>Loading leave requests…</td></tr> : recentRequests.length ? recentRequests.map((leave) => (
                   <tr key={leave.id}>
                     <td>{leave.type}</td>
                     <td>{leave.period}</td>
@@ -282,7 +254,7 @@ export default function LeaveWorkflow() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                )) : <tr><td colSpan={4}>No leave requests found.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -313,7 +285,7 @@ export default function LeaveWorkflow() {
                 </div>
               ))}
 
-              <ApplyLeaveModal
+              <ApplyLeaveModal onSubmitted={() => window.location.reload()}
                 open={openModal}
                 onClose={() => setOpenModal(false)}
                 employeeGender={(loggedInEmployee?.gender as "Male" | "Female") ?? "Female"}
@@ -322,17 +294,7 @@ export default function LeaveWorkflow() {
             </div>
           </div>
 
-          {actingAsHrOfficer ? <CompactActionCard title="HR Leave Entitlements" description="Review and update employee leave balances." action="Manage Entitlements" onClick={() => setOpenEntitlements(true)} /> : null}
-          <CompactActionCard title="Replacement Demo" description="Manage replacement decisions without expanding the page." action="Manage Replacement" onClick={() => setOpenReplacementDemo(true)} />
-
-          {actingAsHrOfficer ? (
-            <HRLeaveEntitlementsCard
-              open={openEntitlements}
-              entitlements={entitlements}
-              onClose={() => setOpenEntitlements(false)}
-              onChangeEntitlements={(next) => setEntitlements(next)}
-            />
-          ) : null}
+          <CompactActionCard title="Replacement Coverage" description="Manage replacement decisions from live employee data." action="Manage Replacement" onClick={() => setOpenReplacementDemo(true)} />
 
           {/* REPLACEMENT WORKFLOW SIMULATION */}
           {openReplacementDemo ? <WorkflowModal onClose={() => setOpenReplacementDemo(false)}>{isReplacementNeeded ? (

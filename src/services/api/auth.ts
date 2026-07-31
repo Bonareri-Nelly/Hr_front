@@ -5,6 +5,7 @@ export type CurrentUser = {
   username: string;
   email?: string;
   phone_number?: string;
+  profile_picture?: string;
   role?: string | { id: number; name: string } | null;
   user_role?: string;
   role_name?: string;
@@ -71,7 +72,13 @@ export const authApi = {
     if (payload.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
       throw new Error("Enter a valid email address.");
     }
-    return (await api.put<{ user: CurrentUser }>("/auth/profile/", payload)).data;
+    const body = new FormData();
+    if (payload.email) body.append("email", payload.email);
+    if (payload.phone_number) body.append("phone_number", payload.phone_number);
+    if (payload.profile_picture) body.append("profile_picture", payload.profile_picture);
+    const { data } = await api.patch<{ user: CurrentUser }>("/auth/profile/", body, { headers: { "Content-Type": "multipart/form-data" } });
+    persistUser(data.user);
+    return data;
   },
   changePassword: async (payload: { old_password: string; new_password: string }) => {
     requireText(payload.old_password, "Current password");

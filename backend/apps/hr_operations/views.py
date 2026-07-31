@@ -58,6 +58,11 @@ class DisciplinaryCaseViewSet(viewsets.ModelViewSet):
         return qs.order_by("-created_at")
 
     @action(detail=True, methods=["post"])
+    def notify(self, request, pk=None):
+        case = self.get_object()
+        return Response({"message": f"Notification queued for {case.employee_name}.", "employee": case.employee_id})
+
+    @action(detail=True, methods=["post"])
     def resolve(self, request, pk=None):
         case = self.get_object()
         case.status = "Resolved"

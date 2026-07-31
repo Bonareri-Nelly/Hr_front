@@ -107,169 +107,11 @@ const statusConfig: Record<Status, { label: string; color: string; bg: string }>
   dismissed: { label: "Dismissed", color: "#6b7280", bg: "#f9fafb" },
 };
 
-const securityMetrics: SecurityMetric[] = [
-  {
-    label: "Security Score",
-    value: "94%",
-    change: "+5%",
-    trend: "up",
-    icon: ShieldCheck,
-    color: "#4f46e5",
-  },
-  {
-    label: "Active Sessions",
-    value: "128",
-    change: "+12",
-    trend: "up",
-    icon: Users,
-    color: "#0ea5e9",
-  },
-  {
-    label: "Failed Logins",
-    value: "23",
-    change: "-8%",
-    trend: "down",
-    icon: UserX,
-    color: "#ef4444",
-  },
-  {
-    label: "Open Incidents",
-    value: "7",
-    change: "+2",
-    trend: "up",
-    icon: AlertTriangle,
-    color: "#f59e0b",
-  },
-];
+const securityMetrics: SecurityMetric[] = [];
 
-const securityEvents: SecurityEvent[] = [
-  {
-    id: "SEC-2026-001",
-    timestamp: "2026-07-08 09:42:15",
-    event: "Multiple failed login attempts",
-    user: "john.doe@company.com",
-    ip: "192.168.1.45",
-    severity: "high",
-    status: "investigating",
-    source: "Authentication Service",
-    description: "Multiple failed login attempts detected from IP 192.168.1.45.",
-    affectedSystems: ["Authentication Service", "User Database"],
-    recommendations: ["Enable MFA for user", "Block source IP", "Reset user password"],
-  },
-  {
-    id: "SEC-2026-002",
-    timestamp: "2026-07-08 08:15:22",
-    event: "Suspicious API access pattern detected",
-    user: "api-gateway",
-    ip: "10.0.0.23",
-    severity: "critical",
-    status: "open",
-    source: "API Gateway",
-    description: "Unusual API call pattern detected from internal service.",
-    affectedSystems: ["API Gateway", "Database Service"],
-    recommendations: ["Review API logs", "Rotate API keys", "Implement rate limiting"],
-  },
-  {
-    id: "SEC-2026-003",
-    timestamp: "2026-07-08 07:30:45",
-    event: "Unauthorized access attempt to payroll data",
-    user: "unknown",
-    ip: "203.0.113.42",
-    severity: "critical",
-    status: "investigating",
-    source: "Payroll Service",
-    description: "Attempted access to payroll data from unauthorized IP address.",
-    affectedSystems: ["Payroll Service", "Employee Database"],
-    recommendations: ["Block source IP", "Review access logs", "Notify security team"],
-  },
-  {
-    id: "SEC-2026-004",
-    timestamp: "2026-07-08 06:55:10",
-    event: "Password change - admin account",
-    user: "admin@company.com",
-    ip: "192.168.1.10",
-    severity: "medium",
-    status: "resolved",
-    source: "Identity Service",
-    description: "Admin password was changed from internal IP.",
-    affectedSystems: ["Identity Service"],
-    recommendations: ["Verify identity of user", "Enable additional MFA"],
-  },
-  {
-    id: "SEC-2026-005",
-    timestamp: "2026-07-08 06:12:33",
-    event: "Suspicious file download activity",
-    user: "jane.smith@company.com",
-    ip: "192.168.1.67",
-    severity: "medium",
-    status: "dismissed",
-    source: "File Storage",
-    description: "Large volume of files downloaded in short time period.",
-    affectedSystems: ["File Storage", "User Account"],
-    recommendations: ["Review download logs", "Implement download limits"],
-  },
-  {
-    id: "SEC-2026-006",
-    timestamp: "2026-07-08 05:40:18",
-    event: "New device registration from unusual location",
-    user: "robert.kim@company.com",
-    ip: "198.51.100.88",
-    severity: "low",
-    status: "resolved",
-    source: "Device Management",
-    description: "Device registration from location not previously associated with user.",
-    affectedSystems: ["Device Management"],
-    recommendations: ["Verify device ownership", "Enable device trust"],
-  },
-];
+const securityEvents: SecurityEvent[] = [];
 
-const auditLogs: AuditLog[] = [
-  {
-    id: "AUD-2026-001",
-    timestamp: "2026-07-08 09:45:12",
-    user: "angela.njeri@company.com",
-    action: "Payroll Run Approval",
-    resource: "Payroll - July 2026",
-    ip: "192.168.1.120",
-    status: "success",
-  },
-  {
-    id: "AUD-2026-002",
-    timestamp: "2026-07-08 09:30:05",
-    user: "brian.otieno@company.com",
-    action: "User Role Update",
-    resource: "User: emp-045",
-    ip: "192.168.1.45",
-    status: "success",
-  },
-  {
-    id: "AUD-2026-003",
-    timestamp: "2026-07-08 09:15:44",
-    user: "grace.wanjiru@company.com",
-    action: "Security Policy Change",
-    resource: "MFA Policy",
-    ip: "192.168.1.78",
-    status: "failure",
-  },
-  {
-    id: "AUD-2026-004",
-    timestamp: "2026-07-08 08:55:30",
-    user: "sam.mwangi@company.com",
-    action: "Data Export",
-    resource: "Employee Records - 214 records",
-    ip: "192.168.1.90",
-    status: "success",
-  },
-  {
-    id: "AUD-2026-005",
-    timestamp: "2026-07-08 08:30:18",
-    user: "mercy.achieng@company.com",
-    action: "API Key Regeneration",
-    resource: "API Key: payroll-service",
-    ip: "192.168.1.34",
-    status: "pending",
-  },
-];
+const auditLogs: AuditLog[] = [];
 
 const complianceItems: ComplianceItem[] = [
   {
@@ -1648,6 +1490,7 @@ const SecurityAuditPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [scanMessage, setScanMessage] = useState("");
 
   const filteredEvents = securityEvents.filter((event) => {
     const matchesSearch =
@@ -1661,7 +1504,8 @@ const SecurityAuditPage: React.FC = () => {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    setTimeout(() => setIsRefreshing(false), 1500);
+    setScanMessage("Security audit data refreshed. New events will appear when detected by the API.");
+    setTimeout(() => setIsRefreshing(false), 800);
   };
 
   const handleNavigate = (path: string) => {
@@ -1781,7 +1625,7 @@ const SecurityAuditPage: React.FC = () => {
               Refresh
             </button>
             <button
-              onClick={() => handleNavigate("/security/scan")}
+              onClick={() => { setScanMessage("Security scan started. No findings detected yet."); handleNavigate("/security/scan"); }}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1812,6 +1656,7 @@ const SecurityAuditPage: React.FC = () => {
             </button>
           </div>
         </header>
+        {scanMessage && <div className="note" style={{ marginBottom: 16 }}>{scanMessage}</div>}
 
         {/* Stats Grid */}
         <section
