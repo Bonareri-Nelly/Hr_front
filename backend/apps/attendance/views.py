@@ -8,6 +8,7 @@ from .serializers import (
     WorkLocationSerializer, ShiftSerializer, AttendanceRecordSerializer,
     LocationLogSerializer, CorrectionRequestSerializer, EmployeeAttendanceAssignmentSerializer,
 )
+from apps.authentication.access import scope_employee_relation
 
 
 class WorkLocationViewSet(viewsets.ModelViewSet):
@@ -25,8 +26,10 @@ class AttendanceRecordViewSet(viewsets.ModelViewSet):
     serializer_class = AttendanceRecordSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = scope_employee_relation(super().get_queryset(), self.request.user)
         employee = self.request.query_params.get("employee")
+        # The base queryset is already role-scoped, so this remains safe for
+        # HR, branch managers and department heads as well as self-service users.
         if employee:
             qs = qs.filter(employee_id=employee)
         return qs.order_by("-date")
@@ -51,7 +54,8 @@ class EmployeeAttendanceAssignmentViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def check_in_view(request):
     from apps.employees.models import Employee
-    employee_id = request.data.get("employee_id") or getattr(request.user, "employee_id", None)
+    # Never let a self-service user clock in on behalf of someone else.
+    employee_id = getattr(request.user, "employee_id", None)
     if not employee_id:
         return Response({"detail": "employee_id required."}, status=400)
     try:
@@ -73,7 +77,7 @@ def check_in_view(request):
 @permission_classes([IsAuthenticated])
 def check_out_view(request):
     from apps.employees.models import Employee
-    employee_id = request.data.get("employee_id") or getattr(request.user, "employee_id", None)
+    employee_id = getattr(request.user, "employee_id", None)
     if not employee_id:
         return Response({"detail": "employee_id required."}, status=400)
     try:

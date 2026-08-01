@@ -6,12 +6,12 @@ const withProfile = (modules: string[]) => [...new Set([...modules, "user-profil
 
 export const roleModuleMap: Record<RoleName, string[]> = {
   "System Admin": [...navigationItems.map((item) => item.id)],
-  Executive: withProfile(["executive-dashboard", "reports-analytics", "ai-assistant", "branch-dashboard", "branch-reports", "payroll-approval", "finance-dashboard", "compensation-data", "disciplinary-cases", "announcements-training"]),
-  Manager: withProfile(["branch-dashboard", "branch-reports", "candidate-applications", "department-dashboard", "payroll-approval", "payroll-history", "employee-lifecycle", "contract-management", "performance-oversight", "leave-approvals", "attendance-management", "disciplinary-cases", "announcements-training"]),
-  HR: withProfile(["hr-dashboard", "candidate-applications", "department-dashboard", "employee-lifecycle", "contract-management", "performance-oversight", "offboarding", "onboarding", "attendance-management", "leave-workflow", "leave-approvals", "disciplinary-cases", "disciplinary-management", "announcements-training", "benefits-management"]),
-  "Department Head": withProfile(["department-dashboard", "employee-lifecycle", "performance-oversight", "leave-approvals", "attendance-management", "announcements-training"]),
-  Finance: withProfile(["finance-dashboard", "benefits-management-accounts", "employee-finance", "finance-grievances", "payroll", "payroll-creation", "payroll-history", "compensation-data"]),
-  Employee: withProfile(["employee-dashboard", "my-attendance", "my-performance", "my-benefits", "my-payslips", "my-documents", "my-announcements", "complaints"]),
+  Executive: withProfile(["executive-dashboard", "reports-analytics", "security-audit", "system-settings", "disciplinary-management", "announcements-training", "benefits-management", "my-documents", "ai-assistant"]),
+  Manager: withProfile(["branch-dashboard", "reports-analytics", "candidate-applications", "employee-lifecycle", "contract-management", "performance-oversight", "onboarding", "offboarding", "disciplinary-management", "announcements-training", "benefits-management", "branch-reports", "my-documents", "my-payslips", "my-attendance", "ai-assistant"]),
+  HR: withProfile(["hr-dashboard", "candidate-applications", "department-dashboard", "employee-lifecycle", "contract-management", "performance-oversight", "onboarding", "offboarding", "attendance-management", "leave-workflow", "leave-approvals", "disciplinary-cases", "disciplinary-management", "announcements-training", "payroll-creation", "finance-grievances", "my-attendance", "my-payslips", "ai-assistant"]),
+  "Department Head": withProfile(["department-dashboard", "leave-workflow", "my-announcements", "my-attendance", "my-performance", "my-benefits", "my-payslips", "my-documents", "complaints", "leave-approvals", "reports-analytics", "ai-assistant"]),
+  Finance: withProfile(["finance-dashboard", "payroll", "payroll-history", "tax-compliance", "compensation-data", "finance-grievances", "my-attendance", "my-benefits", "my-payslips", "my-documents", "my-announcements", "complaints", "ai-assistant"]),
+  Employee: withProfile(["employee-dashboard", "leave-workflow", "my-announcements", "my-attendance", "my-performance", "my-benefits", "my-payslips", "my-documents", "complaints", "ai-assistant"]),
 };
 
 export const roleDefaultModule: Record<RoleName, string> = {

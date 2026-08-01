@@ -1,6 +1,0 @@
-from django.apps import AppConfig
-
-
-class SeedConfig(AppConfig):
-    name = "apps.seed"
-    label = "seed"

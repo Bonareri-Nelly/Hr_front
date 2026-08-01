@@ -1,11 +1,13 @@
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from .models import (
     Branch, Department, Designation, Employee,
     Document, Education, WorkExperience, Dependant,
     Certification, Skill, BankAccount, Asset,
 )
+from apps.authentication.access import scope_employee_relation, scoped_employee_ids
 from .serializers import (
     BranchSerializer, DepartmentSerializer, DesignationSerializer, EmployeeSerializer,
     DocumentSerializer, EducationSerializer, WorkExperienceSerializer, DependantSerializer,
@@ -54,11 +56,17 @@ class DocumentViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = scope_employee_relation(super().get_queryset(), self.request.user)
         employee = self.request.query_params.get("employee")
         if employee:
             qs = qs.filter(employee_id=employee)
         return qs
+
+    def perform_create(self, serializer):
+        employee = serializer.validated_data["employee"]
+        if not scoped_employee_ids(self.request.user).filter(id=employee.id).exists():
+            raise PermissionDenied("You are not allowed to upload a document for this employee.")
+        serializer.save()
 
 
 class EducationViewSet(viewsets.ModelViewSet):

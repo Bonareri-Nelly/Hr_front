@@ -34,9 +34,7 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   // FIX: Use the correct import path and ensure default export
   "announcements-training": lazy(() => 
     import("../../features/training/announcements/pages/AnnouncementsTrainingPage")
-      .then((module) => ({
-        default: module.default
-      }))
+      .then((module) => ({ default: module.default }))
   ),
   
   "benefits-management": lazy(() => 
@@ -51,14 +49,11 @@ const routeComponents: Partial<Record<string, LazyExoticComponent<ComponentType>
   "payroll-approval": lazy(() => import("../../features/payroll/approval")),
   "payroll-history": lazy(() => import("../../features/payroll/history")),
   "tax-compliance": lazy(() => import("../../features/payroll/tax-compliance")),
-  "bank-integration": lazy(() => import("../../features/payroll/bank-integration")),
   "compensation-data": lazy(() => import("../../features/payroll/compensation-data")),
 
   "finance-dashboard": lazy(() => import("../../features/dashboards/finance")),
-  "bank-integration-accounts": lazy(() => import("../../features/finance/bank-integration")),
   "tax-compliance-accounts": lazy(() => import("../../features/finance/tax-compliance")),
   "benefits-management-accounts": lazy(() => import("../../features/finance/benefits-management")),
-  "employee-finance": lazy(() => import("../../features/finance/employee-finance")),
   "finance-grievances": lazy(() => import("../../features/finance/finance-grievances")),
   "employee-dashboard": lazy(() => import("../../features/dashboards/employee")),
   "my-attendance": lazy(() => import("../../features/employee-self-service/attendance")),
@@ -84,7 +79,8 @@ const createFallbackRoute = (item: NavigationItem): LazyExoticComponent<Componen
     default: () => <ModulePlaceholderPage title={item.label} />,
   }));
 
-export const CandidateApplicationRoute = routeComponents["candidate-applications"]!;
+// Public recruitment links must never mount the authenticated HR workspace.
+export const CandidateApplicationRoute = lazy(() => import("../../features/candidates/pages/PublicCandidateApplicationPage"));
 
 export const appRoutes: AppRoute[] = navigationItems.map((item) => ({
   ...item,

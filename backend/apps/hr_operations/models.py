@@ -58,11 +58,13 @@ class DisciplinaryCase(models.Model):
 
 class Announcement(models.Model):
     PRIORITY = [("Low", "Low"), ("Normal", "Normal"), ("High", "High"), ("Urgent", "Urgent")]
-    TARGET = [("All", "All"), ("HR", "HR"), ("Finance", "Finance"), ("Managers", "Managers"), ("Employees", "Employees")]
+    TARGET = [("All", "All"), ("HR", "HR"), ("Finance", "Finance"), ("Managers", "Managers"), ("Department Heads", "Department Heads"), ("Employees", "Employees")]
     title = models.CharField(max_length=300)
     content = models.TextField()
     priority = models.CharField(max_length=10, choices=PRIORITY, default="Normal")
     target_audience = models.CharField(max_length=20, choices=TARGET, default="All")
+    target_branch = models.ForeignKey("employees.Branch", on_delete=models.SET_NULL, null=True, blank=True, related_name="announcements")
+    target_employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="received_announcements")
     published_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
@@ -110,3 +112,48 @@ class TrainingEnrollment(models.Model):
     @property
     def training_title(self):
         return self.training.title
+
+
+class RecruitmentApplication(models.Model):
+    STAGES = [
+        ("SUBMITTED", "Submitted"), ("UNDER_REVIEW", "Under review"),
+        ("SHORTLISTED", "Shortlisted"), ("INTERVIEW_SCHEDULED", "Interview scheduled"),
+        ("REJECTED", "Rejected"),
+    ]
+    reference = models.CharField(max_length=32, unique=True)
+    full_name = models.CharField(max_length=200)
+    email = models.EmailField()
+    phone = models.CharField(max_length=40)
+    role = models.CharField(max_length=200)
+    branch = models.CharField(max_length=200, blank=True)
+    experience = models.TextField(blank=True)
+    education = models.TextField(blank=True)
+    expected_salary = models.CharField(max_length=100, blank=True)
+    documents = models.JSONField(default=list, blank=True)
+    stage = models.CharField(max_length=32, choices=STAGES, default="SUBMITTED")
+    decision_note = models.TextField(blank=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.reference} — {self.full_name}"
+
+
+class Complaint(models.Model):
+    STATUS = [("Submitted", "Submitted"), ("Under Review", "Under Review"), ("Resolved", "Resolved"), ("Closed", "Closed")]
+    employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="complaints")
+    category = models.CharField(max_length=100)
+    subject = models.CharField(max_length=300)
+    details = models.TextField()
+    preferred_resolution = models.CharField(max_length=200, blank=True)
+    confidentiality = models.CharField(max_length=100, default="Standard")
+    attachment = models.FileField(upload_to="complaints/", null=True, blank=True)
+    status = models.CharField(max_length=30, choices=STATUS, default="Submitted")
+    resolution_notes = models.TextField(blank=True)
+    reviewed_by = models.ForeignKey(Employee, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_complaints")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def employee_name(self):
+        return self.employee.full_name

@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import api from '../../../../services/api/api';
 import { MetricCard } from '../components/MetricCard';
 import { BranchTable } from '../components/BranchTable';
 import { ProgressSection } from '../components/ProgressSection';
@@ -10,64 +12,26 @@ import { QuickActions } from '../components/QuickActions';
 import { QuickStats } from '../components/QuickStats';
 import { Users, DollarSign, Clock, ShieldCheck } from 'lucide-react';
 
-const allBranchData = {
-  'Nairobi HQ': {
-    employees: 420,
-    payroll: 'KES 28.4M',
-    approvals: 5,
-    compliance: 98.2,
-    branches: [
-      { name: 'Nairobi HQ', employees: 420, amount: 'KES 28.4M', status: 'Ready' },
-    ],
-    progress: [
-      { label: 'Gross payroll validation', value: 86 },
-      { label: 'Statutory deductions', value: 72 },
-      { label: 'Payslip publishing', value: 41 },
-    ],
-    activity: [
-      { time: '10:30 AM', text: 'Payroll for Nairobi HQ approved by Finance' },
-      { time: '09:15 AM', text: 'John Doe submitted timesheet adjustments' },
-      { time: 'Yesterday', text: 'New employee onboarding completed (5 staff)' },
-    ],
-  },
-  'Mombasa': {
-    employees: 310,
-    payroll: 'KES 21.2M',
-    approvals: 3,
-    compliance: 95.5,
-    branches: [
-      { name: 'Mombasa', employees: 310, amount: 'KES 21.2M', status: 'Pending' },
-    ],
-    progress: [
-      { label: 'Gross payroll validation', value: 78 },
-      { label: 'Statutory deductions', value: 65 },
-      { label: 'Payslip publishing', value: 30 },
-    ],
-    activity: [
-      { time: '11:00 AM', text: 'Mombasa payroll submitted for approval' },
-      { time: 'Yesterday', text: 'New hire onboarded in Mombasa' },
-    ],
-  },
-};
-
-type BranchName = keyof typeof allBranchData;
-
-const mockUser: { branch: BranchName } = {
-  branch: 'Nairobi HQ',
-};
+const list = <T,>(value: T[] | { results?: T[] }) => Array.isArray(value) ? value : value.results ?? [];
+const user = () => { try { return JSON.parse(localStorage.getItem('current_user') ?? localStorage.getItem('user') ?? '{}'); } catch { return {}; } };
 
 export default function HrDashboardPage() {
-  const [userBranch] = useState<BranchName>(mockUser.branch);
-
+  const currentUser = user(); const userBranch = currentUser.branch_name || 'All branches';
+  const employees = useQuery({ queryKey: ['hr-dashboard-employees'], queryFn: async () => list((await api.get('/employees/')).data) });
+  const departments = useQuery({ queryKey: ['hr-dashboard-departments'], queryFn: async () => list((await api.get('/departments/')).data) });
+  const runs = useQuery({ queryKey: ['hr-dashboard-payroll'], queryFn: async () => list((await api.get('/payroll/runs/')).data) });
+  const leaves = useQuery({ queryKey: ['hr-dashboard-leave'], queryFn: async () => list((await api.get('/leave/requests/')).data) });
   const branchData = useMemo(() => {
-    return allBranchData[userBranch] || allBranchData['Nairobi HQ'];
-  }, [userBranch]);
+    const people = employees.data ?? []; const payroll = runs.data ?? []; const pending = (leaves.data ?? []).filter((item: any) => String(item.status).toLowerCase().includes('pending')).length;
+    const latest = payroll[0] as any; const total = Number(latest?.total_gross ?? 0); const published = latest?.status === 'Finalized' ? 100 : 0;
+    return { employees: people.length, payroll: total, approvals: pending, branches: [{ name: userBranch, employees: people.length, amount: `KES ${total.toLocaleString()}`, status: latest?.status ?? 'No payroll run' }], progress: [{ label: 'Payroll run status', value: published }, { label: 'Leave requests reviewed', value: pending ? 0 : 100 }, { label: 'Payslips published', value: published }], activity: latest ? [{ time: new Date(latest.updated_at ?? latest.created_at).toLocaleDateString(), text: `${latest.name} is ${latest.status}` }] : [] };
+  }, [employees.data, leaves.data, runs.data, userBranch]);
 
   const metricsData = [
-    { title: 'Active Employees', value: branchData.employees, change: '+12%', icon: Users, color: 'blue' as const },
-    { title: 'Payroll Value', value: branchData.payroll, change: '+5.2%', icon: DollarSign, color: 'green' as const },
-    { title: 'Pending Approvals', value: branchData.approvals, change: '-3', icon: Clock, color: 'orange' as const },
-    { title: 'Compliance Score', value: branchData.compliance + '%', change: '+0.4%', icon: ShieldCheck, color: 'purple' as const },
+    { title: 'Active Employees', value: branchData.employees, change: 'Live', icon: Users, color: 'blue' as const },
+    { title: 'Payroll Value', value: `KES ${branchData.payroll.toLocaleString()}`, change: 'Latest run', icon: DollarSign, color: 'green' as const },
+    { title: 'Pending Approvals', value: branchData.approvals, change: 'Live', icon: Clock, color: 'orange' as const },
+    { title: 'Payroll Status', value: branchData.branches[0].status, change: 'Latest run', icon: ShieldCheck, color: 'purple' as const },
   ];
 
   return (
@@ -82,7 +46,7 @@ export default function HrDashboardPage() {
         </button>
       </div>
 
-      <QuickStats branch={userBranch} />
+      <QuickStats stats={[{ label: 'Departments', value: departments.data?.length ?? 0 }, { label: 'Payroll runs', value: runs.data?.length ?? 0 }, { label: 'Leave requests', value: leaves.data?.length ?? 0 }, { label: 'Branches', value: new Set((employees.data ?? []).map((item: any) => item.branch)).size }]} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {metricsData.map((metric) => (

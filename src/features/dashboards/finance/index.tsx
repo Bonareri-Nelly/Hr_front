@@ -122,7 +122,7 @@ export default function FinanceDashboard() {
             <FileCheck2 aria-hidden="true" size={15} />
             Review packet
           </Link>
-          <Link className="button button-success" to="/payroll/bank-integration">
+          <Link className="button button-success" to="/payroll/history">
             <Send aria-hidden="true" size={15} />
             Release ready batch
           </Link>

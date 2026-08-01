@@ -2,6 +2,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     HrPerformanceReviewViewSet, HrPerformanceGoalViewSet, DisciplinaryCaseViewSet,
     AnnouncementViewSet, TrainingViewSet, TrainingEnrollmentViewSet,
+    RecruitmentApplicationViewSet,
+    ComplaintViewSet,
 )
 
 router = DefaultRouter(trailing_slash=True)
@@ -11,5 +13,7 @@ router.register("hr-operations/disciplinary-cases", DisciplinaryCaseViewSet, bas
 router.register("hr-operations/announcements", AnnouncementViewSet, basename="announcement")
 router.register("hr-operations/trainings", TrainingViewSet, basename="training")
 router.register("hr-operations/training-enrollments", TrainingEnrollmentViewSet, basename="training-enrollment")
+router.register("hr-operations/recruitment-applications", RecruitmentApplicationViewSet, basename="recruitment-application")
+router.register("hr-operations/complaints", ComplaintViewSet, basename="complaint")
 
 urlpatterns = router.urls

@@ -4,7 +4,6 @@ export const navigationItems: NavigationItem[] = [
   // Executive Section
   { id: "executive-dashboard", label: "Executive Dashboard", path: "/dashboard/executive", section: "Executive", icon: "LayoutDashboard" },
   { id: "reports-analytics", label: "Reports & Analytics", path: "/reports-analytics", section: "Executive", icon: "BarChart3" },
-  { id: "ai-assistant", label: "AI Assistant", path: "/ai-assistant", section: "Executive", icon: "Sparkles" },
   { id: "user-profile", label: "User Profile", path: "/user-profile", section: "Account", icon: "UserRound" },
   { id: "security-audit", label: "Security & Audit", path: "/security-audit", section: "Administration", icon: "ShieldCheck" },
   { id: "system-settings", label: "System Settings", path: "/system/settings", section: "Administration", icon: "Settings" },
@@ -36,14 +35,12 @@ export const navigationItems: NavigationItem[] = [
   { id: "payroll-approval", label: "Payroll Approval", path: "/payroll/approval", section: "Payroll", icon: "ClipboardCheck" },
   { id: "payroll-history", label: "Payroll History", path: "/payroll/history", section: "Payroll", icon: "ReceiptText" },
   { id: "tax-compliance", label: "Tax & Compliance", path: "/payroll/tax-compliance", section: "Payroll", icon: "FileText" },
-  { id: "bank-integration", label: "Bank Integration", path: "/payroll/bank-integration", section: "Payroll", icon: "Landmark" },
   { id: "compensation-data", label: "Compensation Data", path: "/payroll/compensation", section: "Payroll", icon: "CreditCard" },
 
 
   // Finance Section
   { id: "finance-dashboard", label: "Finance Dashboard", path: "/dashboard/finance", section: "Finance", icon: "Banknote" },
   { id: "benefits-management-accounts", label: "Benefits Management (Accounts)", path: "/finance/benefits", section: "Finance", icon: "HandCoins" },
-  { id: "employee-finance", label: "Employee Finance", path: "/finance/employee", section: "Finance", icon: "BriefcaseBusiness" },
   { id: "finance-grievances", label: "Finance Grievances", path: "/finance/finance-grievances", section: "Finance", icon: "MessageCircleQuestion" },
 
   // Employee Section
@@ -55,6 +52,9 @@ export const navigationItems: NavigationItem[] = [
   { id: "my-documents", label: "My Documents", path: "/self-service/documents", section: "Employee", icon: "FolderOpen" },
   { id: "my-announcements", label: "My Announcements", path: "/self-service/announcements", section: "Employee", icon: "Bell" },
   { id: "complaints", label: "Complaints", path: "/complaints", section: "Employee", icon: "MessageCircleQuestion" },
+  // The assistant is deliberately a common workspace: its API responses must
+  // still be scoped by the signed-in user's role on the server.
+  { id: "ai-assistant", label: "AI Assistant", path: "/ai-assistant", section: "Support", icon: "Sparkles" },
 ];
 
 export const navigationSections: NavigationSection[] = Array.from(

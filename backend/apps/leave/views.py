@@ -7,6 +7,7 @@ from .serializers import (
     LeaveTypeSerializer, LeaveBalanceSerializer, LeaveRequestSerializer,
     LeaveApprovalSerializer, LeaveAttachmentSerializer, PublicHolidaySerializer,
 )
+from apps.authentication.access import scope_employee_relation, can_approve_leave
 
 
 class LeaveTypeViewSet(viewsets.ModelViewSet):
@@ -19,7 +20,7 @@ class LeaveBalanceViewSet(viewsets.ModelViewSet):
     serializer_class = LeaveBalanceSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = scope_employee_relation(super().get_queryset(), self.request.user)
         employee = self.request.query_params.get("employee")
         if employee:
             qs = qs.filter(employee_id=employee)
@@ -31,7 +32,7 @@ class LeaveRequestViewSet(viewsets.ModelViewSet):
     serializer_class = LeaveRequestSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = scope_employee_relation(super().get_queryset(), self.request.user)
         employee = self.request.query_params.get("employee")
         status_filter = self.request.query_params.get("status")
         if employee:
@@ -42,14 +43,22 @@ class LeaveRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="manager-approve")
     def manager_approve(self, request, pk=None):
+        if not can_approve_leave(request.user):
+            return Response({"detail": "You are not allowed to approve leave."}, status=status.HTTP_403_FORBIDDEN)
         req = self.get_object()
+        if request.user.employee_id == req.employee_id:
+            return Response({"detail": "You cannot approve your own leave request."}, status=status.HTTP_403_FORBIDDEN)
         req.status = "Manager Approved"
         req.save()
         return Response(LeaveRequestSerializer(req).data)
 
     @action(detail=True, methods=["post"], url_path="hr-approve")
     def hr_approve(self, request, pk=None):
+        if not can_approve_leave(request.user):
+            return Response({"detail": "You are not allowed to approve leave."}, status=status.HTTP_403_FORBIDDEN)
         req = self.get_object()
+        if request.user.employee_id == req.employee_id:
+            return Response({"detail": "You cannot approve your own leave request."}, status=status.HTTP_403_FORBIDDEN)
         req.status = "HR Approved"
         req.save()
         return Response(LeaveRequestSerializer(req).data)

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from .models import User
@@ -26,9 +27,9 @@ class LoginSerializer(serializers.Serializer):
     def validate(self, data):
         user = authenticate(username=data["username"], password=data["password"])
         if not user:
-            raise serializers.ValidationError("Invalid credentials.")
+            raise AuthenticationFailed("Invalid credentials.")
         if not user.is_active:
-            raise serializers.ValidationError("Account is inactive.")
+            raise AuthenticationFailed("Account is inactive.")
         return {"user": user}
 
 
