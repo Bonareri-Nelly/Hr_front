@@ -1,85 +1,16 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import api from '../../../../services/api/api';
-import { MetricCard } from '../components/MetricCard';
-import { BranchTable } from '../components/BranchTable';
-import { ProgressSection } from '../components/ProgressSection';
-import { ActivityFeed } from '../components/ActivityFeed';
-import { ChatAssistant } from '../components/ChatAssistant';
-import { DistributionChart } from '../components/DistributionChart';
-import { UpcomingEvents } from '../components/UpcomingEvents';
-import { QuickActions } from '../components/QuickActions';
-import { QuickStats } from '../components/QuickStats';
-import { Users, DollarSign, Clock, ShieldCheck } from 'lucide-react';
+import { Download, RefreshCw, Users, WalletCards, CalendarClock, ClipboardCheck } from "lucide-react";
+import { useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { resources, type ApiRecord } from "../../../../services/api/resources";
+import { executiveTheme } from "../../../../theme/executiveTheme";
 
-const list = <T,>(value: T[] | { results?: T[] }) => Array.isArray(value) ? value : value.results ?? [];
-const user = () => { try { return JSON.parse(localStorage.getItem('current_user') ?? localStorage.getItem('user') ?? '{}'); } catch { return {}; } };
-
+const text = (item: ApiRecord, key: string) => String(item[key] ?? "—");
+const currentBranch = () => { try { return JSON.parse(localStorage.getItem("current_user") ?? localStorage.getItem("user") ?? "{}").branch_name as string | undefined; } catch { return undefined; } };
 export default function HrDashboardPage() {
-  const currentUser = user(); const userBranch = currentUser.branch_name || 'All branches';
-  const employees = useQuery({ queryKey: ['hr-dashboard-employees'], queryFn: async () => list((await api.get('/employees/')).data) });
-  const departments = useQuery({ queryKey: ['hr-dashboard-departments'], queryFn: async () => list((await api.get('/departments/')).data) });
-  const runs = useQuery({ queryKey: ['hr-dashboard-payroll'], queryFn: async () => list((await api.get('/payroll/runs/')).data) });
-  const leaves = useQuery({ queryKey: ['hr-dashboard-leave'], queryFn: async () => list((await api.get('/leave/requests/')).data) });
-  const branchData = useMemo(() => {
-    const people = employees.data ?? []; const payroll = runs.data ?? []; const pending = (leaves.data ?? []).filter((item: any) => String(item.status).toLowerCase().includes('pending')).length;
-    const latest = payroll[0] as any; const total = Number(latest?.total_gross ?? 0); const published = latest?.status === 'Finalized' ? 100 : 0;
-    return { employees: people.length, payroll: total, approvals: pending, branches: [{ name: userBranch, employees: people.length, amount: `KES ${total.toLocaleString()}`, status: latest?.status ?? 'No payroll run' }], progress: [{ label: 'Payroll run status', value: published }, { label: 'Leave requests reviewed', value: pending ? 0 : 100 }, { label: 'Payslips published', value: published }], activity: latest ? [{ time: new Date(latest.updated_at ?? latest.created_at).toLocaleDateString(), text: `${latest.name} is ${latest.status}` }] : [] };
-  }, [employees.data, leaves.data, runs.data, userBranch]);
-
-  const metricsData = [
-    { title: 'Active Employees', value: branchData.employees, change: 'Live', icon: Users, color: 'blue' as const },
-    { title: 'Payroll Value', value: `KES ${branchData.payroll.toLocaleString()}`, change: 'Latest run', icon: DollarSign, color: 'green' as const },
-    { title: 'Pending Approvals', value: branchData.approvals, change: 'Live', icon: Clock, color: 'orange' as const },
-    { title: 'Payroll Status', value: branchData.branches[0].status, change: 'Latest run', icon: ShieldCheck, color: 'purple' as const },
-  ];
-
-  return (
-    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">HR Dashboard – {userBranch}</h1>
-          <p className="text-xs text-gray-500">Overview of payroll and employee metrics for your branch</p>
-        </div>
-        <button className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition">
-          Export Report
-        </button>
-      </div>
-
-      <QuickStats stats={[{ label: 'Departments', value: departments.data?.length ?? 0 }, { label: 'Payroll runs', value: runs.data?.length ?? 0 }, { label: 'Leave requests', value: leaves.data?.length ?? 0 }, { label: 'Branches', value: new Set((employees.data ?? []).map((item: any) => item.branch)).size }]} />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricsData.map((metric) => (
-          <MetricCard key={metric.title} {...metric} />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2">
-          <BranchTable branches={branchData.branches} />
-        </div>
-        <div className="lg:col-span-1">
-          <ProgressSection steps={branchData.progress} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <DistributionChart branch={userBranch} />
-        <UpcomingEvents branch={userBranch} />
-      </div>
-
-      <ActivityFeed activities={branchData.activity} />
-
-      <QuickActions />
-
-      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="font-semibold text-gray-700 text-sm mb-2">Access Scope</h3>
-        <p className="text-xs text-gray-500">
-          You have full access to HR payroll data, employee records, and compliance reports for <strong>{userBranch}</strong>.
-        </p>
-      </div>
-
-      <ChatAssistant />
-    </div>
-  );
+  const client = useQueryClient(); const branchName = currentBranch() ?? "Your branch";
+  const employees = useQuery({ queryKey: ["hr", "employees"], queryFn: () => resources.employees.list() }); const payroll = useQuery({ queryKey: ["hr", "payroll"], queryFn: () => resources.payrollRuns.list() }); const leaves = useQuery({ queryKey: ["hr", "leaves"], queryFn: () => resources.leaveRequests.list() }); const attendance = useQuery({ queryKey: ["hr", "attendance"], queryFn: () => resources.attendanceRecords.list() });
+  const activeEmployees = useMemo(() => (employees.data ?? []).filter((item) => text(item, "employment_status") === "Active"), [employees.data]); const latestPayroll = payroll.data?.[0]; const pendingLeaves = (leaves.data ?? []).filter((item) => text(item, "status").toLowerCase().includes("pending")); const present = (attendance.data ?? []).filter((item) => ["Present", "Late"].includes(text(item, "status"))).length; const rate = attendance.data?.length ? Math.round(present / attendance.data.length * 100) : 0;
+  const exportCsv = () => { const csv = "Metric,Value\nActive employees," + activeEmployees.length + "\nPayroll value," + Number(latestPayroll?.total_gross ?? latestPayroll?.total_cost ?? 0) + "\nPending leave," + pendingLeaves.length + "\nAttendance rate," + rate + "%"; const href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); const link = document.createElement("a"); link.href = href; link.download = "hr-dashboard-report.csv"; link.click(); URL.revokeObjectURL(href); };
+  const refresh = () => client.invalidateQueries({ queryKey: ["hr"] }); const cards = [{ label: "Active employees", value: activeEmployees.length, icon: Users }, { label: "Latest payroll", value: `KES ${Number(latestPayroll?.total_gross ?? latestPayroll?.total_cost ?? 0).toLocaleString()}`, icon: WalletCards }, { label: "Pending leave", value: pendingLeaves.length, icon: ClipboardCheck }, { label: "Attendance rate", value: `${rate}%`, icon: CalendarClock }];
+  return <main className={executiveTheme.page}><div className={executiveTheme.shell}><header className="flex flex-wrap items-end justify-between gap-4"><div><p className={executiveTheme.eyebrow}>HR operations · {branchName}</p><h1 className={executiveTheme.title}>HR dashboard</h1><p className={executiveTheme.subtitle}>Live workforce, payroll, leave and attendance operations for your branch.</p></div><div className="flex gap-2"><button className={executiveTheme.buttonSecondary} onClick={refresh}><RefreshCw size={16}/> Refresh</button><button className={executiveTheme.buttonPrimary} onClick={exportCsv}><Download size={16}/> Export report</button></div></header><section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(({ label, value, icon: Icon }) => <article key={label} className={`${executiveTheme.cardSoft} p-5`}><div className="flex justify-between"><p className={executiveTheme.eyebrow}>{label}</p><Icon size={18} className="text-[#c8a45d]"/></div><strong className="mt-3 block text-2xl text-[#fffaf0]">{value}</strong><p className="mt-1 text-xs text-[#8fa0b8]">Live backend data</p></article>)}</section><section className={`${executiveTheme.card} mt-5 overflow-hidden`}><div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Pending leave approvals</h2></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-[#8fa0b8]"><tr><th className="p-4">Employee</th><th>Type</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>{pendingLeaves.length ? pendingLeaves.map((item) => <tr className="border-t border-white/10" key={item.id}><td className="p-4">{text(item, "employee_name")}</td><td>{text(item, "leave_type_name")}</td><td>{text(item, "start_date")}</td><td>{text(item, "end_date")}</td><td>{text(item, "status")}</td></tr>) : <tr><td className="p-8 text-center text-[#c9d3df]" colSpan={5}>No pending leave requests.</td></tr>}</tbody></table></div></section><section className={`${executiveTheme.card} mt-5 overflow-hidden`}><div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Recent attendance</h2></div><div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="text-[#8fa0b8]"><tr><th className="p-4">Employee</th><th>Date</th><th>Check in</th><th>Check out</th><th>Status</th></tr></thead><tbody>{(attendance.data ?? []).slice(0, 12).map((item) => <tr className="border-t border-white/10" key={item.id}><td className="p-4">{text(item, "employee_name")}</td><td>{text(item, "date")}</td><td>{text(item, "check_in")}</td><td>{text(item, "check_out")}</td><td>{text(item, "status")}</td></tr>)}</tbody></table></div></section></div></main>;
 }

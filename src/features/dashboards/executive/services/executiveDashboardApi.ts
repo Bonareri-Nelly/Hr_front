@@ -1,185 +1,27 @@
-import { branches } from "../constants/executiveDashboard.constants";
-import type { BranchScope, ExecutiveDashboardData } from "../types/executiveDashboard.types";
+import api from "../../../../services/api/api";
+import type { Branch, BranchMetric, BranchScope, ExecutiveDashboardData, TrendPoint } from "../types/executiveDashboard.types";
 
-const scopedBranchNames = (scope: BranchScope) =>
-  branches.filter((branch) => scope.branchIds.includes(branch.id)).map((branch) => branch.name);
+type Item = Record<string, any>;
+const list = <T,>(data: T[] | { results?: T[] }) => Array.isArray(data) ? data : data.results ?? [];
+const monthTrend = (items: Item[], dateKey: string, value: (item: Item) => number = () => 1): TrendPoint[] => {
+  const groups = new Map<string, number>(); items.forEach((item) => { const date = item[dateKey]; if (!date) return; const label = new Date(date).toLocaleString("en", { month: "short" }); groups.set(label, (groups.get(label) ?? 0) + value(item)); }); return [...groups].map(([label, value]) => ({ label, value }));
+};
+const status = (value: number, good = 90): BranchMetric["status"] => value >= good ? "success" : value >= 70 ? "warning" : "danger";
 
-export function getBranches() {
-  return branches;
+export async function getExecutiveDashboardData(scope: BranchScope): Promise<ExecutiveDashboardData> {
+  const [branchResult, employeeResult, payrollResult, attendanceResult, leaveResult, reviewResult, benefitResult, caseResult] = await Promise.all([
+    api.get("/branches/"), api.get("/employees/"), api.get("/payroll/runs/"), api.get("/attendance/records/"), api.get("/leave/requests/"), api.get("/performance/reviews/"), api.get("/benefits/enrollments/"), api.get("/hr-operations/disciplinary-cases/"),
+  ]);
+  const branches = list<Item>(branchResult.data); const employees = list<Item>(employeeResult.data); const payroll = list<Item>(payrollResult.data); const attendance = list<Item>(attendanceResult.data); const leaves = list<Item>(leaveResult.data); const reviews = list<Item>(reviewResult.data); const benefits = list<Item>(benefitResult.data); const cases = list<Item>(caseResult.data);
+  const selected = scope.branchIds.length ? new Set(scope.branchIds.map(String)) : new Set(branches.map((item) => String(item.id)));
+  const people = employees.filter((item) => selected.has(String(item.branch))); const peopleIds = new Set(people.map((item) => Number(item.id)));
+  const branchRows = branches.filter((item) => selected.has(String(item.id))).map((branch) => { const team = employees.filter((person) => Number(person.branch) === Number(branch.id)); const records = attendance.filter((record) => peopleIds.has(Number(record.employee))); const present = records.filter((record) => record.status === "Present" || record.status === "Late").length; const rate = records.length ? Math.round(present / records.length * 100) : 0; return { branchId: String(branch.id), branchName: String(branch.name), value: rate, status: status(rate) }; });
+  const payrollCost = payroll.filter((run) => ["Finalized", "Approved"].includes(String(run.status))).reduce((sum, run) => sum + Number(run.total_gross ?? run.total_cost ?? 0), 0);
+  const attendanceForScope = attendance.filter((record) => peopleIds.has(Number(record.employee))); const absent = attendanceForScope.filter((record) => record.status === "Absent").length; const absenteeismRate = attendanceForScope.length ? Number((absent / attendanceForScope.length * 100).toFixed(1)) : 0;
+  const completedReviews = reviews.filter((item) => ["Finalized", "Completed"].includes(String(item.status))).length; const performanceCompletion = reviews.length ? Math.round(completedReviews / reviews.length * 100) : 0;
+  const activeBenefits = benefits.filter((item) => ["Active", "Approved"].includes(String(item.status))).length; const enrollmentRate = people.length ? Math.round(activeBenefits / people.length * 100) : 0;
+  const emptyMetric = (name: string): BranchMetric[] => branchRows.map((row) => ({ ...row, branchName: name === "attendance" ? row.branchName : row.branchName, value: name === "attendance" ? row.value : 0, status: name === "attendance" ? row.status : "info" }));
+  return { scope, summary: { headcount: people.length, payrollCost, payrollRevenuePercent: 0, attritionRate: 0, performanceCompletion, absenteeismRate }, workforce: { hiresTrend: monthTrend(people, "date_joined"), exitsTrend: [], attritionRanking: emptyMetric("attrition") }, payroll: { costTrend: monthTrend(payroll, "created_at", (item) => Number(item.total_gross ?? item.total_cost ?? 0) / 1000000), budgetActual: { budget: payrollCost || 1, actual: payrollCost }, overtimeTrend: monthTrend(attendanceForScope, "date", (item) => Number(item.overtime_hours ?? 0)), branchCosts: emptyMetric("payroll") }, performance: { ratingDistribution: [1, 2, 3, 4, 5].map((rating) => ({ label: String(rating), value: reviews.filter((item) => Math.round(Number(item.rating)) === rating).length })), branchRanking: emptyMetric("performance") }, attendance: { absenteeismByBranch: branchRows, leaveLiabilityDays: leaves.filter((item) => String(item.status).includes("Pending")).reduce((sum, item) => sum + Number(item.days ?? item.total_days ?? 0), 0), leaveLiabilityCost: 0 }, compliance: { disciplinaryTrend: monthTrend(cases, "created_at"), flags: cases.filter((item) => !["Resolved", "Closed"].includes(String(item.status))).map((item) => ({ branchId: String(item.id), branchName: String(item.case_number ?? item.employee_name), value: 1, status: "warning" })), auditHeatmap: branchRows }, benefits: { enrollmentRate, costTrend: [], branchEnrollment: emptyMetric("benefits") }, approvals: leaves.filter((item) => String(item.status).includes("Pending")).map((item) => ({ id: String(item.id), title: `Leave request: ${item.employee_name ?? item.employee}`, branchName: "Scoped branch", value: `${item.days ?? item.total_days ?? 0} days`, type: "Leave" })), insights: [{ id: "live-scope", title: `${people.length} employees in scope`, detail: "Metrics are calculated from live HR, payroll, attendance, leave, performance and benefits records.", tone: "info" }], engagement: { enps: 0, branchComparison: [], diversity: [] }, timeToX: { timeToHireDays: 0, timeToProductivityDays: 0, internalMobilityRate: 0 }, financialHr: { revenuePerEmployee: 0, costPerHireTrend: [], trainingRetention: [] } };
 }
 
-export function getExecutiveDashboardData(scope: BranchScope): ExecutiveDashboardData {
-  const branchNames = scopedBranchNames(scope);
-  const primaryBranchName = branchNames[0] ?? "No branch";
-
-  return {
-    scope,
-    summary: {
-      headcount: 248,
-      payrollCost: 18600000,
-      payrollRevenuePercent: 24.8,
-      attritionRate: 7.4,
-      performanceCompletion: 82,
-      absenteeismRate: 3.1,
-    },
-    workforce: {
-      hiresTrend: [
-        { label: "Jan", value: 8 },
-        { label: "Feb", value: 10 },
-        { label: "Mar", value: 7 },
-        { label: "Apr", value: 12 },
-        { label: "May", value: 9 },
-        { label: "Jun", value: 14 },
-      ],
-      exitsTrend: [
-        { label: "Jan", value: 3 },
-        { label: "Feb", value: 4 },
-        { label: "Mar", value: 2 },
-        { label: "Apr", value: 5 },
-        { label: "May", value: 4 },
-        { label: "Jun", value: 6 },
-      ],
-      attritionRanking: [
-        { branchId: "eldoret", branchName: primaryBranchName, value: 7.4, status: "warning" },
-      ],
-    },
-    payroll: {
-      costTrend: [
-        { label: "Jan", value: 15.8 },
-        { label: "Feb", value: 16.1 },
-        { label: "Mar", value: 16.4 },
-        { label: "Apr", value: 17.2 },
-        { label: "May", value: 17.8 },
-        { label: "Jun", value: 18.6 },
-      ],
-      budgetActual: { budget: 19.4, actual: 18.6 },
-      overtimeTrend: [
-        { label: "Jan", value: 0.8 },
-        { label: "Feb", value: 0.9 },
-        { label: "Mar", value: 1.1 },
-        { label: "Apr", value: 1.4 },
-        { label: "May", value: 1.2 },
-        { label: "Jun", value: 1.6 },
-      ],
-      branchCosts: [
-        { branchId: "eldoret", branchName: primaryBranchName, value: 18.6, status: "info" },
-      ],
-    },
-    performance: {
-      ratingDistribution: [
-        { label: "1", value: 4 },
-        { label: "2", value: 9 },
-        { label: "3", value: 38 },
-        { label: "4", value: 34 },
-        { label: "5", value: 15 },
-      ],
-      branchRanking: [
-        { branchId: "eldoret", branchName: primaryBranchName, value: 82, status: "success" },
-      ],
-    },
-    attendance: {
-      absenteeismByBranch: [
-        { branchId: "eldoret", branchName: primaryBranchName, value: 3.1, status: "success" },
-      ],
-      leaveLiabilityDays: 1840,
-      leaveLiabilityCost: 6200000,
-    },
-    compliance: {
-      disciplinaryTrend: [
-        { label: "Jan", value: 4 },
-        { label: "Feb", value: 3 },
-        { label: "Mar", value: 6 },
-        { label: "Apr", value: 5 },
-        { label: "May", value: 4 },
-        { label: "Jun", value: 7 },
-      ],
-      flags: [
-        { branchId: "eldoret", branchName: "Expiring contracts", value: 12, status: "warning" },
-        { branchId: "eldoret", branchName: "Certification renewals", value: 8, status: "info" },
-      ],
-      auditHeatmap: [
-        { branchId: "eldoret", branchName: primaryBranchName, value: 91, status: "success" },
-      ],
-    },
-    benefits: {
-      enrollmentRate: 76,
-      costTrend: [
-        { label: "Jan", value: 2.1 },
-        { label: "Feb", value: 2.2 },
-        { label: "Mar", value: 2.3 },
-        { label: "Apr", value: 2.4 },
-        { label: "May", value: 2.4 },
-        { label: "Jun", value: 2.6 },
-      ],
-      branchEnrollment: [
-        { branchId: "eldoret", branchName: primaryBranchName, value: 76, status: "success" },
-      ],
-    },
-    approvals: [
-      {
-        id: "senior-hire-001",
-        title: "Senior finance hire above approved band",
-        branchName: primaryBranchName,
-        value: "KES 720K annual impact",
-        type: "Senior hire",
-      },
-      {
-        id: "budget-exception-001",
-        title: "Overtime exception above monthly threshold",
-        branchName: primaryBranchName,
-        value: "KES 410K variance",
-        type: "Budget exception",
-      },
-    ],
-    insights: [
-      {
-        id: "payroll-outlier",
-        title: `${primaryBranchName} payroll cost is trending 8% above plan`,
-        detail: "Review overtime concentration and senior hire timing before quarter close.",
-        tone: "warning",
-      },
-      {
-        id: "attrition-risk",
-        title: "Operations attrition risk is rising",
-        detail: "Exit velocity increased across the last two months. Drill into branch detail before approving new budget.",
-        tone: "danger",
-      },
-      {
-        id: "audit-health",
-        title: "Audit readiness remains healthy",
-        detail: "Contract and certification gaps are visible but below escalation threshold.",
-        tone: "success",
-      },
-    ],
-    engagement: {
-      enps: 42,
-      branchComparison: [
-        { branchId: "eldoret", branchName: primaryBranchName, value: 42, status: "success" },
-      ],
-      diversity: [
-        { label: "Women leaders", value: 38 },
-        { label: "Internal promotions", value: 22 },
-        { label: "Youth employment", value: 31 },
-      ],
-    },
-    timeToX: {
-      timeToHireDays: 28,
-      timeToProductivityDays: 46,
-      internalMobilityRate: 14,
-    },
-    financialHr: {
-      revenuePerEmployee: 580000,
-      costPerHireTrend: [
-        { label: "Q1", value: 128 },
-        { label: "Q2", value: 136 },
-        { label: "Q3", value: 132 },
-        { label: "Q4", value: 141 },
-      ],
-      trainingRetention: [
-        { label: "No L&D", value: 68 },
-        { label: "Core", value: 79 },
-        { label: "Advanced", value: 87 },
-      ],
-    },
-  };
-}
+export async function getBranches(): Promise<Branch[]> { return list<Item>((await api.get("/branches/")).data).map((item) => ({ id: String(item.id), name: String(item.name) })); }

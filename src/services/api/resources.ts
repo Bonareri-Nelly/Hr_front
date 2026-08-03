@@ -15,7 +15,7 @@ export const apiPaths = {
   benefitPlans: "/benefits/plans/", benefitEnrollments: "/benefits/enrollments/", benefitWindows: "/benefits/windows/", benefitContributions: "/benefits/contributions/",
   contracts: "/contracts/", contractRenewals: "/contract-renewals/", contractTerminations: "/contract-terminations/",
   performanceCycles: "/performance/cycles/", performanceGoals: "/performance/goals/", performanceReviews: "/performance/reviews/", goalProgress: "/performance/progress/",
-  hrPerformanceReviews: "/hr-operations/performance-reviews/", hrPerformanceGoals: "/hr-operations/performance-goals/", disciplinaryCases: "/hr-operations/disciplinary-cases/", announcements: "/hr-operations/announcements/", trainings: "/hr-operations/trainings/", trainingEnrollments: "/hr-operations/training-enrollments/",
+  hrPerformanceReviews: "/hr-operations/performance-reviews/", hrPerformanceGoals: "/hr-operations/performance-goals/", disciplinaryCases: "/hr-operations/disciplinary-cases/", announcements: "/hr-operations/announcements/", trainings: "/hr-operations/trainings/", trainingEnrollments: "/hr-operations/training-enrollments/", recruitmentApplications: "/hr-operations/recruitment-applications/", complaints: "/hr-operations/complaints/",
 } as const;
 
 type ApiPath = (typeof apiPaths)[keyof typeof apiPaths];

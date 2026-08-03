@@ -1,50 +1,25 @@
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
-import { ALL_BRANCHES_VALUE } from "../constants/executiveDashboard.constants";
+import { useQuery } from "@tanstack/react-query";
 import { getBranches, getExecutiveDashboardData } from "../services/executiveDashboardApi";
 import type { BranchScope } from "../types/executiveDashboard.types";
 
 export function useExecutiveDashboard() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const branches = getBranches();
-  const selectedBranchId = searchParams.get("branch_id") ?? ALL_BRANCHES_VALUE;
+  const branchQuery = useQuery({ queryKey: ["executive", "branches"], queryFn: getBranches });
+  const branches = branchQuery.data ?? [];
 
   const scope: BranchScope = useMemo(() => {
-    if (selectedBranchId === ALL_BRANCHES_VALUE) {
-      return {
-        branchIds: branches.map((branch) => branch.id),
-        label: "All Branches",
-      };
-    }
-
-    const selectedBranch = branches.find((branch) => branch.id === selectedBranchId);
-
     return {
-      branchIds: selectedBranch ? [selectedBranch.id] : branches.map((branch) => branch.id),
-      label: selectedBranch?.name ?? "All Branches",
+      branchIds: branches.length ? [branches[0].id] : [],
+      label: branches[0]?.name ?? "Branch",
     };
-  }, [branches, selectedBranchId]);
+  }, [branches]);
 
-  const data = useMemo(() => getExecutiveDashboardData(scope), [scope]);
-
-  function setSelectedBranch(branchId: string) {
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-
-      if (branchId === ALL_BRANCHES_VALUE) {
-        next.delete("branch_id");
-      } else {
-        next.set("branch_id", branchId);
-      }
-
-      return next;
-    });
-  }
+  const dashboardQuery = useQuery({ queryKey: ["executive", "dashboard", scope.branchIds], queryFn: () => getExecutiveDashboardData(scope) });
 
   return {
     branches,
-    data,
-    selectedBranchId,
-    setSelectedBranch,
+    data: dashboardQuery.data,
+    isLoading: branchQuery.isLoading || dashboardQuery.isLoading,
+    error: branchQuery.error ?? dashboardQuery.error,
   };
 }

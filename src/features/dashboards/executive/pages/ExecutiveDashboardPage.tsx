@@ -1,8 +1,8 @@
-import { Download, FileText, Mail, Pin } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Download, Mail, Pin } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 import AttendanceLeaveOverview from "../components/AttendanceLeaveOverview";
 import BenefitsOverview from "../components/BenefitsOverview";
-import BranchScopeSelector from "../components/BranchScopeSelector";
 import ComplianceRiskOverview from "../components/ComplianceRiskOverview";
 import EngagementCulture from "../components/EngagementCulture";
 import ExceptionApprovals from "../components/ExceptionApprovals";
@@ -13,22 +13,20 @@ import PerformanceProductivity from "../components/PerformanceProductivity";
 import PredictiveInsights from "../components/PredictiveInsights";
 import TimeToXMetrics from "../components/TimeToXMetrics";
 import WorkforceOverview from "../components/WorkforceOverview";
-import { ALL_BRANCHES_VALUE, executiveScopeNote } from "../constants/executiveDashboard.constants";
+import { executiveScopeNote } from "../constants/executiveDashboard.constants";
 import { useExecutiveDashboard } from "../hooks/useExecutiveDashboard";
 
 export default function ExecutiveDashboardPage() {
-  const navigate = useNavigate();
-  const { branches, data, selectedBranchId, setSelectedBranch } = useExecutiveDashboard();
-  const handleBranchChange = (branchId: string) => {
-    setSelectedBranch(branchId);
-    if (branchId !== ALL_BRANCHES_VALUE) navigate(`/dashboard/hr?branch_id=${branchId}`);
-  };
+  const [digestOpen, setDigestOpen] = useState(false);
+  const { data, isLoading, error } = useExecutiveDashboard();
 
+  if (isLoading || !data) return <div className="dashboard-page"><p className="page-subtitle">Loading live executive metrics…</p></div>;
+  if (error) return <div className="dashboard-page"><p className="alert alert-error">Unable to load live executive metrics.</p></div>;
   return (
     <div className="dashboard-page executive-dashboard">
       <div className="dashboard-heading">
         <div>
-          <div className="page-kicker">Strategic cross-branch visibility</div>
+          <div className="page-kicker">Strategic branch visibility</div>
           <h1 className="page-title">Executive Dashboard</h1>
           <p className="page-subtitle">
             Aggregated HR, payroll, compliance, and workforce intelligence for {data.scope.label.toLowerCase()}.
@@ -36,20 +34,11 @@ export default function ExecutiveDashboardPage() {
         </div>
 
         <div className="executive-toolbar">
-          <BranchScopeSelector
-            branches={branches}
-            selectedBranchId={selectedBranchId}
-            onBranchChange={handleBranchChange}
-          />
           <div className="action-row">
-            <Link className="button button-primary" to="/reports-analytics?view=company-comparison">
-              <FileText aria-hidden="true" size={15} />
-              Compare
-            </Link>
-            <Link className="button button-secondary" to="/ai-assistant?prompt=executive-digest">
+            <button className="button button-secondary" type="button" onClick={() => setDigestOpen((open) => !open)}>
               <Mail aria-hidden="true" size={15} />
               Digest
-            </Link>
+            </button>
             <Link className="button button-secondary" to="/reports-analytics">
               <Download aria-hidden="true" size={15} />
               Export
@@ -58,11 +47,13 @@ export default function ExecutiveDashboardPage() {
         </div>
       </div>
 
+      {digestOpen && <section className="panel"><div className="panel-header"><h3 className="panel-title">Live executive digest</h3><button className="panel-action" onClick={() => setDigestOpen(false)}>Close</button></div><div className="panel-body usability-grid"><div className="note"><strong>Workforce:</strong> {data.summary.headcount} employees in {data.scope.label}; attendance absence rate is {data.summary.absenteeismRate}%.</div><div className="note"><strong>Payroll:</strong> KES {data.summary.payrollCost.toLocaleString()} in approved/finalized payroll runs.</div><div className="note"><strong>Actions:</strong> {data.approvals.length} pending leave approvals and {data.compliance.flags.length} open disciplinary items in the current scope.</div></div></section>}
+
       <section className="metrics" aria-label="Executive dashboard summary">
         <div className="metric-cell">
           <div className="metric-label">Headcount</div>
           <div className="metric-value">{data.summary.headcount}</div>
-          <div className="metric-meta">Aggregated across branch scope</div>
+          <div className="metric-meta">Current branch workforce</div>
         </div>
         <div className="metric-cell">
           <div className="metric-label">Payroll cost</div>
@@ -84,7 +75,7 @@ export default function ExecutiveDashboardPage() {
       <section className="panel">
         <div className="panel-header"><h3 className="panel-title">Company Overview</h3></div>
         <div className="panel-body usability-grid">
-          <div className="note"><strong>Operating branch:</strong> Eldoret Branch</div>
+          <div className="note"><strong>Operating branch:</strong> {data.scope.label}</div>
           <div className="note"><strong>Company scope:</strong> workforce, payroll, attendance, leave, compliance, benefits, performance, and HR risk.</div>
           <div className="note"><strong>Live drill-down:</strong> select Eldoret Branch to open the HR dashboard for operational follow-up.</div>
         </div>
@@ -94,7 +85,7 @@ export default function ExecutiveDashboardPage() {
 
       <div className="note executive-scope-note">
         <span className="pill pill-info">Read-only scope</span>
-        {executiveScopeNote} Single-branch selection reuses the branch dashboard pattern in read-only executive mode.
+        {executiveScopeNote} This executive view is limited to your configured branch.
       </div>
 
       <div className="grid-main">

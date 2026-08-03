@@ -36,6 +36,7 @@ import {
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../../services/api/api";
 
 // ============================================================
 // TYPES
@@ -1491,6 +1492,20 @@ const SecurityAuditPage: React.FC = () => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [scanMessage, setScanMessage] = useState("");
+  const [scanRunning, setScanRunning] = useState(false);
+  const [scanFindings, setScanFindings] = useState<Array<{ severity: string; control: string; detail: string; recommendation: string }>>([]);
+
+  const runSecurityScan = async () => {
+    setScanRunning(true);
+    setScanMessage("Running configuration and access-control checks…");
+    try {
+      const { data } = await api.post<{ score: number; issues: number; systems_checked: number; findings: Array<{ severity: string; control: string; detail: string; recommendation: string }> }>("/security-audit/scan/");
+      setScanFindings(data.findings);
+      setScanMessage(`Scan complete: ${data.systems_checked} controls checked, ${data.issues} finding(s), security score ${data.score}%.`);
+    } catch (error: any) {
+      setScanMessage(error?.response?.data?.detail ?? "The security scan could not be completed.");
+    } finally { setScanRunning(false); }
+  };
 
   const filteredEvents = securityEvents.filter((event) => {
     const matchesSearch =
@@ -1625,7 +1640,8 @@ const SecurityAuditPage: React.FC = () => {
               Refresh
             </button>
             <button
-              onClick={() => { setScanMessage("Security scan started. No findings detected yet."); handleNavigate("/security/scan"); }}
+              onClick={runSecurityScan}
+              disabled={scanRunning}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -1652,11 +1668,12 @@ const SecurityAuditPage: React.FC = () => {
               }}
             >
               <Shield size={16} />
-              Run Security Scan
+              {scanRunning ? "Running scan…" : "Run Security Scan"}
             </button>
           </div>
         </header>
         {scanMessage && <div className="note" style={{ marginBottom: 16 }}>{scanMessage}</div>}
+        {scanFindings.length > 0 && <section className="note" style={{ marginBottom: 16 }}><strong>Latest scan findings</strong>{scanFindings.map((finding) => <div key={finding.control} style={{ marginTop: 10 }}><span className="pill pill-warning">{finding.severity}</span> <strong>{finding.control}:</strong> {finding.detail}<div style={{ color: "#64748b", marginTop: 3 }}>Recommended: {finding.recommendation}</div></div>)}</section>}
 
         {/* Stats Grid */}
         <section

@@ -10,4 +10,5 @@ urlpatterns = [
     path("auth/me/", views.me_view),
     path("auth/profile/", views.profile_view),
     path("auth/change-password/", views.change_password_view),
+    path("security-audit/scan/", views.security_scan_view),
 ]
