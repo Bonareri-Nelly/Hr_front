@@ -146,6 +146,7 @@ export default function UserProfilePage() {
     role: getRoleName(apiProfile.role ?? apiProfile.role_name ?? apiProfile.user_role),
     department: typeof apiProfile.department === "object" ? String(apiProfile.department?.name ?? "") : String(apiProfile.department_name ?? apiProfile.department ?? ""),
     location: String(apiProfile.branch_name ?? (typeof apiProfile.branch === "object" ? apiProfile.branch?.name : apiProfile.branch) ?? ""),
+    startDate: apiProfile.date_joined ?? "",
   } : profileData;
   const initials = effectiveProfile.name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "U";
 
@@ -219,7 +220,10 @@ export default function UserProfilePage() {
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    if (!dateString) return "Not provided";
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Not provided";
+    return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
