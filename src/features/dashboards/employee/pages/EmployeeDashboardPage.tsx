@@ -1,4 +1,4 @@
-import { Calendar, ChevronRight, ClipboardList, FileText, HelpCircle, MessageSquare, TrendingUp, Users } from "lucide-react";
+import { Calendar, TrendingUp, FileText, ClipboardList, MessageSquare, HelpCircle, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { resources, type ApiRecord } from "../../../../services/api/resources";
@@ -118,7 +118,7 @@ export default function EmployeeDashboardPage() {
     { date: profData?.hire_date ?? "—", title: "Hire Date", description: profData?.department ? `Joined ${profData.department}` : "Employment start" },
     { date: branchName, title: "Branch", description: profData?.branch ? `Assigned to ${profData.branch}` : "Branch assignment" },
     { date: deptName, title: "Department", description: `Department: ${deptName}` },
-    ...(nextReview ? [{ date: nextReview.evaluation_period ?? "—", title: "Performance Review", description: `Status: ${nextReview.status ?? "pending"}` }] : []),
+    ...(nextReview ? [{ date: String(nextReview.evaluation_period ?? "—"), title: "Performance Review", description: `Status: ${String(nextReview.status ?? "pending")}` }] : []),
   ];
 
   return (
@@ -126,8 +126,8 @@ export default function EmployeeDashboardPage() {
       <div className="dashboard-heading">
         <div>
           <p className="page-kicker">Employee self-service</p>
-          <h1 className="page-title">Welcome back, {employeeName}</h1>
-          <p className="page-subtitle">{branchName}, {deptName}</p>
+          <h1 className="page-title">Welcome back, {String(employeeName)}</h1>
+          <p className="page-subtitle">{String(branchName)}, {String(deptName)}</p>
         </div>
       </div>
 
@@ -139,13 +139,13 @@ export default function EmployeeDashboardPage() {
         </div>
         <div className="metric-cell">
           <p className="metric-label">Attendance Rate</p>
-          <p className="metric-value compact-metric">{attendanceRate}%</p>
+          <p className="metric-value compact-metric">{String(attendanceRate)}%</p>
           <p className="metric-meta">This period</p>
         </div>
         <div className="metric-cell">
           <p className="metric-label">Next Appraisal</p>
-          <p className="metric-value compact-metric">{nextReview ? (nextReview.evaluation_period ?? "TBD") : "No review"}</p>
-          <p className="metric-meta">{nextReview ? `Status: ${nextReview.status}` : "Awaiting cycle"}</p>
+          <p className="metric-value compact-metric">{nextReview ? String(nextReview.evaluation_period ?? "TBD") : "No review"}</p>
+          <p className="metric-meta">{nextReview ? `Status: ${String(nextReview.status)}` : "Awaiting cycle"}</p>
         </div>
         <div className="metric-cell">
           <p className="metric-label">Pending Requests</p>
@@ -185,7 +185,7 @@ export default function EmployeeDashboardPage() {
               <div className="section-stack">
                 {timelineEvents.map((event, idx) => (
                   <div key={idx} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "12px", alignItems: "start", padding: "10px 0", borderBottom: idx < timelineEvents.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
-                    <span className="eyebrow">{event.date}</span>
+                    <span className="eyebrow">{String(event.date)}</span>
                     <div>
                       <p style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--ink)", margin: "0 0 2px" }}>{event.title}</p>
                       <p className="page-subtitle">{event.description}</p>
@@ -209,8 +209,8 @@ export default function EmployeeDashboardPage() {
                 <div className="section-stack">
                   {announcementList.slice(0, 3).map((a: ApiRecord) => (
                     <div key={a.id} className="note">
-                      <p style={{ fontWeight: 700, fontSize: "0.78rem", color: "var(--ink)", margin: "0 0 2px" }}>{a.title ?? "Announcement"}</p>
-                      <p className="page-subtitle">{(a.content ?? a.description ?? "").slice(0, 100)}</p>
+                      <p style={{ fontWeight: 700, fontSize: "0.78rem", color: "var(--ink)", margin: "0 0 2px" }}>{String(a.title ?? "Announcement")}</p>
+                      <p className="page-subtitle">{String((a.content ?? a.description ?? "")).slice(0, 100)}</p>
                     </div>
                   ))}
                 </div>
@@ -224,9 +224,9 @@ export default function EmployeeDashboardPage() {
             </div>
             <div className="panel-body">
               <div className="section-stack">
-                <div className="note"><p className="eyebrow">Employee ID</p><p className="compact-metric">{profData?.employee_code ?? profData?.code ?? "—"}</p></div>
-                <div className="note"><p className="eyebrow">Position</p><p className="compact-metric">{profData?.position ?? profData?.role ?? "—"}</p></div>
-                <div className="note"><p className="eyebrow">Email</p><p className="compact-metric">{user?.email ?? "—"}</p></div>
+                <div className="note"><p className="eyebrow">Employee ID</p><p className="compact-metric">{String(profData?.employee_code ?? profData?.code ?? "—")}</p></div>
+                <div className="note"><p className="eyebrow">Position</p><p className="compact-metric">{String(profData?.position ?? profData?.role ?? "—")}</p></div>
+                <div className="note"><p className="eyebrow">Email</p><p className="compact-metric">{String(user?.email ?? "—")}</p></div>
               </div>
             </div>
           </section>

@@ -33,20 +33,20 @@ export default function FinanceGrievances() {
     },
   });
 
-  const tickets: GrievanceTicket[] = ((complaintsQuery.data ?? []) as ApiRecord[]).map((c: ApiRecord) => ({
+  const tickets: GrievanceTicket[] = ((complaintsQuery.data ?? []) as any[]).map((c: any) => ({
     id: String(c.id),
-    employeeId: String(c.employee_code ?? c.employee_id ?? c.id),
+    employeeId: String(c.employee_code ?? c.employee_id ?? c.id ?? ''),
     employeeName: String(c.employee_name ?? c.complainant_name ?? c.employee ?? 'Unknown'),
     branch: String(c.branch ?? '—'),
     department: String(c.department ?? '—'),
-    escalatedDate: c.created_at ? new Date(c.created_at).toLocaleString() : '—',
+    escalatedDate: c.created_at && typeof c.created_at === 'string' ? new Date(c.created_at).toLocaleString() : '—',
     hrMessage: String(c.description ?? c.details ?? c.reason ?? ''),
     status: String(c.status ?? 'open'),
   }));
 
-  const pendingCount = tickets.filter(t => t.status === 'open' || t.status === 'pending').length;
-  const activeCount = tickets.filter(t => t.status === 'in_progress' || t.status === 'in progress').length;
-  const resolvedCount = tickets.filter(t => t.status === 'resolved' || t.status === 'completed' || t.status === 'closed').length;
+  const pendingCount = tickets.filter((t: GrievanceTicket) => t.status === 'open' || t.status === 'pending').length;
+  const activeCount = tickets.filter((t: GrievanceTicket) => t.status === 'in_progress' || t.status === 'in progress').length;
+  const resolvedCount = tickets.filter((t: GrievanceTicket) => t.status === 'resolved' || t.status === 'completed' || t.status === 'closed').length;
 
   const handleWorkflowTransition = (ticketId: string, nextStatus: string) => {
     resolveMutation.mutate({ id: ticketId, status: nextStatus });

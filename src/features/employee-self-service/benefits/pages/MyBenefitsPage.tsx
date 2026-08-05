@@ -1,6 +1,6 @@
-import { CalendarDays, Eye, Plus, LoaderCircle } from "lucide-react";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, Eye, CalendarDays, LoaderCircle } from "lucide-react";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { resources, type ApiRecord } from "../../../../services/api/resources";
 
@@ -138,7 +138,7 @@ export default function MyBenefitsPage() {
                   <option value="">Select a plan…</option>
                   {planList.map((p: ApiRecord) => (
                     <option key={p.id} value={String(p.id)}>
-                      {p.name ?? p.plan_name ?? p.component_name ?? "Plan"}
+                      {String(p.name ?? p.plan_name ?? p.component_name ?? "Plan")}
                     </option>
                   ))}
                 </select>
@@ -147,8 +147,8 @@ export default function MyBenefitsPage() {
                   if (!plan) return null;
                   return (
                     <div className="note" style={{ marginTop: "12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px" }}>
-                      <p style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--ink)", margin: "0 0 6px" }}>{plan.name ?? plan.plan_name}</p>
-                      <p className="page-subtitle">{plan.description ?? plan.coverage ?? "No description available"}</p>
+                      <p style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--ink)", margin: "0 0 6px" }}>{String(plan.name ?? plan.plan_name)}</p>
+                      <p className="page-subtitle">{String(plan.description ?? plan.coverage ?? "No description available")}</p>
                       <p className="page-subtitle" style={{ marginTop: "4px" }}>
                         Cost: KES {Number(plan.monthly_cost ?? plan.amount ?? plan.cost ?? 0).toLocaleString()} / month
                       </p>
@@ -198,17 +198,17 @@ export default function MyBenefitsPage() {
                 <div key={benefit.id} className="note" style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: "16px", background: "var(--surface)" }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
                     <div>
-                      <p className="eyebrow">{benefit.plan_type ?? benefit.type ?? benefit.category ?? "benefit"}</p>
+                      <p className="eyebrow">{String(benefit.plan_type ?? benefit.type ?? benefit.category ?? "benefit")}</p>
                       <h4 style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--ink)", margin: "4px 0 0" }}>
-                        {benefit.plan_name ?? benefit.name ?? benefit.component_name ?? "Benefit"}
+                        {String(benefit.plan_name ?? benefit.name ?? benefit.component_name ?? "Benefit")}
                       </h4>
                     </div>
                     <span className={`pill pill-${benefit.status === "active" ? "success" : benefit.status === "pending" ? "warning" : "info"}`}>
-                      {benefit.status ?? "active"}
+                      {String(benefit.status ?? "active")}
                     </span>
                   </div>
-                  <p className="page-subtitle">{benefit.coverage ?? benefit.description ?? "No coverage details"}</p>
-                  <p className="page-subtitle" style={{ marginTop: "4px" }}>Dependents: {benefit.dependents ?? 0}</p>
+                  <p className="page-subtitle">{String(benefit.coverage ?? benefit.description ?? "No coverage details")}</p>
+                  <p className="page-subtitle" style={{ marginTop: "4px" }}>Dependents: {Number(benefit.dependents ?? 0)}</p>
                   <button
                     className="button button-secondary button-sm"
                     style={{ marginTop: "10px" }}
@@ -230,16 +230,16 @@ export default function MyBenefitsPage() {
             <div className="payroll-modal-header">
               <div>
                 <div className="page-kicker">Benefit detail</div>
-                <h2>{selectedBenefit.plan_name ?? selectedBenefit.name ?? "Benefit"}</h2>
+                <h2>{String(selectedBenefit.plan_name ?? selectedBenefit.name ?? "Benefit")}</h2>
               </div>
               <button className="panel-action" onClick={() => setSelectedBenefit(null)}>Close</button>
             </div>
             <div className="section-stack" style={{ marginTop: "16px" }}>
-              <div className="note"><p className="eyebrow">Type</p><p className="compact-metric">{selectedBenefit.plan_type ?? selectedBenefit.type ?? "—"}</p></div>
-              <div className="note"><p className="eyebrow">Status</p><p className="compact-metric">{selectedBenefit.status ?? "—"}</p></div>
-              <div className="note"><p className="eyebrow">Coverage</p><p className="compact-metric">{selectedBenefit.coverage ?? selectedBenefit.description ?? "—"}</p></div>
+              <div className="note"><p className="eyebrow">Type</p><p className="compact-metric">{String(selectedBenefit.plan_type ?? selectedBenefit.type ?? "—")}</p></div>
+              <div className="note"><p className="eyebrow">Status</p><p className="compact-metric">{String(selectedBenefit.status ?? "—")}</p></div>
+              <div className="note"><p className="eyebrow">Coverage</p><p className="compact-metric">{String(selectedBenefit.coverage ?? selectedBenefit.description ?? "—")}</p></div>
               <div className="note"><p className="eyebrow">Cost</p><p className="compact-metric">KES {Number(selectedBenefit.monthly_cost ?? selectedBenefit.amount ?? 0).toLocaleString()} / month</p></div>
-              <div className="note"><p className="eyebrow">Dependents</p><p className="compact-metric">{selectedBenefit.dependents ?? 0}</p></div>
+              <div className="note"><p className="eyebrow">Dependents</p><p className="compact-metric">{Number(selectedBenefit.dependents ?? 0)}</p></div>
             </div>
             <div className="action-row payroll-modal-actions">
               <button className="button button-primary" onClick={() => setSelectedBenefit(null)}>Close</button>
@@ -248,12 +248,7 @@ export default function MyBenefitsPage() {
         </div>
       )}
 
-      <PageChatbotWidget
-        page="my-benefits"
-        role="Employee"
-        contextSummary={`${benefits.length} plans enrolled.`}
-        quickPrompts={["What benefits am I enrolled in?", "Can I add dependents?", "How do I enroll in a new plan?"]}
-      />
+      <PageChatbotWidget page="my-benefits" role="Employee" contextSummary={`${benefits.length} benefits enrolled.`} quickPrompts={["What benefits am I eligible for?", "How do I enroll in a plan?"]} />
     </div>
   );
 }

@@ -18,7 +18,20 @@ export function usePayrollCreation() {
 
   const { data: runs = [], isLoading: runsLoading, error: runsError } = useQuery<PayrollRun[]>({
     queryKey: ["payroll-runs"],
-    queryFn: () => resources.payrollRuns.list(),
+    queryFn: async () => {
+      const data = await resources.payrollRuns.list();
+      return (data as any[]).map((run: any) => ({
+        id: run.id,
+        name: run.name,
+        period: run.period,
+        status: run.status,
+        total_amount: run.total_amount,
+        employee_count: run.employee_count,
+        created_at: run.created_at,
+        updated_at: run.updated_at,
+        notes: run.notes,
+      }));
+    },
   });
 
   const createMutation = useMutation({

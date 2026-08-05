@@ -59,10 +59,10 @@ export default function PayrollCreationPage() {
     createRun({
       name: runName,
       period: `${periodStart}|${periodEnd}`,
-      payment_date: paymentDate,
       status: "Draft",
       total_amount: 0,
       employee_count: 0,
+      notes: paymentDate,
     } as any);
     showToast("Payroll run created successfully", "success");
     setRunName("");
@@ -83,7 +83,7 @@ export default function PayrollCreationPage() {
 
   const handleSaveEdit = () => {
     if (!selectedRun) return;
-    updateRun({ id: selectedRun.id, payload: { name: runName, payment_date: paymentDate } });
+    updateRun({ id: selectedRun.id, payload: { name: runName, notes: paymentDate } as any });
     showToast("Payroll run updated", "success");
     setShowEditModal(false);
     setSelectedRun(null);

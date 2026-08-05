@@ -32,12 +32,40 @@ export function usePayrollApproval() {
 
   const { data: runs = [], isLoading: runsLoading, error: runsError } = useQuery<PayrollRun[]>({
     queryKey: ["payroll-runs"],
-    queryFn: () => resources.payrollRuns.list(),
+    queryFn: async () => {
+      const data = await resources.payrollRuns.list();
+      return (data as any[]).map((run: any) => ({
+        id: run.id,
+        name: run.name,
+        period: run.period,
+        status: run.status,
+        total_amount: run.total_amount,
+        employee_count: run.employee_count,
+        created_at: run.created_at,
+        updated_at: run.updated_at,
+        notes: run.notes,
+      }));
+    },
   });
 
   const { data: items = [], isLoading: itemsLoading, error: itemsError } = useQuery<PayrollItem[]>({
     queryKey: ["payroll-items"],
-    queryFn: () => resources.payComponents.list(), // Using pay components as payroll items
+    queryFn: async () => {
+      const data = await resources.payComponents.list();
+      return (data as any[]).map((item: any) => ({
+        id: item.id,
+        employee: item.employee || 0,
+        amount: item.amount || 0,
+        status: item.status || "pending",
+        run: item.run || 0,
+        breakdown: {
+          basic_salary: item.basic_salary || 0,
+          allowances: item.allowances || 0,
+          deductions: item.deductions || 0,
+          net_pay: item.net_pay || 0,
+        },
+      }));
+    },
   });
 
   const createMutation = useMutation({

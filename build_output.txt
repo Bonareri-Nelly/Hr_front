@@ -1,0 +1,112 @@
+
+> hr-payroll-system@0.0.0 build
+> tsc -b && vite build
+
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(129,52): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(130,40): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(130,54): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(147,54): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(188,47): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(212,115): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(213,88): error TS2339: Property 'slice' does not exist on type '{}'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(227,107): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/employee/pages/EmployeeDashboardPage.tsx(228,104): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(71,5): error TS2322: Type 'string[][] | { id: any; branch: any; period: any; amount: string; employees: any; status: any; tone: "success" | "warning" | "danger"; }[]' is not assignable to type '{ id: number; branch: string; period: string; amount: string; employees: number; status: string; tone: "success" | "warning" | "danger" | "info"; }[]'.
+  Type 'string[][]' is not assignable to type '{ id: number; branch: string; period: string; amount: string; employees: number; status: string; tone: "success" | "warning" | "danger" | "info"; }[]'.
+    Type 'string[]' is missing the following properties from type '{ id: number; branch: string; period: string; amount: string; employees: number; status: string; tone: "success" | "warning" | "danger" | "info"; }': id, branch, period, amount, and 3 more.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(91,7): error TS2322: Type '[string, string, string, string]' is not assignable to type '{ title: string; detail: string; meta: string; tone: "success" | "warning" | "danger" | "info"; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(92,7): error TS2322: Type '[string, string, string, string]' is not assignable to type '{ title: string; detail: string; meta: string; tone: "success" | "warning" | "danger" | "info"; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(93,7): error TS2322: Type '[string, string, string, string]' is not assignable to type '{ title: string; detail: string; meta: string; tone: "success" | "warning" | "danger" | "info"; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(94,7): error TS2322: Type '[string, string, string, string]' is not assignable to type '{ title: string; detail: string; meta: string; tone: "success" | "warning" | "danger" | "info"; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(97,7): error TS2322: Type '[string, string, string, number]' is not assignable to type '{ category: string; allocated: string; spent: string; percent: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(98,7): error TS2322: Type '[string, string, string, number]' is not assignable to type '{ category: string; allocated: string; spent: string; percent: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(99,7): error TS2322: Type '[string, string, string, number]' is not assignable to type '{ category: string; allocated: string; spent: string; percent: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(100,7): error TS2322: Type '[string, string, string, number]' is not assignable to type '{ category: string; allocated: string; spent: string; percent: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(103,7): error TS2322: Type '[string, number]' is not assignable to type '{ month: string; value: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(104,7): error TS2322: Type '[string, number]' is not assignable to type '{ month: string; value: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(105,7): error TS2322: Type '[string, number]' is not assignable to type '{ month: string; value: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(106,7): error TS2322: Type '[string, number]' is not assignable to type '{ month: string; value: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(107,7): error TS2322: Type '[string, number]' is not assignable to type '{ month: string; value: number; }'.
+src/features/dashboards/finance/hooks/useFinanceDashboard.ts(108,7): error TS2322: Type '[string, number]' is not assignable to type '{ month: string; value: number; }'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(141,23): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(150,115): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(151,52): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(201,46): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(203,25): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(207,23): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(210,48): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(211,89): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(233,21): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(238,98): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(239,100): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(240,102): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/employee-self-service/benefits/pages/MyBenefitsPage.tsx(242,104): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/features/finance/finance-grievances/pages/FinanceGrievances.tsx(42,44): error TS2769: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type '{}' is not assignable to parameter of type 'string | number'.
+src/features/payroll/approval/hooks/usePayrollApproval.ts(35,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<PayrollRun[], Error, PayrollRun[], readonly unknown[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<...>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollRun[], readonly unknown[]>'.
+      Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollRun[] | Promise<PayrollRun[]>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollRun[]>'.
+          Type 'ApiRecord[]' is not assignable to type 'PayrollRun[]'.
+            Type 'ApiRecord' is missing the following properties from type 'PayrollRun': name, period, status, total_amount, and 3 more.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<PayrollRun[], Error, PayrollRun[], readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'unique symbol | QueryFunction<PayrollRun[], readonly unknown[], never> | undefined'.
+      Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollRun[], readonly unknown[], never>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollRun[] | Promise<PayrollRun[]>'.
+          Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollRun[]>'.
+            Type 'ApiRecord[]' is not assignable to type 'PayrollRun[]'.
+              Type 'ApiRecord' is missing the following properties from type 'PayrollRun': name, period, status, total_amount, and 3 more.
+  Overload 3 of 3, '(options: UseQueryOptions<PayrollRun[], Error, PayrollRun[], readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<NoInfer<PayrollRun[]>, Error>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'unique symbol | QueryFunction<PayrollRun[], readonly unknown[], never> | undefined'.
+      Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollRun[], readonly unknown[], never>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollRun[] | Promise<PayrollRun[]>'.
+          Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollRun[]>'.
+            Type 'ApiRecord[]' is not assignable to type 'PayrollRun[]'.
+              Type 'ApiRecord' is missing the following properties from type 'PayrollRun': name, period, status, total_amount, and 3 more.
+src/features/payroll/approval/hooks/usePayrollApproval.ts(40,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<PayrollItem[], Error, PayrollItem[], readonly unknown[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<...>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollItem[], readonly unknown[]>'.
+      Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollItem[] | Promise<PayrollItem[]>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollItem[]>'.
+          Type 'ApiRecord[]' is not assignable to type 'PayrollItem[]'.
+            Type 'ApiRecord' is missing the following properties from type 'PayrollItem': employee, amount, status, run, breakdown
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<PayrollItem[], Error, PayrollItem[], readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'unique symbol | QueryFunction<PayrollItem[], readonly unknown[], never> | undefined'.
+      Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollItem[], readonly unknown[], never>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollItem[] | Promise<PayrollItem[]>'.
+          Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollItem[]>'.
+            Type 'ApiRecord[]' is not assignable to type 'PayrollItem[]'.
+              Type 'ApiRecord' is missing the following properties from type 'PayrollItem': employee, amount, status, run, breakdown
+  Overload 3 of 3, '(options: UseQueryOptions<PayrollItem[], Error, PayrollItem[], readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'unique symbol | QueryFunction<PayrollItem[], readonly unknown[], never> | undefined'.
+      Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollItem[], readonly unknown[], never>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollItem[] | Promise<PayrollItem[]>'.
+          Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollItem[]>'.
+            Type 'ApiRecord[]' is not assignable to type 'PayrollItem[]'.
+              Type 'ApiRecord' is missing the following properties from type 'PayrollItem': employee, amount, status, run, breakdown
+src/features/payroll/creation/hooks/usePayrollCreation.ts(21,5): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<PayrollRun[], Error, PayrollRun[], readonly unknown[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<...>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollRun[], readonly unknown[]>'.
+      Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollRun[] | Promise<PayrollRun[]>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollRun[]>'.
+          Type 'ApiRecord[]' is not assignable to type 'PayrollRun[]'.
+            Type 'ApiRecord' is missing the following properties from type 'PayrollRun': name, period, status, total_amount, and 3 more.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<PayrollRun[], Error, PayrollRun[], readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'unique symbol | QueryFunction<PayrollRun[], readonly unknown[], never> | undefined'.
+      Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollRun[], readonly unknown[], never>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollRun[] | Promise<PayrollRun[]>'.
+          Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollRun[]>'.
+            Type 'ApiRecord[]' is not assignable to type 'PayrollRun[]'.
+              Type 'ApiRecord' is missing the following properties from type 'PayrollRun': name, period, status, total_amount, and 3 more.
+  Overload 3 of 3, '(options: UseQueryOptions<PayrollRun[], Error, PayrollRun[], readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<NoInfer<PayrollRun[]>, Error>', gave the following error.
+    Type '() => Promise<ApiRecord[]>' is not assignable to type 'unique symbol | QueryFunction<PayrollRun[], readonly unknown[], never> | undefined'.
+      Type '() => Promise<ApiRecord[]>' is not assignable to type 'QueryFunction<PayrollRun[], readonly unknown[], never>'.
+        Type 'Promise<ApiRecord[]>' is not assignable to type 'PayrollRun[] | Promise<PayrollRun[]>'.
+          Type 'Promise<ApiRecord[]>' is not assignable to type 'Promise<PayrollRun[]>'.
+            Type 'ApiRecord[]' is not assignable to type 'PayrollRun[]'.
+              Type 'ApiRecord' is missing the following properties from type 'PayrollRun': name, period, status, total_amount, and 3 more.
+src/features/payroll/creation/pages/PayrollCreationPage.tsx(86,63): error TS2353: Object literal may only specify known properties, and 'payment_date' does not exist in type 'Partial<PayrollRun>'.
