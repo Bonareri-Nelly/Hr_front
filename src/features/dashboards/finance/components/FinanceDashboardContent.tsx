@@ -1,8 +1,8 @@
+import { useFinanceDashboard } from "../hooks/useFinanceDashboard";
 import { AlertTriangle, CheckCircle2, Download, FileCheck2, Landmark, RefreshCw, Send, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useFinanceDashboard } from "./hooks/useFinanceDashboard";
 
-export default function FinanceDashboard() {
+export default function FinanceDashboardContent() {
   const { data, isLoading } = useFinanceDashboard();
 
   if (isLoading) {

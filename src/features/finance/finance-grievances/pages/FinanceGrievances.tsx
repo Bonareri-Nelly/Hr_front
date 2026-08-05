@@ -1,170 +1,134 @@
 import { useState } from 'react';
-import type { HrEscalatedComplaint, GrievanceDashboardData } from '../types/financeGrievances';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { resources, type ApiRecord } from '../../../../services/api/resources';
+
+type GrievanceTicket = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  branch: string;
+  department: string;
+  escalatedDate: string;
+  hrMessage: string;
+  status: string;
+};
 
 export default function FinanceGrievances() {
-  // Local mutable state managing progressive status workflow tracks natively
-  const [dashboardData, setDashboardData] = useState<GrievanceDashboardData>({
-    tickets: [
-      {
-        id: "FIN-ESC-091",
-        employeeId: "NX-001247",
-        employeeName: "Nancy Wanjiku Karanja",
-        branch: "Nairobi HQ",
-        department: "Engineering",
-        escalatedDate: "Today, 10:14 AM",
-        hrMessage: "Employee logs a variance error regarding the June 2026 Housing Levy deduction match. Running ledger indicates an over-deduction of KES 1,200. Please review contract calculation parameters and adjust.",
-        status: "pending"
-      },
-      {
-        id: "FIN-ESC-084",
-        employeeId: "NX-001391",
-        employeeName: "Brian Omondi",
-        branch: "Nairobi HQ",
-        department: "IT Support",
-        escalatedDate: "Yesterday, 04:30 PM",
-        hrMessage: "April bank disbursement failed event needs a manual accounting journal entry correction. Employee provided updated Equity coordinates which have been fully verified at the HR lifecycle level.",
-        status: "in progress"
-      },
-      {
-        id: "FIN-ESC-072",
-        employeeId: "NX-001550",
-        employeeName: "Lilian Wambui",
-        branch: "Eldoret Branch",
-        department: "HR Operations",
-        escalatedDate: "03 Jul 2026",
-        hrMessage: "Laptop cash advance deduction rate requires rescheduling from 8 months down to 12 months following personal emergency medical package configurations approval.",
-        status: "completed"
-      }
-    ]
-  });
-
+  const client = useQueryClient();
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
 
-  // Strict progressive state machine processing controller loop
-  const handleWorkflowTransition = (ticketId: string, nextStatus: 'in progress' | 'completed') => {
-    setDashboardData(prev => ({
-      ...prev,
-      tickets: prev.tickets.map(ticket => 
-        ticket.id === ticketId ? { ...ticket, status: nextStatus } : ticket
-      )
-    }));
+  const complaintsQuery = useQuery({
+    queryKey: ['hr-complaints'],
+    queryFn: () => resources.complaints.list(),
+  });
 
-    setFeedbackMsg(`Workflow status for ticket ${ticketId} updated to [${nextStatus}] successfully.`);
-    setTimeout(() => setFeedbackMsg(''), 5000);
+  const resolveMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return resources.complaints.update(Number(id), { status });
+    },
+    onSuccess: (_data, variables) => {
+      setFeedbackMsg(`Workflow status for ticket ${variables.id} updated to [${variables.status}] successfully.`);
+      client.invalidateQueries({ queryKey: ['hr-complaints'] });
+      setTimeout(() => setFeedbackMsg(''), 5000);
+    },
+  });
+
+  const tickets: GrievanceTicket[] = ((complaintsQuery.data ?? []) as ApiRecord[]).map((c: ApiRecord) => ({
+    id: String(c.id),
+    employeeId: String(c.employee_code ?? c.employee_id ?? c.id),
+    employeeName: String(c.employee_name ?? c.complainant_name ?? c.employee ?? 'Unknown'),
+    branch: String(c.branch ?? '—'),
+    department: String(c.department ?? '—'),
+    escalatedDate: c.created_at ? new Date(c.created_at).toLocaleString() : '—',
+    hrMessage: String(c.description ?? c.details ?? c.reason ?? ''),
+    status: String(c.status ?? 'open'),
+  }));
+
+  const pendingCount = tickets.filter(t => t.status === 'open' || t.status === 'pending').length;
+  const activeCount = tickets.filter(t => t.status === 'in_progress' || t.status === 'in progress').length;
+  const resolvedCount = tickets.filter(t => t.status === 'resolved' || t.status === 'completed' || t.status === 'closed').length;
+
+  const handleWorkflowTransition = (ticketId: string, nextStatus: string) => {
+    resolveMutation.mutate({ id: ticketId, status: nextStatus });
   };
 
-  // Metric aggregates calculation for header overview panels
-  const pendingCount = dashboardData.tickets.filter(t => t.status === 'pending').length;
-  const activeCount = dashboardData.tickets.filter(t => t.status === 'in progress').length;
-
   return (
-    <div className="flex-1 overflow-y-auto bg-[#f8fafc] px-12 py-10 selection:bg-transparent font-sans">
-      
-      {/* 1. Header Navigation Context Information */}
-      <div className="mb-10 border-b border-slate-100 pb-6 shrink-0">
-        <h2 className="text-[34px] font-serif font-normal text-slate-800 tracking-tight">HR financial escalations</h2>
-        <p className="text-xs text-slate-400 mt-1 font-medium tracking-wide">
-          Grievances received from HR regarding employee payroll, deduction disputes, or banking failures • <span className="text-orange-600 font-bold">{pendingCount} unassigned actions</span>
-        </p>
-      </div>
-
-      {/* FEEDBACK SYSTEM COMPLIANCE NOTIFICATIONS BANNER */}
-      {feedbackMsg && (
-        <div className="p-3.5 mb-6 bg-blue-50 border border-blue-100 text-blue-800 rounded-xl text-xs font-semibold leading-normal animate-in fade-in">
-          ℹ️ {feedbackMsg}
-        </div>
-      )}
-
-      {/* 2. Top Summary KPI Row Cards Metrics Selector */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col justify-center min-h-[90px]">
-          <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase block mb-1">Awaiting Assignment</span>
-          <span className="text-2xl font-light text-orange-600 font-normal font-mono">{pendingCount} tickets</span>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col justify-center min-h-[90px]">
-          <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase block mb-1">Active Investigation</span>
-          <span className="text-2xl font-light text-blue-600 font-normal font-mono">{activeCount} processing</span>
-        </div>
-        <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col justify-center min-h-[90px]">
-          <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase block mb-1">Resolved Historical Vault</span>
-          <span className="text-2xl font-light text-emerald-600 font-normal font-mono">
-            {dashboardData.tickets.filter(t => t.status === 'completed').length} closed
-          </span>
+    <div className="dashboard-page">
+      <div className="dashboard-heading">
+        <div>
+          <p className="page-kicker">Finance & HR operations</p>
+          <h1 className="page-title">HR financial escalations</h1>
+          <p className="page-subtitle">
+            Grievances received from HR regarding employee payroll, deduction disputes, or banking failures • <span style={{ color: "var(--warning)", fontWeight: 700 }}>{pendingCount} unassigned actions</span>
+          </p>
         </div>
       </div>
 
-      {/* 3. Primary Escalations Ledger List Container Card */}
-      <div className="bg-white border border-slate-100 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6 px-8 border-b border-slate-100 bg-white">
-          <h3 className="text-sm font-semibold text-slate-800">HR operational dispute queue</h3>
+      {feedbackMsg && <div className="alert alert-success">{feedbackMsg}</div>}
+
+      <div className="metrics">
+        <div className="metric-cell">
+          <p className="metric-label">Awaiting Assignment</p>
+          <p className="metric-value compact-metric" style={{ color: "var(--warning)" }}>{pendingCount} tickets</p>
+          <p className="metric-meta">Pending review</p>
         </div>
+        <div className="metric-cell">
+          <p className="metric-label">Active Investigation</p>
+          <p className="metric-value compact-metric" style={{ color: "var(--primary)" }}>{activeCount} processing</p>
+          <p className="metric-meta">In progress</p>
+        </div>
+        <div className="metric-cell">
+          <p className="metric-label">Resolved</p>
+          <p className="metric-value compact-metric" style={{ color: "var(--success)" }}>{resolvedCount} closed</p>
+          <p className="metric-meta">Completed</p>
+        </div>
+      </div>
 
-        {/* Tickets row loop mappings */}
-        <div className="divide-y divide-slate-100 px-8">
-          {dashboardData.tickets.map((ticket) => (
-            <div 
-              key={ticket.id}
-              className={`py-7 flex flex-col lg:flex-row lg:items-start justify-between gap-6 transition-colors border-l-2 -mx-8 px-8 ${
-                ticket.status === 'pending' ? 'bg-orange-50/20 border-l-orange-500' :
-                ticket.status === 'in progress' ? 'bg-blue-50/10 border-l-blue-500' :
-                'border-l-transparent hover:bg-slate-50/20'
-              }`}
-            >
-              {/* Left Profile Segment Columns: Metadata details */}
-              <div className="min-w-0 flex-1 space-y-3">
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider bg-slate-100 px-2 py-0.5 rounded border border-slate-200/50">
-                    {ticket.id}
-                  </span>
-                  <h4 className="text-xs font-bold text-slate-800">
-                    {ticket.employeeName} <span className="text-[10px] text-slate-400 font-mono font-medium">({ticket.employeeId})</span>
-                  </h4>
-                  <div className="h-3 w-px bg-slate-200 hidden sm:block" />
-                  <span className="text-[11px] text-slate-400 font-medium font-sans">
-                    {ticket.branch} • {ticket.department} department • Escalated: {ticket.escalatedDate}
-                  </span>
+      <section className="panel">
+        <div className="panel-header">
+          <h3 className="panel-title">HR operational dispute queue</h3>
+        </div>
+        {complaintsQuery.isLoading ? (
+          <div className="panel-body" style={{ textAlign: "center", padding: "48px" }}>
+            <p className="page-subtitle">Loading escalations…</p>
+          </div>
+        ) : tickets.length === 0 ? (
+          <div className="panel-body" style={{ textAlign: "center", padding: "48px" }}>
+            <p className="page-subtitle">No escalated grievances at this time.</p>
+          </div>
+        ) : (
+          <div className="panel-body">
+            <div className="section-stack">
+              {tickets.map((ticket) => (
+                <div key={ticket.id} style={{ padding: "16px 0", borderBottom: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <span className="eyebrow" style={{ background: "var(--surface)", padding: "2px 8px", borderRadius: "4px", border: "1px solid var(--border)" }}>{ticket.id}</span>
+                    <h4 style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--ink)" }}>
+                      {ticket.employeeName} <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>({ticket.employeeId})</span>
+                    </h4>
+                    <span style={{ fontSize: "0.72rem", color: "var(--text-secondary)" }}>
+                      {ticket.branch} • {ticket.department} • Escalated: {ticket.escalatedDate}
+                    </span>
+                  </div>
+                  <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px", fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: "1.6" }}>
+                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase", letterSpacing: "0.05em", display: "block", marginBottom: "4px" }}>HR Narrative Context:</span>
+                    "{ticket.hrMessage}"
+                  </div>
+                  <div style={{ alignSelf: "flex-end" }}>
+                    {ticket.status === 'resolved' || ticket.status === 'completed' || ticket.status === 'closed' ? (
+                      <span style={{ padding: "4px 12px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", background: "var(--success-bg)", color: "var(--success)", border: "1px solid var(--success)" }}>Resolved</span>
+                    ) : ticket.status === 'in_progress' || ticket.status === 'in progress' ? (
+                      <button className="button button-primary button-sm" onClick={() => handleWorkflowTransition(ticket.id, 'resolved')}>Resolve issue</button>
+                    ) : (
+                      <button className="button button-secondary button-sm" onClick={() => handleWorkflowTransition(ticket.id, 'in_progress')}>Start processing</button>
+                    )}
+                  </div>
                 </div>
-
-                {/* Core message narrative expanded from HR admin console */}
-                <div className="bg-white border border-slate-100 rounded-xl p-4 text-xs text-slate-600 font-normal leading-relaxed shadow-inner">
-                  <span className="text-[9px] font-bold text-indigo-500 uppercase tracking-wider block mb-1 font-sans select-none">HR Narrative Context:</span>
-                  "{ticket.hrMessage}"
-                </div>
-              </div>
-
-              {/* Right Profile Segment Columns: Controlled Workflow Actions Switch Matrix */}
-              <div className="shrink-0 select-none self-end lg:self-start pt-1">
-                {ticket.status === 'completed' ? (
-                  /* Immutable status badge displayed once final resolution locks down */
-                  <span className="inline-block text-center font-bold px-3 py-1 rounded text-[10px] border uppercase tracking-wider bg-emerald-50 text-emerald-700 border-emerald-100 select-none">
-                    completed
-                  </span>
-                ) : ticket.status === 'in progress' ? (
-                  /* Progressive input selection restricted strictly to pushing forward into completed state */
-                  <button
-                    onClick={() => handleWorkflowTransition(ticket.id, 'completed')}
-                    className="text-center font-bold px-3 py-1.5 rounded text-[10px] border uppercase tracking-wider bg-blue-50 text-blue-700 border-blue-100 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition shadow-sm outline-none font-semibold relative group"
-                  >
-                    <span className="group-hover:hidden">in progress</span>
-                    <span className="hidden group-hover:inline">resolve issue?</span>
-                  </button>
-                ) : (
-                  /* Initial active pending state option loop trigger allowing processing assignment */
-                  <button
-                    onClick={() => handleWorkflowTransition(ticket.id, 'in progress')}
-                    className="text-center font-bold px-3 py-1.5 rounded text-[10px] border uppercase tracking-wider bg-orange-50 text-orange-700 border-orange-100 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition shadow-sm outline-none font-semibold relative group"
-                  >
-                    <span className="group-hover:hidden">pending</span>
-                    <span className="hidden group-hover:inline">start processing?</span>
-                  </button>
-                )}
-              </div>
-
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-
+          </div>
+        )}
+      </section>
     </div>
   );
 }

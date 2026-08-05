@@ -1,6 +1,5 @@
 import { Send, X } from "lucide-react";
 import { useState } from "react";
-import { executiveTheme } from "../../../../theme/executiveTheme";
 
 export default function AttendanceCorrectionModal({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: (message: string) => void }) {
   const [message, setMessage] = useState("");
@@ -12,11 +11,31 @@ export default function AttendanceCorrectionModal({ open, onClose, onSubmit }: {
     onClose();
   };
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className={`${executiveTheme.card} w-full max-w-lg p-5`}>
-        <div className="mb-4 flex items-center justify-between"><div><p className={executiveTheme.eyebrow}>HR Admin approval</p><h2 className="text-xl font-bold">Attendance correction</h2></div><button className={executiveTheme.buttonSecondary} onClick={onClose}><X size={16} /></button></div>
-        <textarea className={`${executiveTheme.input} min-h-32 w-full`} value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Explain the missed clock-in/out..." />
-        <div className="mt-4 flex justify-end gap-2"><button className={executiveTheme.buttonSecondary} onClick={onClose}>Cancel</button><button className={executiveTheme.buttonPrimary} onClick={submit}><Send size={16} /> Send request</button></div>
+    <div className="modal-backdrop" role="presentation">
+      <div className="module-modal w-full max-w-lg">
+        <div className="payroll-modal-header">
+          <div>
+            <div className="page-kicker">HR Admin approval</div>
+            <h2>Attendance correction</h2>
+          </div>
+          <button className="panel-action" onClick={onClose}><X size={16} /></button>
+        </div>
+        <label className="field-group" style={{ marginTop: "16px" }}>
+          <span className="eyebrow">Reason for correction</span>
+          <textarea
+            className="select-control"
+            style={{ width: "100%", minHeight: "120px", fontFamily: "var(--font-sans)", resize: "vertical" }}
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder="Explain the missed clock-in/out..."
+          />
+        </label>
+        <div className="action-row payroll-modal-actions">
+          <button className="button button-secondary" onClick={onClose}>Cancel</button>
+          <button className="button button-primary" onClick={submit}>
+            <Send size={15} aria-hidden="true" /> Send request
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
 import { Download, X } from "lucide-react";
-import { executiveTheme } from "../../../../theme/executiveTheme";
 
 export type Payslip = {
   id: string;
@@ -27,25 +26,52 @@ export default function PayslipDetailModal({ payslip, onClose, onDownload }: { p
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className={`${executiveTheme.card} max-h-[90vh] w-full max-w-3xl overflow-y-auto`}>
-        <div className="flex items-center justify-between border-b border-white/10 p-5">
-          <div><p className={executiveTheme.eyebrow}>Payslip detail</p><h2 className="text-2xl font-bold">{payslip.payPeriod}</h2></div>
-          <button className={executiveTheme.buttonSecondary} onClick={onClose}><X size={16} /></button>
+    <div className="modal-backdrop" role="presentation">
+      <div className="module-modal" style={{ maxWidth: "720px", maxHeight: "90vh" }}>
+        <div className="payroll-modal-header">
+          <div>
+            <div className="page-kicker">Payslip detail</div>
+            <h2>{payslip.payPeriod}</h2>
+          </div>
+          <button className="panel-action" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className="grid gap-5 p-5 md:grid-cols-2">
-          <section className={executiveTheme.cardSoft + " p-4"}>
-            <h3 className="mb-3 font-bold text-[#c8a45d]">Earnings</h3>
-            <div className="space-y-2 text-sm">{payslip.allowances.map((item) => <div className="flex justify-between" key={item.label}><span>{item.label}</span><strong>{money(item.amount)}</strong></div>)}</div>
-            <div className="mt-4 flex justify-between border-t border-white/10 pt-3 text-lg"><span>Gross Pay</span><strong>{money(payslip.grossPay)}</strong></div>
-          </section>
-          <section className={executiveTheme.cardSoft + " p-4"}>
-            <h3 className="mb-3 font-bold text-[#c8a45d]">Deductions</h3>
-            <div className="space-y-2 text-sm">{deductions.map(([label, amount]) => <div className="flex justify-between" key={label}><span>{label}</span><strong>{money(amount)}</strong></div>)}</div>
-            <div className="mt-4 flex justify-between border-t border-white/10 pt-3 text-lg"><span>Net Pay</span><strong className="text-[#c8a45d]">{money(payslip.netPay)}</strong></div>
-          </section>
+        <div className="grid-2col" style={{ marginTop: "16px" }}>
+          <div className="note" style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: "16px" }}>
+            <h3 style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--navy-deepest)", marginBottom: "10px" }}>Earnings</h3>
+            <div className="section-stack">
+              {payslip.allowances.map((item) => (
+                <div key={item.label} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem" }}>
+                  <span style={{ color: "var(--text-secondary)" }}>{item.label}</span>
+                  <strong style={{ color: "var(--ink)" }}>{money(item.amount)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid var(--border)", fontSize: "0.95rem" }}>
+              <span style={{ color: "var(--ink)" }}>Gross Pay</span>
+              <strong style={{ color: "var(--ink)" }}>{money(payslip.grossPay)}</strong>
+            </div>
+          </div>
+          <div className="note" style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: "16px" }}>
+            <h3 style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--navy-deepest)", marginBottom: "10px" }}>Deductions</h3>
+            <div className="section-stack">
+              {deductions.map(([label, amount]) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem" }}>
+                  <span style={{ color: "var(--text-secondary)" }}>{label}</span>
+                  <strong style={{ color: "var(--ink)" }}>{money(amount)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: "12px", paddingTop: "10px", borderTop: "1px solid var(--border)", fontSize: "0.95rem" }}>
+              <span style={{ color: "var(--ink)" }}>Net Pay</span>
+              <strong style={{ color: "var(--success)" }}>{money(payslip.netPay)}</strong>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 p-5 text-sm text-[#c9d3df]"><span>Run: {payslip.payrollRunId}</span><span>Disbursed: {new Date(payslip.disbursedAt).toLocaleString()}</span><button className={executiveTheme.buttonPrimary} onClick={() => onDownload(payslip)}><Download size={16} /> Download PDF</button></div>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "12px", marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--border)", fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+          <span>Run: {payslip.payrollRunId}</span>
+          <span>Disbursed: {new Date(payslip.disbursedAt).toLocaleString()}</span>
+          <button className="button button-primary button-sm" onClick={() => onDownload(payslip)}><Download size={14} /> Download PDF</button>
+        </div>
       </div>
     </div>
   );

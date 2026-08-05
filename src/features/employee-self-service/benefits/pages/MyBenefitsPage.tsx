@@ -1,32 +1,200 @@
-import { CalendarDays, Eye, Plus } from "lucide-react";
+import { CalendarDays, Eye, Plus, LoaderCircle } from "lucide-react";
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
-import { executiveTheme } from "../../../../theme/executiveTheme";
-import BenefitDetailModal, { type EmployeeBenefit } from "../components/BenefitDetailModal";
-import BenefitEnrollModal, { type AvailablePlan } from "../components/BenefitEnrollModal";
+import { resources, type ApiRecord } from "../../../../services/api/resources";
 
-const initialBenefits: EmployeeBenefit[] = [
-  { id: "BEN-1", employeeId: "EMP-1042", planId: "MED-GOLD", planName: "AAR Medical Gold", type: "medical", status: "active", enrolledAt: "2026-01-10", dependents: ["Spouse", "Child"], coverage: "Inpatient, outpatient, optical, dental and maternity coverage up to KES 3,000,000.", cost: 6200 },
-  { id: "BEN-2", employeeId: "EMP-1042", planId: "LIFE-STD", planName: "Group Life Cover", type: "insurance", status: "active", enrolledAt: "2026-01-10", dependents: [], coverage: "Life insurance equal to 3x annual salary with accidental disability rider.", cost: 0 },
-];
+type CurrentUser = {
+  id: number;
+  username: string;
+  employee_id?: number;
+  branch_name?: string;
+};
 
-const availablePlans: AvailablePlan[] = [
-  { planId: "PENSION-TOPUP", planName: "Pension Top Up", type: "other" as const, coverage: "Voluntary pension top-up with employer matched contribution up to 3%.", cost: 3500 },
-  { planId: "MED-PLUS", planName: "Medical Plus Upgrade", type: "medical" as const, coverage: "Adds international referral and enhanced dental coverage.", cost: 2800 },
-];
+const getCurrentUser = (): CurrentUser | null => {
+  try {
+    return JSON.parse(localStorage.getItem("current_user") ?? localStorage.getItem("user") ?? "{}");
+  } catch {
+    return null;
+  }
+};
 
-export default function MyBenefits() {
-  const [benefits, setBenefits] = useState(initialBenefits);
-  const [selectedBenefit, setSelectedBenefit] = useState<EmployeeBenefit | null>(null);
+export default function MyBenefitsPage() {
+  const client = useQueryClient();
+  const user = getCurrentUser();
+  const employeeId = user?.employee_id;
+
+  const [selectedBenefit, setSelectedBenefit] = useState<ApiRecord | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  const enrollmentOpen = true;
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [enrolling, setEnrolling] = useState(false);
 
-  const enroll = (plan: AvailablePlan) => {
-    setBenefits((current) => [{ id: `BEN-${current.length + 1}`, employeeId: "EMP-1042", planId: plan.planId, planName: plan.planName, type: plan.type, status: "pending", enrolledAt: new Date().toISOString(), dependents: [], coverage: plan.coverage, cost: plan.cost }, ...current]);
-    setNotice(`${plan.planName} enrollment submitted for Branch HR Admin review.`);
-    setEnrollOpen(false);
-  };
+  const plans = useQuery({
+    queryKey: ["benefit-plans"],
+    queryFn: () => resources.allowances.list(),
+    select: (data: ApiRecord[]) => data.filter((p) => p.type === "benefit" || p.category === "benefit" || p.is_benefit) as ApiRecord[],
+  });
 
-  return <div className={executiveTheme.page}><div className={executiveTheme.shell}><header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className={executiveTheme.eyebrow}>Employee self-service</p><h1 className={executiveTheme.title}>My Benefits</h1><p className={executiveTheme.subtitle}>View enrolled plans, coverage, dependents and open-enrollment options connected to Benefits Management.</p></div><button className={executiveTheme.buttonPrimary} disabled={!enrollmentOpen} onClick={() => setEnrollOpen(true)}><Plus size={16} /> Enroll</button></header><div className="rounded-2xl border border-[#c8a45d]/30 bg-[#c8a45d]/10 p-4 text-sm text-[#f1d99b]"><CalendarDays size={16} className="mr-2 inline" /> Open enrollment closes in 12 days. Available plans can be submitted for HR review.</div>{notice && <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-200">{notice}</div>}<section className="grid gap-4 md:grid-cols-2">{benefits.length === 0 ? <div className={`${executiveTheme.card} p-10 text-center text-[#c9d3df]`}>No benefits enrolled yet</div> : benefits.map((benefit) => <article key={benefit.id} className={`${executiveTheme.card} p-5`}><div className="mb-4 flex items-start justify-between gap-4"><div><p className={executiveTheme.eyebrow}>{benefit.type}</p><h2 className="text-xl font-bold text-[#fffaf0]">{benefit.planName}</h2></div><span className={executiveTheme.badge}>{benefit.status}</span></div><p className="mb-4 text-sm text-[#c9d3df]">{benefit.coverage}</p><div className="mb-4 text-sm text-[#d7e0ec]">Dependents: {benefit.dependents.length || 0}</div><button className={executiveTheme.buttonSecondary} onClick={() => setSelectedBenefit(benefit)}><Eye size={16} /> View details</button></article>)}</section></div><BenefitDetailModal benefit={selectedBenefit} onClose={() => setSelectedBenefit(null)} /><BenefitEnrollModal open={enrollOpen} plans={availablePlans} onClose={() => setEnrollOpen(false)} onEnroll={enroll} /><PageChatbotWidget page="my-benefits" role="Employee" contextSummary={`${benefits.length} plans enrolled. Open enrollment closes in 12 days.`} quickPrompts={["When does open enrollment end?", "What benefits am I enrolled in?", "Can I add dependents?"]} /></div>;
+  const enrollments = useQuery({
+    queryKey: ["employee-benefits", employeeId],
+    queryFn: () => {
+      if (!employeeId) return Promise.resolve([]);
+      return resources.employeeComponents.list({ employee: employeeId });
+    },
+    enabled: Boolean(employeeId),
+  });
+
+  const enrollMutation = useMutation({
+    mutationFn: async (planId: number) => {
+      if (!employeeId) throw new Error("Employee profile not linked.");
+      return resources.employeeComponents.create({ employee: employeeId, component: planId, status: "pending" });
+    },
+    onSuccess: () => {
+      setNotice("Enrollment submitted for HR Admin review.");
+      setEnrollOpen(false);
+      setSelectedPlanId("");
+      client.invalidateQueries({ queryKey: ["employee-benefits"] });
+    },
+    onError: (err: Error) => setNotice(err.message),
+  });
+
+  const benefits = (enrollments.data ?? []) as ApiRecord[];
+  const planList = (plans.data ?? []) as ApiRecord[];
+
+  return (
+    <div className="dashboard-page">
+      <div className="dashboard-heading">
+        <div>
+          <p className="page-kicker">Employee self-service</p>
+          <h1 className="page-title">My Benefits</h1>
+          <p className="page-subtitle">View enrolled plans, coverage, dependents and open-enrollment options connected to Benefits Management.</p>
+        </div>
+        <div className="action-row">
+          <button className="button button-primary" disabled={!enrollOpen || enrolling} onClick={() => setEnrollOpen(true)}>
+            <Plus size={15} aria-hidden="true" /> Enroll
+          </button>
+        </div>
+      </div>
+
+      <div className="note" style={{ background: "var(--info-bg)", color: "var(--info)", border: "1px solid var(--info)", borderRadius: "8px", padding: "12px 16px", display: "flex", alignItems: "center", gap: "8px", fontSize: "0.82rem" }}>
+        <CalendarDays size={16} /> Open enrollment is active. Available plans can be submitted for HR review.
+      </div>
+
+      {notice && <div className="alert alert-success">{notice}</div>}
+
+      {enrollOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="module-modal" style={{ maxWidth: "520px" }}>
+            <div className="payroll-modal-header">
+              <div>
+                <div className="page-kicker">Open enrollment</div>
+                <h2>Enroll in a plan</h2>
+              </div>
+              <button className="panel-action" onClick={() => setEnrollOpen(false)}>Close</button>
+            </div>
+            {planList.length === 0 ? (
+              <div className="panel-body" style={{ textAlign: "center", padding: "32px" }}>
+                <p className="page-subtitle">No benefit plans currently available.</p>
+              </div>
+            ) : (
+              <>
+                <select className="select-control" style={{ width: "100%", marginTop: "16px" }} value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value)}>
+                  <option value="">Select a plan…</option>
+                  {planList.map((p: ApiRecord) => (
+                    <option key={p.id} value={String(p.id)}>{p.name ?? p.plan_name ?? p.component_name ?? "Plan"}</option>
+                  ))}
+                </select>
+                {selectedPlanId && (() => {
+                  const plan = planList.find((p: ApiRecord) => String(p.id) === selectedPlanId);
+                  if (!plan) return null;
+                  return (
+                    <div className="note" style={{ marginTop: "12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px" }}>
+                      <p style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--ink)", margin: "0 0 6px" }}>{plan.name ?? plan.plan_name}</p>
+                      <p className="page-subtitle">{plan.description ?? plan.coverage ?? "No description available"}</p>
+                      <p className="page-subtitle" style={{ marginTop: "4px" }}>Cost: KES {Number(plan.monthly_cost ?? plan.amount ?? plan.cost ?? 0).toLocaleString()} / month</p>
+                    </div>
+                  );
+                })()}
+                <div className="action-row payroll-modal-actions">
+                  <button className="button button-secondary" onClick={() => setEnrollOpen(false)}>Cancel</button>
+                  <button className="button button-primary" disabled={!selectedPlanId || enrolling} onClick={() => {
+                    if (selectedPlanId) {
+                      setEnrolling(true);
+                      enrollMutation.mutate(Number(selectedPlanId));
+                      setEnrolling(false);
+                    }
+                  }}>
+                    <Plus size={15} aria-hidden="true" /> Submit enrollment
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <section className="panel">
+        <div className="panel-header">
+          <h3 className="panel-title">Enrolled Benefits</h3>
+        </div>
+        <div className="panel-body">
+          {enrollments.isLoading ? (
+            <div style={{ textAlign: "center", padding: "48px" }}>
+              <LoaderCircle className="mx-auto animate-spin" />
+              <p className="page-subtitle" style={{ marginTop: "12px" }}>Loading benefits…</p>
+            </div>
+          ) : benefits.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "48px" }}>
+              <p className="page-subtitle">No benefits enrolled yet.</p>
+            </div>
+          ) : (
+            <div className="grid-2col">
+              {benefits.map((benefit: ApiRecord) => (
+                <div key={benefit.id} className="note" style={{ border: "1px solid var(--border)", borderRadius: "8px", padding: "16px", background: "var(--surface)" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
+                    <div>
+                      <p className="eyebrow">{benefit.plan_type ?? benefit.type ?? benefit.category ?? "benefit"}</p>
+                      <h4 style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--ink)", margin: "4px 0 0" }}>{benefit.plan_name ?? benefit.name ?? benefit.component_name ?? "Benefit"}</h4>
+                    </div>
+                    <span className={`pill pill-${benefit.status === "active" ? "success" : benefit.status === "pending" ? "warning" : "info"}`}>{benefit.status ?? "active"}</span>
+                  </div>
+                  <p className="page-subtitle">{benefit.coverage ?? benefit.description ?? "No coverage details"}</p>
+                  <p className="page-subtitle" style={{ marginTop: "4px" }}>Dependents: {benefit.dependents ?? 0}</p>
+                  <button className="button button-secondary button-sm" style={{ marginTop: "10px" }} onClick={() => setSelectedBenefit(benefit)}>
+                    <Eye size={14} /> View details
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {selectedBenefit && (
+        <div className="modal-backdrop" role="presentation">
+          <div className="module-modal" style={{ maxWidth: "520px" }}>
+            <div className="payroll-modal-header">
+              <div>
+                <div className="page-kicker">Benefit detail</div>
+                <h2>{selectedBenefit.plan_name ?? selectedBenefit.name ?? "Benefit"}</h2>
+              </div>
+              <button className="panel-action" onClick={() => setSelectedBenefit(null)}>Close</button>
+            </div>
+            <div className="section-stack" style={{ marginTop: "16px" }}>
+              <div className="note"><p className="eyebrow">Type</p><p className="compact-metric">{selectedBenefit.plan_type ?? selectedBenefit.type ?? "—"}</p></div>
+              <div className="note"><p className="eyebrow">Status</p><p className="compact-metric">{selectedBenefit.status ?? "—"}</p></div>
+              <div className="note"><p className="eyebrow">Coverage</p><p className="compact-metric">{selectedBenefit.coverage ?? selectedBenefit.description ?? "—"}</p></div>
+              <div className="note"><p className="eyebrow">Cost</p><p className="compact-metric">KES {Number(selectedBenefit.monthly_cost ?? selectedBenefit.amount ?? 0).toLocaleString()} / month</p></div>
+            </div>
+            <div className="action-row payroll-modal-actions">
+              <button className="button button-primary" onClick={() => setSelectedBenefit(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <PageChatbotWidget page="my-benefits" role="Employee" contextSummary={`${benefits.length} plans enrolled.`} quickPrompts={["What benefits am I enrolled in?", "Can I add dependents?"]} />
+    </div>
+  );
 }

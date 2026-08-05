@@ -1,174 +1,233 @@
-import { useState } from 'react';
-import type { EmployeeDashboardData } from '../types/dashboard';
-export default function Dashboard() {
-  const [dashboardData, setDashboardData] = useState<EmployeeDashboardData>({
-    user: {
-      name: "Nancy",
-      location: "Nairobi HQ",
-      department: "Engineering department"
-    },
-    stats: [
-      { label: "LEAVE BALANCE", value: "12 days" },
-      { label: "ATTENDANCE THIS MONTH", value: "98.2%" },
-      { label: "NEXT APPRAISAL", value: "8 Jul" },
-      { label: "PENDING REQUESTS", value: 2 },
-    ],
-    actions: [
-      { title: "Check in", description: "GPS-verified attendance" },
-      { title: "Request leave", description: "Annual, sick, compassionate" },
-      { title: "View payslip", description: "June 2026 available" },
-      { title: "My training", description: "1 mandatory pending" },
-      { title: "File complaint", description: "Confidential submission" },
-      { title: "Ask HR bot", description: "Leave, pay, policies" },
-    ],
-    timeline: [
-      { date: "Mar 2022", title: "Joined Engineering", description: "Onboarded into Nairobi HQ grade E4" },
-      { date: "Apr 2024", title: "Promoted to Senior", description: "Salary revised to band E4-upper" },
-      { date: "Jun 2026", title: "Annual review open", description: "Self-review due 8 Jul" },
-    ],
-    // Primary mutable task registry data metrics
-    tasks: [
-      { id: "TSK-401", title: "Update tax computation module documentation", dueDate: "10 Jul", assignedBy: "Alice Njoki", status: "in progress" },
-      { id: "TSK-405", title: "Review new team member onboarding access tickets", dueDate: "14 Jul", assignedBy: "Alice Njoki", status: "pending" },
-      { id: "TSK-392", title: "Acknowledge updated remote work policy guidelines", dueDate: "30 Jun", assignedBy: "Alice Njoki", status: "completed" }
-    ]
+import { Calendar, ChevronRight, ClipboardList, FileText, HelpCircle, MessageSquare, TrendingUp, Users } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { resources, type ApiRecord } from "../../../../services/api/resources";
+import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
+
+type CurrentUser = {
+  id: number;
+  username: string;
+  email?: string;
+  employee_id?: number;
+  branch_name?: string;
+  department_name?: string;
+  role_name?: string;
+};
+
+const getCurrentUser = (): CurrentUser | null => {
+  try {
+    return JSON.parse(localStorage.getItem("current_user") ?? localStorage.getItem("user") ?? "{}");
+  } catch {
+    return null;
+  }
+};
+
+const actionIcons: Record<string, typeof Calendar> = {
+  "My Attendance": Calendar,
+  "My Performance": TrendingUp,
+  "My Payslips": FileText,
+  "My Documents": ClipboardList,
+  "My Announcements": MessageSquare,
+  "Ask HR Bot": HelpCircle,
+};
+
+const actionPaths: Record<string, string> = {
+  "My Attendance": "/self-service/attendance",
+  "My Performance": "/self-service/performance",
+  "My Payslips": "/self-service/payslips",
+  "My Documents": "/self-service/documents",
+  "My Announcements": "/self-service/announcements",
+  "Ask HR Bot": "/self-service/announcements",
+};
+
+export default function EmployeeDashboardPage() {
+  const user = getCurrentUser();
+  const employeeId = user?.employee_id;
+
+  const profile = useQuery({
+    queryKey: ["employee-profile", employeeId],
+    queryFn: () => resources.employees.list(),
+    enabled: Boolean(employeeId),
+    select: (data: ApiRecord[]) => data.find((e: ApiRecord) => Number(e.id) === employeeId),
   });
 
-  // Safe progressive workflow logic updater block
-  const handleStatusChange = (id: string, nextStatus: 'in progress' | 'completed') => {
-    setDashboardData(prev => ({
-      ...prev,
-      tasks: prev.tasks.map(task => 
-        task.id === id ? { ...task, status: nextStatus } : task
-      )
-    }));
-  };
+  const leaveBalances = useQuery({
+    queryKey: ["leave-balances"],
+    queryFn: () => resources.leaveBalances.list(),
+  });
+
+  const payslips = useQuery({
+    queryKey: ["payslips"],
+    queryFn: () => resources.payslips.list(),
+  });
+
+  const announcements = useQuery({
+    queryKey: ["announcements"],
+    queryFn: () => resources.announcements.list(),
+  });
+
+  const complaints = useQuery({
+    queryKey: ["complaints"],
+    queryFn: () => resources.complaints.list(),
+  });
+
+  const reviews = useQuery({
+    queryKey: ["performance-reviews"],
+    queryFn: () => resources.hrPerformanceReviews.list(),
+  });
+
+  const records = useQuery({
+    queryKey: ["attendance-records"],
+    queryFn: () => resources.attendanceRecords.list(),
+  });
+
+  const profData = profile.data as ApiRecord | undefined;
+  const leaves = (leaveBalances.data ?? []) as ApiRecord[];
+  const payslipList = (payslips.data ?? []) as ApiRecord[];
+  const announcementList = (announcements.data ?? []) as ApiRecord[];
+  const complaintList = (complaints.data ?? []) as ApiRecord[];
+  const reviewList = (reviews.data ?? []) as ApiRecord[];
+  const attendanceList = (records.data ?? []) as ApiRecord[];
+
+  const totalLeaveBalance = leaves.reduce((sum: number, l: ApiRecord) => sum + Number(l.days_remaining ?? l.balance ?? 0), 0);
+  const pendingRequests = complaintList.filter((c: ApiRecord) => c.status === "pending" || c.status === "open").length;
+  const nextPayslip = payslipList.length ? payslipList[0] : null;
+  const attendanceRate = attendanceList.length ? ((attendanceList.filter((r: ApiRecord) => r.status === "Present" || r.status === "present").length / attendanceList.length) * 100).toFixed(1) : "—";
+  const nextReview = reviewList.find((r: ApiRecord) => r.status !== "finalized" && r.status !== "approved");
+
+  const employeeName = profData?.full_name ?? profData?.name ?? user?.username ?? "Employee";
+  const branchName = user?.branch_name ?? profData?.branch ?? "—";
+  const deptName = user?.department_name ?? profData?.department ?? "—";
+
+  const actions = [
+    { title: "My Attendance", description: "Clock in/out and view history" },
+    { title: "My Performance", description: "Review goals and ratings" },
+    { title: "My Payslips", description: nextPayslip ? `Latest payslip available` : "No payslips yet" },
+    { title: "My Documents", description: "Access your HR documents" },
+    { title: "My Announcements", description: `${announcementList.length} announcement${announcementList.length !== 1 ? "s" : ""}` },
+    { title: "Ask HR Bot", description: "Leave, pay, policies" },
+  ];
+
+  const timelineEvents = [
+    { date: profData?.hire_date ?? "—", title: "Hire Date", description: profData?.department ? `Joined ${profData.department}` : "Employment start" },
+    { date: branchName, title: "Branch", description: profData?.branch ? `Assigned to ${profData.branch}` : "Branch assignment" },
+    { date: deptName, title: "Department", description: `Department: ${deptName}` },
+    ...(nextReview ? [{ date: nextReview.evaluation_period ?? "—", title: "Performance Review", description: `Status: ${nextReview.status ?? "pending"}` }] : []),
+  ];
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#f8fafc] p-10 selection:bg-transparent">
-      
-      {/* Welcome Heading Banner */}
-      <div className="mb-8">
-        <h2 className="text-4xl font-serif text-slate-900 tracking-tight">Welcome back, {dashboardData.user.name}</h2>
-        <p className="text-xs text-slate-400 mt-1.5 font-medium">
-          {dashboardData.user.location}, {dashboardData.user.department}
-        </p>
-      </div>
-
-      {/* KPI Stats Top Grid Row */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {dashboardData.stats.map((stat, idx) => (
-          <div key={idx} className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex flex-col justify-between min-h-[110px]">
-            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-              {stat.label}
-            </span>
-            <span className="text-3xl font-light text-slate-800 mt-2 block">{stat.value}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Bottom Layout Architecture Main Grid Split */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* Left Column Stack: Houses Quick Actions + Tasks Assigned Workspace Section */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Quick Actions Panel Card */}
-          <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-800 mb-6">Quick actions</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {dashboardData.actions.map((action, idx) => (
-                <button 
-                  key={idx} 
-                  className="border border-slate-100 bg-white hover:bg-slate-50 rounded-xl p-5 text-left transition min-h-[100px] flex flex-col justify-between outline-none"
-                >
-                  <h4 className="text-sm font-bold text-slate-800">
-                    {action.title}
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                    {action.description}
-                  </p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Interactive Tasks Assigned Section Block */}
-          <div className="bg-white border border-slate-100 rounded-xl p-6 px-8 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-800 border-b border-slate-50 pb-2.5 mb-2">
-              Tasks assigned
-            </h3>
-            
-            {/* Task Rows List Container */}
-            <div className="divide-y divide-slate-100/60">
-              {dashboardData.tasks.map((task) => (
-                <div key={task.id} className="py-4.5 flex items-center justify-between hover:bg-slate-50/20 transition-colors">
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-700 leading-snug">
-                      {task.title}
-                    </h4>
-                    <p className="text-[11px] text-slate-400 mt-1 font-medium">
-                      Assigned by: <span className="text-slate-500 font-semibold">{task.assignedBy}</span> • Due: <span className="font-semibold text-slate-500">{task.dueDate}</span>
-                    </p>
-                  </div>
-
-                  {/* Interactive Status Dropdown Workflow Interface Selection Block */}
-                  <div className="shrink-0 select-none">
-                    {task.status === 'completed' ? (
-                      /* Immutable Locked State Component styling once final resolution triggers */
-                      <span className="inline-block text-center font-bold px-2.5 py-1 rounded text-[10px] scale-95 border lowercase bg-emerald-50 text-emerald-700 border-emerald-100/60 tracking-wide">
-                        completed
-                      </span>
-                    ) : task.status === 'in progress' ? (
-                      /* Progressive Option Selection Restricted Strictly to Completed Pushing Forward */
-                      <button
-                        onClick={() => handleStatusChange(task.id, 'completed')}
-                        className="text-center font-bold px-2.5 py-1 rounded text-[10px] scale-95 border lowercase bg-blue-50 text-blue-700 border-blue-100/60 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all tracking-wide outline-none relative group"
-                      >
-                        <span className="group-hover:hidden">in progress</span>
-                        <span className="hidden group-hover:inline">mark complete?</span>
-                      </button>
-                    ) : (
-                      /* Initial Pending Phase Trigger Drop block allowing upgrade into active execution tracks */
-                      <button
-                        onClick={() => handleStatusChange(task.id, 'in progress')}
-                        className="text-center font-bold px-2.5 py-1 rounded text-[10px] scale-95 border lowercase bg-orange-50 text-orange-700 border-orange-100/60 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all tracking-wide outline-none relative group"
-                      >
-                        <span className="group-hover:hidden">pending</span>
-                        <span className="hidden group-hover:inline">start task?</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+    <div className="dashboard-page">
+      <div className="dashboard-heading">
+        <div>
+          <p className="page-kicker">Employee self-service</p>
+          <h1 className="page-title">Welcome back, {employeeName}</h1>
+          <p className="page-subtitle">{branchName}, {deptName}</p>
         </div>
+      </div>
 
-        {/* Right Column Stack: Timeline Feed Card Sidebar */}
-        <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm min-h-[380px]">
-          <h3 className="text-sm font-semibold text-slate-800 mb-6">My timeline</h3>
-          <div className="relative border-l-2 border-slate-100 pl-6 ml-2 space-y-8">
-            {dashboardData.timeline.map((event, idx) => (
-              <div key={idx} className="relative">
-                <span className="absolute -left-[31px] top-1.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white ring-4 ring-white" />
-                <span className="text-[10px] font-bold text-slate-400 tracking-wider block mb-1">
-                  {event.date}
-                </span>
-                <h4 className="text-sm font-bold text-slate-800 leading-tight">
-                  {event.title}
-                </h4>
-                <p className="text-xs text-slate-400 mt-1 leading-normal">
-                  {event.description}
-                </p>
+      <div className="metrics">
+        <div className="metric-cell">
+          <p className="metric-label">Leave Balance</p>
+          <p className="metric-value compact-metric">{totalLeaveBalance}</p>
+          <p className="metric-meta">Available days</p>
+        </div>
+        <div className="metric-cell">
+          <p className="metric-label">Attendance Rate</p>
+          <p className="metric-value compact-metric">{attendanceRate}%</p>
+          <p className="metric-meta">This period</p>
+        </div>
+        <div className="metric-cell">
+          <p className="metric-label">Next Appraisal</p>
+          <p className="metric-value compact-metric">{nextReview ? (nextReview.evaluation_period ?? "TBD") : "No review"}</p>
+          <p className="metric-meta">{nextReview ? `Status: ${nextReview.status}` : "Awaiting cycle"}</p>
+        </div>
+        <div className="metric-cell">
+          <p className="metric-label">Pending Requests</p>
+          <p className="metric-value compact-metric">{pendingRequests}</p>
+          <p className="metric-meta">Requires action</p>
+        </div>
+      </div>
+
+      <div className="grid-2col" style={{ gridTemplateColumns: "2fr 1fr", gap: "20px", alignItems: "start" }}>
+        <div className="grid-main">
+          <section className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Quick Actions</h3>
+            </div>
+            <div className="panel-body">
+              <div className="alert-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+                {actions.map((action) => {
+                  const Icon = actionIcons[action.title] ?? ChevronRight;
+                  const path = actionPaths[action.title] ?? "#";
+                  return (
+                    <Link key={action.title} to={path} className="note" style={{ textDecoration: "none", color: "inherit", cursor: "pointer", display: "block" }}>
+                      <Icon size={20} style={{ color: "var(--navy-deepest)", marginBottom: "8px" }} />
+                      <p className="alert-title" style={{ fontWeight: 800, fontSize: "0.82rem", color: "var(--ink)", margin: "0 0 4px" }}>{action.title}</p>
+                      <p className="page-subtitle" style={{ fontSize: "0.72rem" }}>{action.description}</p>
+                    </Link>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">My Timeline</h3>
+            </div>
+            <div className="panel-body">
+              <div className="section-stack">
+                {timelineEvents.map((event, idx) => (
+                  <div key={idx} style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "12px", alignItems: "start", padding: "10px 0", borderBottom: idx < timelineEvents.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
+                    <span className="eyebrow">{event.date}</span>
+                    <div>
+                      <p style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--ink)", margin: "0 0 2px" }}>{event.title}</p>
+                      <p className="page-subtitle">{event.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
         </div>
 
+        <div className="space-y-6" style={{ display: "grid", gap: "20px" }}>
+          <section className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Announcements</h3>
+            </div>
+            <div className="panel-body">
+              {announcementList.length === 0 ? (
+                <p className="page-subtitle">No announcements yet.</p>
+              ) : (
+                <div className="section-stack">
+                  {announcementList.slice(0, 3).map((a: ApiRecord) => (
+                    <div key={a.id} className="note">
+                      <p style={{ fontWeight: 700, fontSize: "0.78rem", color: "var(--ink)", margin: "0 0 2px" }}>{a.title ?? "Announcement"}</p>
+                      <p className="page-subtitle">{(a.content ?? a.description ?? "").slice(0, 100)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="panel">
+            <div className="panel-header">
+              <h3 className="panel-title">Profile</h3>
+            </div>
+            <div className="panel-body">
+              <div className="section-stack">
+                <div className="note"><p className="eyebrow">Employee ID</p><p className="compact-metric">{profData?.employee_code ?? profData?.code ?? "—"}</p></div>
+                <div className="note"><p className="eyebrow">Position</p><p className="compact-metric">{profData?.position ?? profData?.role ?? "—"}</p></div>
+                <div className="note"><p className="eyebrow">Email</p><p className="compact-metric">{user?.email ?? "—"}</p></div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
+
+      <PageChatbotWidget page="employee-dashboard" role="Employee" contextSummary={`${announcementList.length} announcements, ${payslipList.length} payslips.`} quickPrompts={["How do I clock in?", "When is my next payslip?"]} />
     </div>
   );
 }
-

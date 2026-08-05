@@ -202,14 +202,14 @@ export default function BenefitsCostManagement() {
               Simple trend impact modeling pulling aggregate enrollment parameters from Benefits Overview datasets.
             </p>
 
-            <div className="bg-slate-900 text-slate-200 p-4 rounded-xl shadow-inner text-xs border border-slate-800 space-y-4">
+            <div className="bg-white text-slate-800 p-4 rounded-xl shadow-sm text-xs border border-slate-200 space-y-4">
               <div>
-                <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest block mb-1">If enrollment grows by:</span>
-                <span className="text-xl font-light text-white font-mono tracking-tight">{financeData.projectedGrowth}% next period</span>
+                <span className="text-[9px] font-bold text-amber-600 uppercase tracking-widest block mb-1">If enrollment grows by:</span>
+                <span className="text-xl font-light text-slate-900 font-mono tracking-tight">{financeData.projectedGrowth}% next period</span>
               </div>
-              <div className="border-t border-slate-800 pt-3">
+              <div className="border-t border-slate-200 pt-3">
                 <span className="text-[9px] font-bold text-amber-500 uppercase tracking-widest block mb-1">Projected cost increases by:</span>
-                <span className="text-base font-bold text-white font-mono">+ KES {financeData.projectedCostIncrease.toLocaleString()}</span>
+                <span className="text-base font-bold text-slate-900 font-mono">+ KES {financeData.projectedCostIncrease.toLocaleString()}</span>
               </div>
             </div>
           </div>

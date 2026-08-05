@@ -17,7 +17,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       type="checkbox"
       checked={checked}
       onChange={(e) => onCheckedChange?.(e.target.checked)}
-      className={`h-4 w-4 rounded border-gray-700 bg-gray-900 text-gold-500 focus:ring-gold-500 focus:ring-offset-gray-900 ${className}`}
+      className={`h-4 w-4 rounded border-gray-300 bg-white text-gold-500 focus:ring-gold-500 focus:ring-offset-white ${className}`}
     />
   );
 };

@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import PageChatbotWidget from "../../../../components/shared/PageChatbotWidget";
 import { actions, resources, type ApiRecord } from "../../../../services/api/resources";
-import { executiveTheme } from "../../../../theme/executiveTheme";
 import AttendanceCorrectionModal from "./AttendanceCorrectionModal";
 import ClockInOutWidget from "./ClockInOutWidget";
 
@@ -24,5 +23,96 @@ export default function AttendanceTracker() {
   const error = employee.error ?? records.error ?? corrections.error ?? clock.error ?? requestCorrection.error;
   const download = () => { const csv = "Date,Clock in,Clock out,Hours,Status\n" + history.map((item) => [item.date, item.check_in ?? "", item.check_out ?? "", item.hours_worked, item.status].map((x) => `\"${x}\"`).join(",")).join("\n"); const href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); const link = document.createElement("a"); link.href = href; link.download = "my-attendance.csv"; link.click(); URL.revokeObjectURL(href); };
   const profile = employee.data?.find((item: ApiRecord) => Number(item.id) === employeeId);
-  return <div className={executiveTheme.page}><div className={executiveTheme.shell}><header className="flex flex-wrap items-end justify-between gap-4"><div><p className={executiveTheme.eyebrow}>Employee self-service</p><h1 className={executiveTheme.title}>My attendance</h1><p className={executiveTheme.subtitle}>Clock in from your assigned geofenced location and review your live attendance history.</p></div><button className={executiveTheme.buttonSecondary} onClick={download} disabled={!history.length}><Download size={16}/> Export CSV</button></header>{error && <p className="mt-4 rounded-xl bg-red-500/10 p-3 text-red-100">{error.message}</p>}{notice && <p className="mt-4 rounded-xl bg-emerald-500/10 p-3 text-emerald-100">{notice}</p>}{!employeeId && <p className="mt-4 rounded-xl bg-red-500/10 p-3 text-red-100">Your account is not linked to an employee profile. Ask HR to link it before you clock in.</p>}<div className="mt-5 grid gap-4 lg:grid-cols-3"><ClockInOutWidget isClockedIn={Boolean(open)} currentTime={new Date().toLocaleString()} onClockIn={() => clock.mutate("in")} onClockOut={() => clock.mutate("out")} disabled={!employeeId || clock.isPending}/><div className={`${executiveTheme.cardSoft} p-5`}><p className={executiveTheme.eyebrow}>Total hours</p><strong className="text-3xl">{summary.hours.toFixed(2)}</strong></div><div className={`${executiveTheme.cardSoft} p-5`}><p className={executiveTheme.eyebrow}>Late records</p><strong className="text-3xl">{summary.late}</strong></div></div><section className={`${executiveTheme.card} mt-5 overflow-hidden`}><div className="flex items-center justify-between border-b border-white/10 p-5"><div><h2 className="text-xl font-bold">Attendance history</h2><p className="text-sm text-[#c9d3df]">{String(profile?.full_name ?? "")}</p></div><button className={executiveTheme.buttonPrimary} disabled={!history.length} onClick={() => setCorrectionOpen(true)}><AlertCircle size={16}/> Request correction</button></div>{records.isLoading ? <div className="p-10 text-center"><LoaderCircle className="mx-auto animate-spin"/></div> : !history.length ? <div className="p-10 text-center text-[#c9d3df]">No attendance records yet.</div> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="text-[#8fa0b8]"><th className="p-4">Date</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Status</th><th>Correction</th></tr></thead><tbody>{history.map((item) => <tr className="border-t border-white/10" key={item.id}><td className="p-4">{item.date}</td><td>{item.check_in ? new Date(item.check_in).toLocaleTimeString() : "—"}</td><td>{item.check_out ? new Date(item.check_out).toLocaleTimeString() : "—"}</td><td>{Number(item.hours_worked).toFixed(2)}</td><td>{formatStatus(item.status)}</td><td>{corrected.has(item.id) ? <><CheckCircle size={14} className="inline"/> Requested</> : "—"}</td></tr>)}</tbody></table></div>}</section></div><AttendanceCorrectionModal open={correctionOpen} onClose={() => setCorrectionOpen(false)} onSubmit={(reason) => requestCorrection.mutate(reason)}/><PageChatbotWidget page="attendance" role="Employee" contextSummary={`${summary.hours.toFixed(1)} attendance hours recorded.`} quickPrompts={["How do I correct a missed clock-in?"]}/></div>;
+
+  return (
+    <div className="dashboard-page attendance-page">
+      <div className="dashboard-heading">
+        <div>
+          <p className="page-kicker">Employee self-service</p>
+          <h1 className="page-title">My Attendance</h1>
+          <p className="page-subtitle">Clock in from your assigned geofenced location and review your live attendance history.</p>
+        </div>
+        <div className="action-row">
+          <button className="button button-secondary" onClick={download} disabled={!history.length}>
+            <Download size={15} aria-hidden="true" /> Export CSV
+          </button>
+        </div>
+      </div>
+
+      {error && <div className="alert alert-error">{error.message}</div>}
+      {notice && <div className="alert alert-success">{notice}</div>}
+      {!employeeId && <div className="alert alert-error">Your account is not linked to an employee profile. Ask HR to link it before you clock in.</div>}
+
+      <div className="metrics">
+        <ClockInOutWidget isClockedIn={Boolean(open)} currentTime={new Date().toLocaleString()} onClockIn={() => clock.mutate("in")} onClockOut={() => clock.mutate("out")} disabled={!employeeId || clock.isPending} />
+        <div className="metric-cell">
+          <p className="metric-label">Total Hours</p>
+          <p className="metric-value compact-metric">{summary.hours.toFixed(2)}</p>
+          <p className="metric-meta">This period</p>
+        </div>
+        <div className="metric-cell">
+          <p className="metric-label">Late Records</p>
+          <p className="metric-value compact-metric">{summary.late}</p>
+          <p className="metric-meta">Requires attention</p>
+        </div>
+        <div className="metric-cell">
+          <p className="metric-label">Days Worked</p>
+          <p className="metric-value compact-metric">{history.length}</p>
+          <p className="metric-meta">Total recorded</p>
+        </div>
+      </div>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2 className="panel-title">Attendance History</h2>
+            <p className="page-subtitle">{String(profile?.full_name ?? "Employee Records")}</p>
+          </div>
+          <button className="button button-secondary" disabled={!history.length} onClick={() => setCorrectionOpen(true)}>
+            <AlertCircle size={15} aria-hidden="true" /> Request correction
+          </button>
+        </div>
+        {records.isLoading ? (
+          <div className="panel-body" style={{ textAlign: "center", padding: "48px" }}>
+            <LoaderCircle className="mx-auto animate-spin" />
+            <p className="page-subtitle" style={{ marginTop: "12px" }}>Loading attendance records…</p>
+          </div>
+        ) : !history.length ? (
+          <div className="panel-body" style={{ textAlign: "center", padding: "48px" }}>
+            <p className="page-subtitle">No attendance records yet.</p>
+          </div>
+        ) : (
+          <div className="panel-body table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Clock In</th>
+                  <th>Clock Out</th>
+                  <th>Hours</th>
+                  <th>Status</th>
+                  <th>Correction</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.date}</td>
+                    <td>{item.check_in ? new Date(item.check_in).toLocaleTimeString() : "—"}</td>
+                    <td>{item.check_out ? new Date(item.check_out).toLocaleTimeString() : "—"}</td>
+                    <td>{Number(item.hours_worked).toFixed(2)}</td>
+                    <td><span className={`pill pill-${item.status === "Late" ? "warning" : item.status === "Absent" ? "danger" : "success"}`}>{formatStatus(item.status)}</span></td>
+                    <td>{corrected.has(item.id) ? <><CheckCircle size={14} className="inline" /> Requested</> : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <AttendanceCorrectionModal open={correctionOpen} onClose={() => setCorrectionOpen(false)} onSubmit={(reason) => requestCorrection.mutate(reason)} />
+      <PageChatbotWidget page="attendance" role="Employee" contextSummary={`${summary.hours.toFixed(1)} attendance hours recorded.`} quickPrompts={["How do I correct a missed clock-in?"]} />
+    </div>
+  );
 }
