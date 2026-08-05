@@ -503,12 +503,7 @@ const EmployeeDetailsModal: React.FC<{
 }> = ({ isOpen, onClose, caseData }) => {
   if (!caseData) return null;
 
-  const mockDocuments: UploadedFile[] = [
-    { id: 'doc-1', name: 'resignation_letter.pdf', size: 245000, type: 'application/pdf', url: '#', uploadDate: '2024-12-01' },
-    { id: 'doc-2', name: 'exit_interview_form.csv', size: 12000, type: 'text/csv', url: '#', uploadDate: '2024-12-02' },
-  ];
-
-  const documents = caseData.attachments?.length ? caseData.attachments : mockDocuments;
+  const documents = caseData.attachments ?? [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { performanceApi } from '../../../services/api';
+import { useCallback, useEffect, useState } from 'react';
+import { employeeApi, performanceApi } from '../../../services/api';
 import {
   TrendingUp,
   Target,
@@ -574,7 +574,7 @@ function CycleStatusBadge({ status }: { status: CycleStatus }) {
 // CYCLES TAB
 // ============================================================
 
-function CyclesTab({ cycles, setCycles, role, onShowToast }: any) {
+function CyclesTab({ cycles, setCycles, role, onShowToast, onRefresh }: any) {
   const [isCreating, setIsCreating] = useState(false);
   const [newCycle, setNewCycle] = useState({
     name: '',
@@ -589,51 +589,49 @@ function CyclesTab({ cycles, setCycles, role, onShowToast }: any) {
 
   const canManageCycles = role === 'branch_hr_admin' || role === 'system_admin';
 
-  const handleCreateCycle = () => {
+  const handleCreateCycle = async () => {
     if (!newCycle.name || !newCycle.startDate || !newCycle.endDate) {
       onShowToast('Please fill in all required fields.', 'error');
       return;
     }
 
-    const cycle: AppraisalCycle = {
-      id: `c${Date.now()}`,
-      name: newCycle.name,
-      description: newCycle.description || 'No description provided.',
-      startDate: newCycle.startDate,
-      endDate: newCycle.endDate,
-      reviewPeriod: newCycle.reviewPeriod || `${newCycle.startDate} to ${newCycle.endDate}`,
-      status: 'not_started',
-      scope: newCycle.scope,
-      scopeId: null,
-      ratingScale: defaultRatingScale,
-      has360Feedback: newCycle.has360Feedback,
-      reminderFrequency: newCycle.reminderFrequency,
-      employees: ['emp1', 'emp2', 'emp3', 'emp4', 'emp5', 'emp6'],
-      employeeStatus: [
-        { employeeId: 'emp1', status: 'not_started' },
-        { employeeId: 'emp2', status: 'not_started' },
-        { employeeId: 'emp3', status: 'not_started' },
-        { employeeId: 'emp4', status: 'not_started' },
-        { employeeId: 'emp5', status: 'not_started' },
-        { employeeId: 'emp6', status: 'not_started' },
-      ],
-      createdAt: new Date().toISOString().split('T')[0],
-      createdBy: 'HR Admin',
-    };
+    try {
+      await performanceApi.createCycle({
+        name: newCycle.name,
+        description: newCycle.description,
+        start_date: newCycle.startDate,
+        end_date: newCycle.endDate,
+        review_period:
+          newCycle.reviewPeriod || `${newCycle.startDate} to ${newCycle.endDate}`,
+        status: 'NOT_STARTED',
+        scope: newCycle.scope.toUpperCase(),
+        rating_scale: defaultRatingScale,
+        has_360_feedback: newCycle.has360Feedback,
+        reminder_frequency: newCycle.reminderFrequency,
+      });
 
-    setCycles((prev: AppraisalCycle[]) => [cycle, ...prev]);
-    setIsCreating(false);
-    setNewCycle({
-      name: '',
-      description: '',
-      startDate: '',
-      endDate: '',
-      reviewPeriod: '',
-      scope: 'org_wide',
-      has360Feedback: false,
-      reminderFrequency: 7,
-    });
-    onShowToast('Appraisal cycle created successfully!', 'success');
+      setIsCreating(false);
+      setNewCycle({
+        name: '',
+        description: '',
+        startDate: '',
+        endDate: '',
+        reviewPeriod: '',
+        scope: 'org_wide',
+        has360Feedback: false,
+        reminderFrequency: 7,
+      });
+      await onRefresh();
+      onShowToast('Appraisal cycle created successfully!', 'success');
+    } catch (error: any) {
+      const data = error?.response?.data;
+      onShowToast(
+        typeof data === 'object' && data
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join('; ')
+          : 'Could not create the appraisal cycle.',
+        'error',
+      );
+    }
   };
 
   const getEmployeeCount = (cycle: AppraisalCycle) => {
@@ -785,9 +783,14 @@ function CyclesTab({ cycles, setCycles, role, onShowToast }: any) {
                   {canManageCycles && cycle.status !== 'completed' && (
                     <button
                       className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                      onClick={() => {
-                        setCycles((prev: AppraisalCycle[]) => prev.map((c: AppraisalCycle) => c.id === cycle.id ? { ...c, status: 'in_progress' } : c));
-                        onShowToast(`Cycle "${cycle.name}" started`, 'success');
+                      onClick={async () => {
+                        try {
+                          await performanceApi.updateCycle(cycle.id, { status: 'IN_PROGRESS' });
+                          await onRefresh();
+                          onShowToast(`Cycle "${cycle.name}" started`, 'success');
+                        } catch {
+                          onShowToast('Could not start the cycle.', 'error');
+                        }
                       }}
                     >
                       Start
@@ -815,7 +818,7 @@ function CyclesTab({ cycles, setCycles, role, onShowToast }: any) {
 // GOALS TAB
 // ============================================================
 
-function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, onShowToast }: any) {
+function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, onShowToast, onRefresh }: any) {
   const [isCreating, setIsCreating] = useState(false);
   const [newGoal, setNewGoal] = useState({
     title: '',
@@ -835,7 +838,7 @@ function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmploye
   const selectedEmp = employeePerformance[selectedEmployeeId] || displayEmployees[0];
   const canCreateGoals = role === 'employee' || role === 'department_head';
 
-  const handleCreateGoal = () => {
+  const handleCreateGoal = async () => {
     if (!newGoal.title || !newGoal.dueDate) {
       onShowToast('Please fill in all required fields.', 'error');
       return;
@@ -843,31 +846,35 @@ function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmploye
 
     if (!selectedEmp) return;
 
-    const goal: Goal = {
-      id: `g${Date.now()}`,
-      title: newGoal.title,
-      description: newGoal.description || '',
-      target: newGoal.target || '',
-      dueDate: newGoal.dueDate,
-      status: 'not_started',
-      progress: 0,
-      createdBy: role === 'department_head' ? 'Department Head' : selectedEmp.employeeName,
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      changeLog: [],
-    };
+    // `target` is entered as free text such as "85%"; keep the numeric part as
+    // the goal weight and preserve the original wording in the description.
+    const weight = Number(String(newGoal.target).replace(/[^0-9.]/g, '')) || 0;
 
-    setEmployeePerformance((prev: Record<string, EmployeePerformance>) => ({
-      ...prev,
-      [selectedEmp.employeeId]: {
-        ...selectedEmp,
-        goals: [...(selectedEmp.goals || []), goal],
-      },
-    }));
+    try {
+      await performanceApi.createGoal({
+        employee: Number(selectedEmp.employeeId),
+        title: newGoal.title,
+        description: newGoal.target
+          ? `${newGoal.description || ''}\nTarget: ${newGoal.target}`.trim()
+          : newGoal.description || '',
+        target_date: newGoal.dueDate,
+        weight_percentage: Math.min(Math.round(weight), 100),
+        status: 'NOT_STARTED',
+      });
 
-    setIsCreating(false);
-    setNewGoal({ title: '', description: '', target: '', dueDate: '' });
-    onShowToast('Goal created successfully!', 'success');
+      setIsCreating(false);
+      setNewGoal({ title: '', description: '', target: '', dueDate: '' });
+      await onRefresh();
+      onShowToast('Goal created successfully!', 'success');
+    } catch (error: any) {
+      const data = error?.response?.data;
+      onShowToast(
+        typeof data === 'object' && data
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join('; ')
+          : 'Could not create the goal.',
+        'error',
+      );
+    }
   };
 
   return (
@@ -1022,7 +1029,7 @@ function GoalsTab({ employeePerformance, setEmployeePerformance, selectedEmploye
 // REVIEWS TAB
 // ============================================================
 
-function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, cycles, onShowToast }: any) {
+function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmployeeId, setSelectedEmployeeId, role, cycles, onShowToast, onRefresh }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewData, setReviewData] = useState({
     rating: 3,
@@ -1040,32 +1047,40 @@ function ReviewsTab({ employeePerformance, setEmployeePerformance, selectedEmplo
 
   const canSubmitReview = role === 'employee' || role === 'department_head';
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (!selectedEmp) return;
 
-    const newReview: Review = {
-      id: `r${Date.now()}`,
-      type: reviewData.type,
-      reviewerName: role === 'employee' ? selectedEmp.employeeName : 'Department Head',
-      revieweeName: selectedEmp.employeeName,
-      rating: reviewData.rating,
-      comments: reviewData.comments,
-      submittedAt: new Date().toISOString().split('T')[0],
-      status: 'submitted',
-      isAnonymous: false,
-    };
+    // The review period defaults to the active cycle, falling back to this month.
+    const activeCycle = (cycles as AppraisalCycle[])?.find(
+      (cycle) => cycle.status === 'in_progress',
+    ) ?? (cycles as AppraisalCycle[])?.[0];
+    const today = new Date().toISOString().split('T')[0];
+    const periodStart = activeCycle?.startDate || today;
+    const periodEnd = activeCycle?.endDate || today;
 
-    setEmployeePerformance((prev: Record<string, EmployeePerformance>) => ({
-      ...prev,
-      [selectedEmp.employeeId]: {
-        ...selectedEmp,
-        reviews: [...(selectedEmp.reviews || []), newReview],
-      },
-    }));
+    try {
+      await performanceApi.createReview({
+        employee: Number(selectedEmp.employeeId),
+        review_period_start: periodStart,
+        review_period_end: periodEnd,
+        overall_rating: reviewData.rating,
+        reviewer_comments: reviewData.comments,
+        status: 'SUBMITTED',
+      });
 
-    setIsSubmitting(false);
-    setReviewData({ rating: 3, comments: '', type: 'self' });
-    onShowToast('Review submitted successfully!', 'success');
+      setIsSubmitting(false);
+      setReviewData({ rating: 3, comments: '', type: 'self' });
+      await onRefresh();
+      onShowToast('Review submitted successfully!', 'success');
+    } catch (error: any) {
+      const data = error?.response?.data;
+      onShowToast(
+        typeof data === 'object' && data
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join('; ')
+          : 'Could not submit the review.',
+        'error',
+      );
+    }
   };
 
   const getPendingReviews = (emp: any) => {
@@ -1400,6 +1415,8 @@ function DashboardTab({ employeePerformance, cycles, role }: any) {
     name: group[0].department || 'Unassigned',
     rate: group.length ? Math.round((group.filter(employee => employee.currentCycleStatus === 'completed').length / group.length) * 100) : 0,
   }));
+  const reviewCompletionRate = totalEmployees ? Math.round((employees.filter((employee) => employee.currentCycleStatus === 'completed').length / totalEmployees) * 100) : 0;
+  const outstandingReviews = Math.max(totalEmployees - employees.filter((employee) => employee.currentCycleStatus === 'completed').length, 0);
 
   return (
     <div className="space-y-6">
@@ -1506,23 +1523,23 @@ function DashboardTab({ employeePerformance, cycles, role }: any) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-blue-50 rounded-lg p-4">
             <p className="text-sm font-medium text-blue-700">Department Head</p>
-            <p className="text-xs text-blue-600 mt-1">Team completion: {Math.round(60 + Math.random() * 35)}%</p>
-            <p className="text-xs text-blue-600">Goal achievement: {Math.round(50 + Math.random() * 45)}%</p>
+            <p className="text-xs text-blue-600 mt-1">Team completion: {reviewCompletionRate}%</p>
+            <p className="text-xs text-blue-600">Goal achievement: {goalCompletionRate}%</p>
           </div>
           <div className="bg-purple-50 rounded-lg p-4">
             <p className="text-sm font-medium text-purple-700">Branch Manager</p>
-            <p className="text-xs text-purple-600 mt-1">Branch completion: {Math.round(55 + Math.random() * 40)}%</p>
-            <p className="text-xs text-purple-600">Rating distribution: 3.8 avg</p>
+            <p className="text-xs text-purple-600 mt-1">Branch completion: {reviewCompletionRate}%</p>
+            <p className="text-xs text-purple-600">Rating distribution: {avgRating.toFixed(1)} avg</p>
           </div>
           <div className="bg-green-50 rounded-lg p-4">
             <p className="text-sm font-medium text-green-700">HR Admin</p>
-            <p className="text-xs text-green-600 mt-1">Overdue reviews: {Math.floor(Math.random() * 5)}</p>
-            <p className="text-xs text-green-600">Escalations: {Math.floor(Math.random() * 3)}</p>
+            <p className="text-xs text-green-600 mt-1">Outstanding reviews: {outstandingReviews}</p>
+            <p className="text-xs text-green-600">Active cycles: {activeCycles}</p>
           </div>
           <div className="bg-amber-50 rounded-lg p-4">
             <p className="text-sm font-medium text-amber-700">Executive</p>
-            <p className="text-xs text-amber-600 mt-1">Cross-branch trend: {Math.random() > 0.5 ? '↑ Improving' : '→ Stable'}</p>
-            <p className="text-xs text-amber-600">Completion rate: {Math.round(60 + Math.random() * 35)}%</p>
+            <p className="text-xs text-amber-600 mt-1">Completed cycles: {completedCycles}</p>
+            <p className="text-xs text-amber-600">Completion rate: {reviewCompletionRate}%</p>
           </div>
         </div>
       </div>
@@ -1565,8 +1582,13 @@ export default function PerformanceOversightPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  useEffect(() => {
-    Promise.all([performanceApi.getCycles(), performanceApi.getReviews('')]).then(([cycleResponse, reviewResponse]) => {
+  const loadPerformance = useCallback(async () => {
+    return Promise.all([
+      performanceApi.getCycles(),
+      performanceApi.getReviews(''),
+      performanceApi.getGoals(''),
+      employeeApi.getAll(),
+    ]).then(([cycleResponse, reviewResponse, goalResponse, employeeResponse]) => {
       const payload = cycleResponse.data;
       const records = Array.isArray(payload) ? payload : payload.results || [];
       setCycles(records.map((cycle: any) => ({
@@ -1595,9 +1617,48 @@ export default function PerformanceOversightPage() {
         profile.currentCycleStatus = review.status === 'SUBMITTED' ? 'completed' : 'in_progress';
         profiles[employeeId] = profile;
       });
+      // Seed a profile for every employee so goals can be set before any review
+      // exists, then fold in goals that are attached directly to an employee.
+      const employeePayload = employeeResponse.data;
+      const employeeRows = Array.isArray(employeePayload) ? employeePayload : employeePayload.results || [];
+      employeeRows.forEach((employee: any) => {
+        const key = String(employee.id);
+        if (!profiles[key]) {
+          profiles[key] = {
+            employeeId: key,
+            employeeName: employee.full_name || employee.employee_number,
+            department: employee.department_name || '',
+            branch: employee.branch_name || '',
+            role: employee.designation_name || '',
+            goals: [], reviews: [], ratingHistory: [],
+            currentCycleStatus: 'not_started',
+          };
+        }
+      });
+
+      const goalPayload = goalResponse.data;
+      const goalRows = Array.isArray(goalPayload) ? goalPayload : goalPayload.results || [];
+      goalRows.forEach((goal: any) => {
+        const key = String(goal.employee ?? '');
+        const profile = profiles[key];
+        if (!profile) return;
+        if (profile.goals.some((existing: Goal) => existing.id === String(goal.id))) return;
+        profile.goals.push({
+          id: String(goal.id), title: goal.title, description: goal.description || '',
+          target: `${goal.weight_percentage || 0}%`, dueDate: goal.target_date || '',
+          status: String(goal.status || 'NOT_STARTED').toLowerCase() as GoalStatus,
+          progress: 0, createdBy: goal.employee_name || 'HR',
+          createdAt: goal.created_at, updatedAt: goal.updated_at, changeLog: [],
+        });
+      });
+
       setEmployeePerformance(profiles);
     }).catch(() => handleShowToast('Unable to load performance data.', 'error'));
   }, []);
+
+  useEffect(() => {
+    loadPerformance();
+  }, [loadPerformance]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -1665,6 +1726,7 @@ export default function PerformanceOversightPage() {
           setCycles={setCycles}
           role={role}
           onShowToast={handleShowToast}
+          onRefresh={loadPerformance}
           employeePerformance={employeePerformance}
         />
       )}
@@ -1677,6 +1739,7 @@ export default function PerformanceOversightPage() {
           setSelectedEmployeeId={setSelectedEmployeeId}
           role={role}
           onShowToast={handleShowToast}
+          onRefresh={loadPerformance}
         />
       )}
 
@@ -1689,6 +1752,7 @@ export default function PerformanceOversightPage() {
           role={role}
           cycles={cycles}
           onShowToast={handleShowToast}
+          onRefresh={loadPerformance}
         />
       )}
 

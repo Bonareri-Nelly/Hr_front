@@ -147,8 +147,7 @@ export default function UserProfilePage() {
     role: getRoleName(apiProfile.role),
   } : profileData;
 
-  // Sample Data
-  const permissions: Permission[] = [
+  const legacyPermissions: Permission[] = [
     {
       id: "p1",
       name: "Payroll Administration",
@@ -183,7 +182,7 @@ export default function UserProfilePage() {
     },
   ];
 
-  const documents: DocumentItem[] = [
+  const legacyDocuments: DocumentItem[] = [
     {
       id: "d1",
       name: "National ID",
@@ -228,7 +227,7 @@ export default function UserProfilePage() {
     },
   ];
 
-  const recentActivity: ActivityItem[] = [
+  const legacyRecentActivity: ActivityItem[] = [
     {
       id: "a1",
       title: "Changed payroll approval limit",
@@ -270,6 +269,10 @@ export default function UserProfilePage() {
       status: "completed",
     },
   ];
+
+  const permissions: Permission[] = apiProfile?.role ? [{ id: String(apiProfile.role), name: getRoleName(apiProfile.role), description: 'Role assigned by the access-control service.', scope: apiProfile.branch_name || 'Assigned scope', status: apiProfile.is_active ? 'Active' : 'Inactive', level: 'Read' }] : [];
+  const documents: DocumentItem[] = [];
+  const recentActivity: ActivityItem[] = [];
 
   // Helper Functions
   const getStatusColor = (status: string): string => {

@@ -1,37 +1,22 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Clock, Mail, Edit, Trash2, Plus, X, Calendar, Users } from 'lucide-react';
+import { apiClient } from '../../../services/api/client';
+
+type Schedule = {
+  id: number;
+  name: string;
+  frequency: string;
+  recipients: string[];
+  lastRun: string;
+  nextRun: string;
+  status: string;
+};
+
+const titleCase = (value: string) =>
+  value ? value.charAt(0) + value.slice(1).toLowerCase() : '';
 
 export const ScheduledReports = () => {
-  const [schedules, setSchedules] = useState([
-    {
-      id: 1,
-      name: 'Monthly Payroll Summary',
-      frequency: 'Monthly',
-      recipients: ['executives@optimum.com', 'finance@optimum.com'],
-      lastRun: '2026-06-01',
-      nextRun: '2026-07-01',
-      status: 'Active',
-    },
-    {
-      id: 2,
-      name: 'Quarterly Workforce Report',
-      frequency: 'Quarterly',
-      recipients: ['executives@optimum.com'],
-      lastRun: '2026-04-01',
-      nextRun: '2026-07-01',
-      status: 'Active',
-    },
-    {
-      id: 3,
-      name: 'Compliance Status Update',
-      frequency: 'Weekly',
-      recipients: ['compliance@optimum.com'],
-      lastRun: '2026-06-28',
-      nextRun: '2026-07-05',
-      status: 'Paused',
-    },
-  ]);
-
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newSchedule, setNewSchedule] = useState({
     name: '',
@@ -40,31 +25,70 @@ export const ScheduledReports = () => {
     status: 'Active',
   });
 
-  const handleCreateSchedule = () => {
+  const loadSchedules = useCallback(async () => {
+    try {
+      const response = await apiClient.get('/reporting/schedules/');
+      const payload = response.data;
+      const rows = Array.isArray(payload) ? payload : payload?.results ?? [];
+      setSchedules(
+        rows.map((row: any): Schedule => ({
+          id: row.id,
+          name: row.name,
+          frequency: titleCase(row.frequency || ''),
+          recipients: Array.isArray(row.recipients) ? row.recipients : [],
+          lastRun: row.last_run ? String(row.last_run).slice(0, 10) : 'Never',
+          nextRun: row.next_run || '-',
+          status: titleCase(row.status || ''),
+        })),
+      );
+    } catch {
+      setSchedules([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadSchedules();
+  }, [loadSchedules]);
+
+  const handleCreateSchedule = async () => {
     if (!newSchedule.name || !newSchedule.recipients) {
       alert('Please fill in all required fields.');
       return;
     }
 
-    const schedule = {
-      id: Date.now(),
-      name: newSchedule.name,
-      frequency: newSchedule.frequency,
-      recipients: newSchedule.recipients.split(',').map((r) => r.trim()),
-      lastRun: 'Never',
-      nextRun: new Date().toISOString().slice(0, 10),
-      status: newSchedule.status,
-    };
-
-    setSchedules([...schedules, schedule]);
-    setIsModalOpen(false);
-    setNewSchedule({ name: '', frequency: 'Monthly', recipients: '', status: 'Active' });
-    alert('Schedule created successfully!');
+    try {
+      await apiClient.post('/reporting/schedules/', {
+        name: newSchedule.name,
+        frequency: newSchedule.frequency.toUpperCase(),
+        recipients: newSchedule.recipients
+          .split(',')
+          .map((recipient) => recipient.trim())
+          .filter(Boolean),
+        status: newSchedule.status.toUpperCase(),
+        next_run: new Date().toISOString().slice(0, 10),
+      });
+      setIsModalOpen(false);
+      setNewSchedule({ name: '', frequency: 'Monthly', recipients: '', status: 'Active' });
+      await loadSchedules();
+      alert('Schedule created successfully!');
+    } catch (error: any) {
+      const data = error?.response?.data;
+      alert(
+        data && typeof data === 'object'
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join('\n')
+          : 'Could not create the schedule.',
+      );
+    }
   };
 
-  const handleDelete = (id: number) => {
-    if (confirm('Are you sure you want to delete this schedule?')) {
-      setSchedules(schedules.filter((s) => s.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this schedule?')) return;
+
+    try {
+      await apiClient.delete(`/reporting/schedules/${id}/`);
+      await loadSchedules();
+    } catch {
+      alert('Could not delete the schedule.');
     }
   };
 
@@ -72,8 +96,18 @@ export const ScheduledReports = () => {
     alert(`Emailing report for schedule ID: ${id}`);
   };
 
-  const handleEdit = (id: number) => {
-    alert(`Edit schedule ID: ${id}`);
+  // Toggling between Active and Paused is the only edit the panel exposes.
+  const handleEdit = async (id: number) => {
+    const schedule = schedules.find((item) => item.id === id);
+    if (!schedule) return;
+
+    const nextStatus = schedule.status === 'Active' ? 'PAUSED' : 'ACTIVE';
+    try {
+      await apiClient.patch(`/reporting/schedules/${id}/`, { status: nextStatus });
+      await loadSchedules();
+    } catch {
+      alert('Could not update the schedule.');
+    }
   };
 
   return (

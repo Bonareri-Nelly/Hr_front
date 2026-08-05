@@ -19,9 +19,9 @@ export const useReportsData = ({ timeRange, branch, department, dateRange }: Use
       try {
         const params = { time_range: timeRange, branch, department, start_date: dateRange.start, end_date: dateRange.end };
         const [workforce, payroll, compliance, benefits, performance] = await Promise.all([
-          apiClient.get('/reports/workforce/', { params }), apiClient.get('/reports/payroll/', { params }),
-          apiClient.get('/reports/compliance/', { params }), apiClient.get('/reports/benefits/', { params }),
-          apiClient.get('/reports/performance/', { params }),
+          apiClient.get('/reporting/dashboard/employees/', { params }), apiClient.get('/reporting/dashboard/payroll/', { params }),
+          apiClient.get('/reporting/dashboard/overview/', { params }), apiClient.get('/reporting/dashboard/overview/', { params }),
+          apiClient.get('/reporting/dashboard/performance/', { params }),
         ]);
         const workforceData = workforce.data;
         const payrollData = payroll.data;

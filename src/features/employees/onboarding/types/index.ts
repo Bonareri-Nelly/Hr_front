@@ -151,11 +151,17 @@ export interface OnboardingFilter {
 
 // Helper type for form data
 export interface OnboardingFormData {
+  /** First name of the new starter. */
   employeeId: string;
+  lastName: string;
   startDate: string;
   managerId: string;
+  /** Department id. */
   department: string;
+  /** Designation id. */
   position: string;
+  /** Branch id. */
   branchId: string;
+  basicSalary: string;
   notes?: string;
 }

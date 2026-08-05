@@ -23,7 +23,7 @@ interface FinalSettlementViewProps {
 }
 
 // Mock data - replace with actual API call
-const mockSettlement: FinalSettlement = {
+const legacySettlement: FinalSettlement = {
   id: 'sett-001',
   caseId: 'off-001',
   employeeId: 'emp-001',
@@ -48,7 +48,8 @@ const mockSettlement: FinalSettlement = {
 };
 
 export const FinalSettlementView: React.FC<FinalSettlementViewProps> = ({ caseId }) => {
-  const [settlement, setSettlement] = useState<FinalSettlement>(mockSettlement);
+  const emptySettlement: FinalSettlement = { id: '', caseId, employeeId: '', proRatedSalary: 0, leaveEncashment: 0, pendingReimbursements: 0, otherEarnings: 0, totalEarnings: 0, loanDeductions: 0, assetNonReturnDeduction: 0, noticePeriodShortfall: 0, otherDeductions: 0, totalDeductions: 0, netPay: 0, finalPAYE: 0, finalNSSF: 0, finalNHIF: 0, finalHousingLevy: 0, status: 'draft', createdAt: '', updatedAt: '' };
+  const [settlement, setSettlement] = useState<FinalSettlement>(emptySettlement);
   const [isEditing, setIsEditing] = useState(false);
   const [editedSettlement, setEditedSettlement] = useState(settlement);
 

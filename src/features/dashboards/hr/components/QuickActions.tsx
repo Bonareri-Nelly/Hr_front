@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../../../../services/api/client';
 import {
   Plus,
   Users,
@@ -64,28 +65,71 @@ export const QuickActions = ({ onShowToast }: QuickActionsProps) => {
     },
   ];
 
-  const handleAddEmployee = () => {
-    if (!newEmployee.name || !newEmployee.email) {
-      if (onShowToast) onShowToast('Please fill in all required fields.', 'error');
-      else alert('Please fill in all required fields.');
-      return;
-    }
-    if (onShowToast) onShowToast(`Employee ${newEmployee.name} added successfully!`, 'success');
-    else alert(`Employee ${newEmployee.name} added!`);
-    setNewEmployee({ name: '', email: '', department: '' });
-    setShowAddEmployeeModal(false);
+  const notify = (message: string, type: 'success' | 'error' | 'info') => {
+    if (onShowToast) onShowToast(message, type);
+    else alert(message);
   };
 
-  const handleSendAnnouncement = () => {
-    if (!announcementText.trim()) {
-      if (onShowToast) onShowToast('Please enter an announcement.', 'error');
-      else alert('Please enter an announcement.');
+  const describeError = (error: any, fallback: string) => {
+    const data = error?.response?.data;
+    if (data && typeof data === 'object') {
+      return Object.entries(data)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('; ');
+    }
+    return fallback;
+  };
+
+  const handleAddEmployee = async () => {
+    if (!newEmployee.name || !newEmployee.email) {
+      notify('Please fill in all required fields.', 'error');
       return;
     }
-    if (onShowToast) onShowToast('Announcement sent!', 'success');
-    else alert('Announcement sent!');
-    setAnnouncementText('');
-    setShowAnnouncementModal(false);
+
+    const [firstName, ...rest] = newEmployee.name.trim().split(/\s+/);
+
+    try {
+      // Created as ONBOARDING, which the API accepts without a branch,
+      // department, designation or salary yet. Those are set when the employee
+      // is placed and moved off onboarding.
+      await apiClient.post('/employees/', {
+        employee_number: `EMP-${Date.now().toString().slice(-6)}`,
+        first_name: firstName,
+        last_name: rest.join(' ') || firstName,
+        work_email: newEmployee.email,
+        hire_date: new Date().toISOString().split('T')[0],
+        employment_type: 'PERMANENT',
+        employment_status: 'ONBOARDING',
+      });
+      notify(`Employee ${newEmployee.name} added successfully!`, 'success');
+      setNewEmployee({ name: '', email: '', department: '' });
+      setShowAddEmployeeModal(false);
+    } catch (error) {
+      notify(describeError(error, 'Could not add the employee.'), 'error');
+    }
+  };
+
+  const handleSendAnnouncement = async () => {
+    if (!announcementText.trim()) {
+      notify('Please enter an announcement.', 'error');
+      return;
+    }
+
+    const text = announcementText.trim();
+
+    try {
+      await apiClient.post('/hr-operations/announcements/', {
+        // The composer is a single text box, so use its opening line as a title.
+        title: text.split('\n')[0].slice(0, 120),
+        body: text,
+        audience: 'ALL',
+      });
+      notify('Announcement sent!', 'success');
+      setAnnouncementText('');
+      setShowAnnouncementModal(false);
+    } catch (error) {
+      notify(describeError(error, 'Could not send the announcement.'), 'error');
+    }
   };
 
   return (

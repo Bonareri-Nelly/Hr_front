@@ -1,5 +1,6 @@
 // src/features/employees/onboarding/pages/Dashboard.tsx
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { apiClient } from '@/services/api/client';
 import { 
   Users, 
   Clock, 
@@ -103,31 +104,75 @@ const StatCard: React.FC<{
 const InitiateOnboardingModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onInitiate: (data: any) => void;
+  // Returns a promise so the modal can await the save and report failures.
+  onInitiate: (data: any) => Promise<void>;
 }> = ({ isOpen, onClose, onInitiate }) => {
   const [formData, setFormData] = useState({
     employeeId: '',
+    lastName: '',
     startDate: '',
     managerId: '',
     department: '',
     position: '',
-    branchId: 'branch-1',
+    branchId: '',
+    basicSalary: '',
     notes: '',
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
-  const departments = ['Engineering', 'Sales', 'Marketing', 'Finance', 'Human Resources', 'Operations', 'IT'];
-  const branches = [
-    { id: 'branch-1', name: 'Headquarters' },
-    { id: 'branch-2', name: 'North Region' },
-    { id: 'branch-3', name: 'South Region' },
-    { id: 'branch-4', name: 'East Region' },
-    { id: 'branch-5', name: 'West Region' },
-  ];
+  // The employee API needs real branch/department/designation ids, so load the
+  // actual records rather than offering hardcoded names that cannot be saved.
+  const [options, setOptions] = useState<{
+    branches: any[]; departments: any[]; designations: any[];
+  }>({ branches: [], departments: [], designations: [] });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const unwrap = (payload: any) =>
+      Array.isArray(payload) ? payload : payload?.results ?? [];
+
+    Promise.all([
+      apiClient.get('/branches/'),
+      apiClient.get('/departments/'),
+      apiClient.get('/designations/'),
+    ])
+      .then(([branches, departments, designations]) =>
+        setOptions({
+          branches: unwrap(branches.data),
+          departments: unwrap(departments.data),
+          designations: unwrap(designations.data),
+        }),
+      )
+      .catch(() => setFormError('Could not load branches and departments.'));
+  }, [isOpen]);
+
+  // Wait for the save to succeed before closing, so a rejected record no longer
+  // looks like it was created.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onInitiate(formData);
-    onClose();
+    if (submitting) return;
+
+    setFormError(null);
+    setSubmitting(true);
+    try {
+      await onInitiate(formData);
+      setFormData({
+        employeeId: '', lastName: '', startDate: '', managerId: '',
+        department: '', position: '', branchId: '', basicSalary: '', notes: '',
+      });
+      onClose();
+    } catch (error: any) {
+      const data = error?.response?.data;
+      setFormError(
+        data && typeof data === 'object'
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join(' · ')
+          : 'Could not start onboarding. Please check the details and try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -684,16 +729,20 @@ const OnboardingDashboard: React.FC = () => {
     try {
       await initiateOnboarding({
         employeeId: data.employeeId,
+        lastName: data.lastName,
         startDate: data.startDate,
         managerId: data.managerId,
         department: data.department,
         position: data.position,
         branchId: data.branchId,
+        basicSalary: data.basicSalary,
         notes: data.notes,
       });
       refetch();
     } catch (error) {
+      // Rethrow so the modal can show the reason and stay open.
       console.error('Failed to initiate onboarding', error);
+      throw error;
     }
   };
 

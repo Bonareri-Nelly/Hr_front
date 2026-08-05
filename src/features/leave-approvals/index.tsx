@@ -1,12 +1,64 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ReviewLeaveModal from "./components/ReviewLeaveModal";
 import LeaveReportsAuditModal from "./components/LeaveReportsAuditModal";
 
-import { ROLES } from "../../constants/roles";
+import { apiClient } from "../../services/api/client";
+import { ROLES, type UserRole } from "../../constants/roles";
 import {
+  type ApprovalHistory,
   type LeaveRequest,
 } from "./utils/approvalWorkflow";
-import { LEAVE_STATUS } from "../../constants/leaveStatus";
+import { LEAVE_STATUS, type LeaveStatus } from "../../constants/leaveStatus";
+import { WORKFLOW_STAGES, type WorkflowStage } from "../../constants/workflowStages";
+
+const unwrap = (payload: any): any[] =>
+  Array.isArray(payload) ? payload : payload?.results ?? [];
+
+// The API uses its own role vocabulary; map it onto the approval workflow's.
+const ROLE_BY_API_NAME: Record<string, UserRole> = {
+  SUPER_ADMIN: ROLES.HR_OFFICER,
+  ADMIN: ROLES.HR_OFFICER,
+  HR: ROLES.HR_OFFICER,
+  DEPARTMENT_HEAD: ROLES.DEPARTMENT_HEAD,
+  MANAGER: ROLES.BRANCH_MANAGER,
+  FINANCE: ROLES.FINANCE_OFFICER,
+  PAYROLL_OFFICER: ROLES.FINANCE_OFFICER,
+  EXECUTIVE: ROLES.EXECUTIVE,
+  EMPLOYEE: ROLES.EMPLOYEE,
+};
+
+const roleName = (role: any): string =>
+  typeof role === "string" ? role : role?.name ?? "";
+
+// PENDING_MANAGER is the first approval gate, which this workflow presents as
+// the department head's step; PENDING_HR is the second.
+const STATUS_MAP: Record<string, { status: LeaveStatus; stage: WorkflowStage; approver: UserRole }> = {
+  PENDING_MANAGER: {
+    status: LEAVE_STATUS.PENDING,
+    stage: WORKFLOW_STAGES.PENDING_DEPARTMENT_HEAD_APPROVAL,
+    approver: ROLES.DEPARTMENT_HEAD,
+  },
+  PENDING_HR: {
+    status: LEAVE_STATUS.PENDING,
+    stage: WORKFLOW_STAGES.PENDING_HR_APPROVAL,
+    approver: ROLES.HR_OFFICER,
+  },
+  APPROVED: {
+    status: LEAVE_STATUS.APPROVED,
+    stage: WORKFLOW_STAGES.APPROVED,
+    approver: ROLES.HR_OFFICER,
+  },
+  REJECTED: {
+    status: LEAVE_STATUS.REJECTED,
+    stage: WORKFLOW_STAGES.REJECTED,
+    approver: ROLES.HR_OFFICER,
+  },
+  CANCELLED: {
+    status: LEAVE_STATUS.REJECTED,
+    stage: WORKFLOW_STAGES.REJECTED,
+    approver: ROLES.HR_OFFICER,
+  },
+};
 
 
 
@@ -33,12 +85,12 @@ export default function LeaveApprovals() {
     "Pending" | "Approved" | "Rejected"
   >("Pending");
 
-  const currentUser = {
-    id: 101,
-    name: "Mary Wanjiku",
-    role: ROLES.DEPARTMENT_HEAD,
-    department: "ICT",
-  };
+  const [currentUser, setCurrentUser] = useState<{
+    id: number | null;
+    name: string;
+    role: UserRole;
+    department: string;
+  }>({ id: null, name: "", role: ROLES.EMPLOYEE, department: "" });
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -50,44 +102,84 @@ export default function LeaveApprovals() {
 
 
 
-  const [requests, setRequests] = useState<LeaveRequest[]>([
-    {
-      id: 1,
-      employee: "Jane Smith",
-      department: "ICT",
-      employeeRole: ROLES.EMPLOYEE,
-      submittedByRole: ROLES.EMPLOYEE,
-      leaveType: "Annual Leave",
-      startDate: "2026-08-01",
-      endDate: "2026-08-05",
-      days: 5,
-      status: LEAVE_STATUS.PENDING,
-      workflowStage: "Pending Department Head Approval",
-      currentApprover: {
-        role: ROLES.DEPARTMENT_HEAD,
-        department: "ICT",
-      },
-      approvalHistory: [],
-    },
-    {
-      id: 2,
-      employee: "Peter Mwangi",
-      department: "ICT",
-      employeeRole: ROLES.EMPLOYEE,
-      submittedByRole: ROLES.EMPLOYEE,
-      leaveType: "Sick Leave",
-      startDate: "2026-08-10",
-      endDate: "2026-08-12",
-      days: 3,
-      status: LEAVE_STATUS.PENDING,
-      workflowStage: "Pending Department Head Approval",
-      currentApprover: {
-        role: ROLES.DEPARTMENT_HEAD,
-        department: "ICT",
-      },
-      approvalHistory: [],
-    },
-  ]);
+  const [requests, setRequests] = useState<LeaveRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Raw API status per request id, so an approval can be routed to the manager
+  // or the HR gate without re-deriving it from the display label.
+  const [apiStatusById, setApiStatusById] = useState<Record<number, string>>({});
+
+  const loadRequests = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [meResponse, requestsResponse, approvalsResponse] = await Promise.all([
+        apiClient.get("/auth/me/"),
+        apiClient.get("/leave/requests/"),
+        apiClient.get("/leave/approvals/"),
+      ]);
+
+      const me = meResponse.data ?? {};
+      setCurrentUser({
+        id: me.id ?? null,
+        name: me.username ?? "",
+        role: ROLE_BY_API_NAME[roleName(me.role)] ?? ROLES.EMPLOYEE,
+        department: me.department_name ?? me.department ?? "",
+      });
+
+      const approvals = unwrap(approvalsResponse.data);
+      const historyByRequest = new Map<number, ApprovalHistory[]>();
+      approvals.forEach((approval: any) => {
+        const key = Number(approval.leave_request);
+        const entry: ApprovalHistory = {
+          role: ROLE_BY_API_NAME[approval.approval_level] ?? ROLES.HR_OFFICER,
+          approver: approval.approver_name || "",
+          action: approval.action === "REJECTED" ? "Reject" : "Approve",
+          comment: approval.comment || "",
+          date: approval.created_at || "",
+        };
+        historyByRequest.set(key, [...(historyByRequest.get(key) ?? []), entry]);
+      });
+
+      const rows = unwrap(requestsResponse.data);
+      const statuses: Record<number, string> = {};
+      setRequests(
+        rows.map((row: any): LeaveRequest => {
+          const mapped = STATUS_MAP[row.status] ?? STATUS_MAP.PENDING_MANAGER;
+          statuses[Number(row.id)] = row.status;
+          return {
+            id: Number(row.id),
+            employee: row.employee_name || `Employee ${row.employee}`,
+            department: row.department_name || "Unassigned",
+            employeeRole: ROLES.EMPLOYEE,
+            submittedByRole: ROLES.EMPLOYEE,
+            leaveType: row.leave_type_name || "Leave",
+            startDate: row.start_date,
+            endDate: row.end_date,
+            days: Number(row.total_days || 0),
+            status: mapped.status,
+            workflowStage: mapped.stage,
+            currentApprover: {
+              role: mapped.approver,
+              department: row.department_name || "Unassigned",
+            },
+            approvalHistory: historyByRequest.get(Number(row.id)) ?? [],
+          };
+        }),
+      );
+      setApiStatusById(statuses);
+      setLoadError(null);
+    } catch {
+      setLoadError("Could not load leave requests. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
@@ -210,28 +302,60 @@ export default function LeaveApprovals() {
 
 
 
-  const handleApprove = () => {
-    if (!selectedRequest) return;
+  const handleApprove = async (comment: string) => {
+    if (!selectedRequest || isSaving) return;
 
-    alert("Leave request approved.");
+    // The manager gate must clear before the HR gate, so route on the stored
+    // API status rather than assuming a single approval endpoint.
+    const apiStatus = apiStatusById[selectedRequest.id];
+    const action = apiStatus === "PENDING_HR" ? "hr-approve" : "manager-approve";
 
-    setRequests((prev) =>
-      prev.filter((r) => r.id !== selectedRequest.id)
-    );
-
-    setSelectedId(null);
+    setIsSaving(true);
+    try {
+      await apiClient.post(
+        `/leave/requests/${selectedRequest.id}/${action}/`,
+        { comment: comment || "" },
+      );
+      setSelectedId(null);
+      await loadRequests();
+    } catch (error: any) {
+      const detail =
+        error?.response?.data?.message ??
+        error?.response?.data?.detail ??
+        "Unable to approve this leave request.";
+      alert(detail);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleReject = () => {
-    if (!selectedRequest) return;
+  const handleReject = async (comment: string) => {
+    if (!selectedRequest || isSaving) return;
 
-    alert("Leave request rejected.");
+    // The API requires a reason on rejection.
+    const reason = comment?.trim();
+    if (!reason) {
+      alert("Please add a comment explaining the rejection.");
+      return;
+    }
 
-    setRequests((prev) =>
-      prev.filter((r) => r.id !== selectedRequest.id)
-    );
-
-    setSelectedId(null);
+    setIsSaving(true);
+    try {
+      await apiClient.post(
+        `/leave/requests/${selectedRequest.id}/reject/`,
+        { reason },
+      );
+      setSelectedId(null);
+      await loadRequests();
+    } catch (error: any) {
+      const detail =
+        error?.response?.data?.message ??
+        error?.response?.data?.detail ??
+        "Unable to reject this leave request.";
+      alert(detail);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -684,8 +808,8 @@ export default function LeaveApprovals() {
         open={selectedId !== null}
         request={selectedRequest}
         onClose={() => setSelectedId(null)}
-        onApprove={() => handleApprove()}
-        onReject={() => handleReject()}
+        onApprove={(comment) => handleApprove(comment)}
+        onReject={(comment) => handleReject(comment)}
       />
       <LeaveReportsAuditModal open={reportsOpen} onClose={() => setReportsOpen(false)} />
     </div>

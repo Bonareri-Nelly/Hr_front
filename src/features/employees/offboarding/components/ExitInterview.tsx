@@ -33,7 +33,7 @@ interface ExitInterviewViewProps {
 }
 
 // Mock data - replace with actual API call
-const mockInterview: ExitInterview = {
+const legacyInterview: ExitInterview = {
   id: 'exit-001',
   caseId: 'off-001',
   employeeId: 'emp-001',
@@ -66,7 +66,8 @@ const mockInterview: ExitInterview = {
 };
 
 export const ExitInterviewView: React.FC<ExitInterviewViewProps> = ({ caseId }) => {
-  const [interview, setInterview] = useState<ExitInterview>(mockInterview);
+  const emptyInterview: ExitInterview = { id: '', caseId, employeeId: '', primaryReason: '', feedback: [], overallRating: 0, wouldRecommend: 'maybe', additionalComments: '', submittedBy: 'hr-admin', submittedDate: '', isConfidential: true };
+  const [interview, setInterview] = useState<ExitInterview>(emptyInterview);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(interview);
 

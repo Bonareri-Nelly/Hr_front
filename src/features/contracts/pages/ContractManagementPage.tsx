@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useContracts } from "../../../hooks";
+import { apiClient } from "../../../services/api/client";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -133,14 +134,48 @@ function AddContractModal({ isOpen, onClose, onConfirm }: any) {
     notes: '',
   });
 
+  // Contracts are saved against an employee's database id, so the employee is
+  // picked from the real list rather than typed as free text.
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    apiClient
+      .get('/employees/', { params: { page_size: 500 } })
+      .then((response) => {
+        const payload = response.data;
+        setEmployees(Array.isArray(payload) ? payload : payload?.results ?? []);
+      })
+      .catch(() => setEmployees([]));
+  }, [isOpen]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // Selecting an employee fills in the details the contract header displays.
+  const handleEmployeeSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const employeeId = e.target.value;
+    const employee = employees.find((item) => String(item.id) === employeeId);
+
+    setFormData({
+      ...formData,
+      employeeId,
+      employeeName: employee
+        ? employee.full_name || employee.employee_number || ''
+        : '',
+      employeeEmail: employee?.work_email || employee?.personal_email || '',
+      department: employee?.department_name || formData.department,
+      position: employee?.designation_name || formData.position,
+      salary: employee?.basic_salary ? String(employee.basic_salary) : formData.salary,
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.employeeName || !formData.startDate || !formData.endDate) {
-      alert('Please fill in all required fields.');
+    if (!formData.title || !formData.employeeId || !formData.startDate || !formData.endDate) {
+      alert('Please choose an employee and fill in the title and contract dates.');
       return;
     }
 
@@ -150,7 +185,7 @@ function AddContractModal({ isOpen, onClose, onConfirm }: any) {
       type: formData.type,
       status: 'Draft',
       employeeName: formData.employeeName,
-      employeeId: formData.employeeId || 'EMP-001',
+      employeeId: formData.employeeId,
       employeeEmail: formData.employeeEmail,
       department: formData.department,
       position: formData.position,
@@ -224,16 +259,24 @@ function AddContractModal({ isOpen, onClose, onConfirm }: any) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Employee Name *</label>
-              <input
-                type="text"
-                name="employeeName"
-                value={formData.employeeName}
-                onChange={handleInputChange}
+              <label className="block text-sm font-medium text-gray-700">Employee *</label>
+              <select
+                name="employeeId"
+                value={formData.employeeId}
+                onChange={handleEmployeeSelect}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-700"
-                placeholder="e.g. John Doe"
                 required
-              />
+              >
+                <option value="">
+                  {employees.length ? "Select an employee" : "Loading employees..."}
+                </option>
+                {employees.map((employee) => (
+                  <option key={employee.id} value={String(employee.id)}>
+                    {employee.full_name || employee.employee_number}
+                    {employee.employee_number ? ` (${employee.employee_number})` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Employee Email</label>
@@ -380,6 +423,7 @@ export default function ContractManagementPage() {
     isLoading,
     error,
     createContract,
+    updateContract,
     deleteContract,
     renewContract,
     approveContract,
@@ -522,7 +566,7 @@ export default function ContractManagementPage() {
   const handleAddContract = async (newContract: Contract) => {
     const employeeId = Number(newContract.employeeId);
     if (!Number.isInteger(employeeId) || employeeId <= 0) {
-      alert("Enter a valid numeric employee database ID.");
+      alert("Please select an employee for this contract.");
       return;
     }
 
@@ -553,11 +597,6 @@ export default function ContractManagementPage() {
     } catch {
       alert("Unable to create the contract. Check the employee ID and required contract details.");
     }
-  };
-
-  const handleEditContract = () => {
-    alert("Contract updated successfully!");
-    setShowEditModal(false);
   };
 
   const handleSendForSignature = async (contractId: string) => {

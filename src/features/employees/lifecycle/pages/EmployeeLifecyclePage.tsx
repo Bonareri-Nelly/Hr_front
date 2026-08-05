@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiClient } from '@/services/api';
 import { useEmployeeLifecycle } from '../hooks/useEmployeeLifecycle';
 import { 
   UserRound, 
@@ -844,9 +845,22 @@ export default function EmployeeLifecyclePage() {
     setViewMode(viewMode === 'analytics' ? 'list' : 'analytics');
   };
 
-  const handleAddNote = (employeeId: string, noteText: string) => {
-    // In a real app, you would save this to the backend
-    showToast('Note added successfully!', 'success');
+  const handleAddNote = async (employeeId: string, noteText: string) => {
+    if (!noteText.trim()) {
+      showToast('Please enter a note.', 'error');
+      return;
+    }
+
+    try {
+      await apiClient.post('/hr-operations/employee-notes/', {
+        employee: Number(employeeId),
+        note: noteText.trim(),
+        category: 'LIFECYCLE',
+      });
+      showToast('Note added successfully!', 'success');
+    } catch {
+      showToast('Could not save the note.', 'error');
+    }
   };
 
   const handleRemind = (employeeId: string, reminderText: string) => {

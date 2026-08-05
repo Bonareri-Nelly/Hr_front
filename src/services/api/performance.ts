@@ -1,11 +1,14 @@
 import { apiClient } from './client';
 
 export const performanceApi = {
-  getCycles: () => apiClient.get('/performance/cycles/'),
-  createCycle: (data: any) => apiClient.post('/performance/cycles/', data),
+  // Appraisal cycles come from hr-operations: that model carries the name,
+  // review period, scope, rating scale and employee status this app renders.
+  // /performance/cycles/ is a different model keyed on `title`.
+  getCycles: () => apiClient.get('/hr-operations/performance-cycles/'),
+  createCycle: (data: any) => apiClient.post('/hr-operations/performance-cycles/', data),
   updateCycle: (id: string, data: any) =>
-    apiClient.put(`/performance/cycles/${id}/`, data),
-  deleteCycle: (id: string) => apiClient.delete(`/performance/cycles/${id}/`),
+    apiClient.patch(`/hr-operations/performance-cycles/${id}/`, data),
+  deleteCycle: (id: string) => apiClient.delete(`/hr-operations/performance-cycles/${id}/`),
   getGoals: (employeeId?: string) =>
     apiClient.get('/hr-operations/performance-goals/', { params: { employee: employeeId } }),
   createGoal: (data: any) => apiClient.post('/hr-operations/performance-goals/', data),
@@ -18,5 +21,5 @@ export const performanceApi = {
   updateReview: (id: string, data: any) =>
     apiClient.put(`/hr-operations/performance-reviews/${id}/`, data),
   getRatingHistory: (employeeId: string) =>
-    apiClient.get(`/performance/rating-history/${employeeId}/`),
+    apiClient.get('/performance/reviews/', { params: { employee: employeeId } }),
 };

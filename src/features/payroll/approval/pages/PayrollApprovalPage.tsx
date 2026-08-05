@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -69,6 +69,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import PayrollBatchApprovalModal from "../components/PayrollBatchApprovalModal";
+import { apiClient } from "@/services/api";
 
 // ==================== INTERFACES ====================
 interface DeductionType {
@@ -136,6 +137,7 @@ interface PayrollHistory {
 
 interface PayrollItem {
   id: string;
+  payrollRunId?: string;
   employeeId: string;
   employee: Employee;
   baseSalary: number;
@@ -858,6 +860,56 @@ export default function PayrollApprovalPage() {
 
   const [payrollData, setPayrollData] = useState<PayrollItem[]>(generatePayrollRecords());
 
+  const loadLivePayrollData = async () => {
+    const { data } = await apiClient.get("/payroll/payslips/");
+    const payslips = Array.isArray(data) ? data : data?.results ?? [];
+    const statusMap: Record<string, PayrollItem["status"]> = {
+      DRAFT: "Draft",
+      PENDING_APPROVAL: "Pending",
+      APPROVED: "Approved",
+      FINALIZED: "Paid",
+      CANCELLED: "Rejected",
+    };
+
+    setPayrollData(payslips.map((payslip: Record<string, any>) => {
+      const allowances = Number(payslip.total_allowances ?? 0);
+      const deductions = Number(payslip.total_deductions ?? 0);
+      const generatedAt = String(payslip.generated_at ?? new Date().toISOString());
+      const month = Number(payslip.payroll_month ?? 1);
+      const year = Number(payslip.payroll_year ?? new Date().getFullYear());
+      const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
+      const employeeDeductions = (payslip.deductions ?? []).map((item: Record<string, any>) => ({
+        id: String(item.id), employeeId: String(payslip.employee), deductionTypeId: String(item.name), amount: Number(item.amount ?? 0),
+        isFixed: true, startDate: generatedAt.slice(0, 10), isActive: true, isMandatory: false,
+      }));
+      return {
+        id: String(payslip.id),
+        payrollRunId: String(payslip.payroll_run),
+        employeeId: String(payslip.employee),
+        employee: {
+          id: String(payslip.employee), name: String(payslip.employee_name ?? `Employee #${payslip.employee}`),
+          email: String(payslip.employee_email ?? ""), department: String(payslip.department_name ?? "Unassigned"),
+          position: String(payslip.designation_name ?? "Unassigned"), joinDate: "", employmentType: "Full-time",
+          salary: Number(payslip.basic_salary ?? 0), deductions: employeeDeductions,
+        },
+        baseSalary: Number(payslip.basic_salary ?? 0),
+        allowances: { housing: allowances, transport: 0, medical: 0, education: 0, others: 0 },
+        bonuses: { performance: 0, attendance: 0, project: 0, holiday: 0, other: 0 },
+        deductions: { tax: Number(payslip.tax_amount ?? 0), pension: 0, insurance: 0, loan: 0, other: Math.max(0, deductions - Number(payslip.tax_amount ?? 0)) },
+        employeeDeductions, totalEmployeeDeductions: deductions,
+        overtime: { hours: 0, rate: 0, amount: 0 }, leave: { taken: 0, remaining: 0, unpaid: 0 },
+        netPay: Number(payslip.net_pay ?? 0), grossPay: Number(payslip.gross_pay ?? 0),
+        payPeriod: { start: periodStart, end: periodStart }, status: statusMap[String(payslip.payroll_status)] ?? "Draft",
+        submittedDate: generatedAt, paymentMethod: "Bank Transfer", bankDetails: { accountName: "", accountNumber: "", bankName: "" },
+        history: [{ id: `created-${payslip.id}`, payrollId: String(payslip.payroll_run), action: "Created", timestamp: generatedAt, user: "System", userRole: "Payroll", status: statusMap[String(payslip.payroll_status)] ?? "Draft" }],
+      } as PayrollItem;
+    }));
+  };
+
+  useEffect(() => {
+    loadLivePayrollData().catch(() => setPayrollData([]));
+  }, []);
+
   // ==================== TOAST NOTIFICATION ====================
   const showToast = (message: string, type: "success" | "error" | "info") => {
     setToast({ message, type });
@@ -1072,104 +1124,41 @@ export default function PayrollApprovalPage() {
     setShowApprovalModal(true);
   };
 
-  const handleConfirmBatchApproval = (ids: string[]) => {
-    const approvedAt = new Date().toISOString();
-    setPayrollData((prev) =>
-      prev.map((record) =>
-        ids.includes(record.id)
-          ? {
-              ...record,
-              status: "Approved",
-              approvedDate: approvedAt,
-              approvedBy: "Payroll Manager",
-              history: [
-                ...record.history,
-                {
-                  id: `batch-${record.id}-${Date.now()}`,
-                  payrollId: record.id,
-                  action: "Approved",
-                  timestamp: approvedAt,
-                  user: "Payroll Manager",
-                  userRole: "Payroll",
-                  notes: "Approved in batch approval workflow",
-                  status: "Approved",
-                },
-              ],
-            }
-          : record,
-      ),
-    );
-    showToast(`${ids.length} payroll record${ids.length === 1 ? "" : "s"} approved successfully`, "success");
+  const handleConfirmBatchApproval = async (ids: string[]) => {
+    const runIds = [...new Set(payrollData.filter((record) => ids.includes(record.id)).map((record) => record.payrollRunId))];
+    try {
+      await Promise.all(runIds.map((runId) => apiClient.post(`/payroll/runs/${runId}/approve/`, {})));
+      await loadLivePayrollData();
+      showToast(`${runIds.length} payroll batch${runIds.length === 1 ? "" : "es"} approved successfully`, "success");
+    } catch {
+      showToast("Approval failed. Payroll must be pending approval and you need approval permission.", "error");
+    }
   };
 
-  const handleBatchReject = (id: string, reason: string) => {
-    const rejectedAt = new Date().toISOString();
-    setPayrollData((prev) =>
-      prev.map((record) =>
-        record.id === id
-          ? {
-              ...record,
-              status: "Rejected",
-              history: [
-                ...record.history,
-                {
-                  id: `batch-reject-${record.id}-${Date.now()}`,
-                  payrollId: record.id,
-                  action: "Rejected",
-                  timestamp: rejectedAt,
-                  user: "Payroll Manager",
-                  userRole: "Payroll",
-                  notes: reason,
-                  status: "Rejected",
-                },
-              ],
-            }
-          : record,
-      ),
-    );
-    showToast("Payroll record rejected with a reason", "info");
+  const handleBatchReject = async (id: string, reason: string) => {
+    const record = payrollData.find((item) => item.id === id);
+    if (!record) return;
+    try {
+      await apiClient.post(`/payroll/runs/${record.payrollRunId}/cancel/`, { reason });
+      await loadLivePayrollData();
+      showToast("Payroll batch cancelled with the supplied reason.", "info");
+    } catch {
+      showToast("Unable to cancel this payroll batch.", "error");
+    }
   };
-  const handleConfirmApproval = (approved: boolean) => {
+  const handleConfirmApproval = async (approved: boolean) => {
     if (selectedForAction) {
       const record = payrollData.find(r => r.id === selectedForAction);
       if (record) {
-        const newStatus = approved ? "Approved" : "Rejected";
-        const newHistory: PayrollHistory = {
-          id: `hist${Date.now()}`,
-          payrollId: selectedForAction,
-          action: approved ? "Approved" : "Rejected",
-          timestamp: new Date().toISOString(),
-          user: "Current User",
-          userRole: "Approver",
-          status: newStatus,
-          notes: approvalNote || undefined,
-          changes: [
-            {
-              field: "status",
-              oldValue: record.status,
-              newValue: newStatus,
-            },
-          ],
-        };
-
-        setPayrollData(prev =>
-          prev.map(r =>
-            r.id === selectedForAction
-              ? {
-                  ...r,
-                  status: newStatus,
-                  approvedDate: approved ? new Date().toISOString() : undefined,
-                  approvedBy: approved ? "Current User" : undefined,
-                  history: [...r.history, newHistory],
-                }
-              : r
-          )
-        );
-        
-        showToast(
-          `Payroll ${approved ? "approved" : "rejected"} successfully for ${record.employee.name}`,
-          approved ? "success" : "error"
-        );
+        try {
+          const endpoint = approved ? "approve" : "cancel";
+          const payload = approved ? { comment: approvalNote } : { reason: approvalNote || "Cancelled during payroll review" };
+          await apiClient.post(`/payroll/runs/${record.payrollRunId}/${endpoint}/`, payload);
+          await loadLivePayrollData();
+          showToast(`Payroll batch ${approved ? "approved" : "cancelled"} successfully.`, approved ? "success" : "info");
+        } catch {
+          showToast(`Unable to ${approved ? "approve" : "cancel"} this payroll batch.`, "error");
+        }
       }
       setShowApprovalModal(false);
       setApprovalNote("");

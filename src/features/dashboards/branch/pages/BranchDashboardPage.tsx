@@ -638,6 +638,7 @@ export default function BranchDashboardPage() {
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [payrollSummary, setPayrollSummary] = useState<PayrollSummary>({ totalPayroll: 0, processedPayroll: 0, pendingPayroll: 0, totalDeductions: 0, totalBonuses: 0, totalAllowances: 0, paye: 0, nssf: 0, nhif: 0, housingLevy: 0, shif: 0 });
   const [departmentSummary, setDepartmentSummary] = useState<DepartmentSummary[]>([]);
+  const [leaveApiStatus, setLeaveApiStatus] = useState<Record<string, string>>({});
 
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"overview" | "team" | "attendance" | "tasks" | "announcements">("overview");
@@ -664,15 +665,35 @@ export default function BranchDashboardPage() {
 
   const unwrap = (response: any) => Array.isArray(response.data) ? response.data : response.data?.results ?? [];
 
+  const TASK_STATUS_FROM_API: Record<string, BranchTask["status"]> = {
+    TODO: "Todo", IN_PROGRESS: "In Progress", DONE: "Done",
+  };
+  const TASK_STATUS_TO_API: Record<string, string> = {
+    Todo: "TODO", "In Progress": "IN_PROGRESS", Done: "DONE",
+  };
+
   const loadDashboard = async () => {
     setIsLoading(true);
     try {
-      const [employeesResponse, leaveResponse, attendanceResponse, announcementsResponse] = await Promise.all([
+      const [employeesResponse, leaveResponse, attendanceResponse, announcementsResponse, tasksResponse] = await Promise.all([
         apiClient.get("/employees/"),
         apiClient.get("/leave/requests/"),
         apiClient.get("/attendance/records/"),
         apiClient.get("/hr-operations/announcements/"),
+        apiClient.get("/hr-operations/branch-tasks/"),
       ]);
+      setTasks(unwrap(tasksResponse).map((task: any): BranchTask => ({
+        id: String(task.id),
+        title: task.title,
+        description: task.description || "",
+        priority: (task.priority ? task.priority.charAt(0) + task.priority.slice(1).toLowerCase() : "Medium") as BranchTask["priority"],
+        status: TASK_STATUS_FROM_API[task.status] ?? "Todo",
+        dueDate: task.due_date || "",
+        assignedTo: task.assigned_to_name || "Unassigned",
+        department: task.department || "General",
+        createdBy: task.created_by_name || "System",
+        createdAt: task.created_at,
+      })));
       const employees = unwrap(employeesResponse);
       const attendance = unwrap(attendanceResponse);
       const attendanceByEmployee = new Map<string, any>(attendance.filter((record: any) => record.date === selectedDate).map((record: any) => [String(record.employee), record]));
@@ -691,11 +712,19 @@ export default function BranchDashboardPage() {
         };
       });
       setTeamMembers(members);
-      setLeaveRequests(unwrap(leaveResponse).map((leave: any): LeaveRequest => ({
+      const leaveRows = unwrap(leaveResponse);
+      // Keep the raw API status: approving has to target the manager gate or the
+      // HR gate, and the display status below cannot tell those apart.
+      const leaveStatuses: Record<string, string> = {};
+      leaveRows.forEach((leave: any) => {
+        leaveStatuses[String(leave.id)] = leave.status;
+      });
+      setLeaveApiStatus(leaveStatuses);
+      setLeaveRequests(leaveRows.map((leave: any): LeaveRequest => ({
         id: String(leave.id), employee: leave.employee_name || members.find((member: TeamMember) => member.id === String(leave.employee))?.name || `Employee ${leave.employee}`,
-        employeeId: String(leave.employee), type: "Other", startDate: leave.start_date, endDate: leave.end_date, days: Number(leave.total_days || 0),
-        status: leave.status === "REJECTED" ? "Rejected" : leave.status === "CANCELLED" ? "Cancelled" : leave.status === "APPROVED" || leave.status === "HR_APPROVED" ? "Approved" : "Pending",
-        reason: leave.reason || "", submitted: leave.created_at, approvedBy: leave.hr_approved_by || leave.manager_approved_by, approvedDate: leave.hr_approved_at || leave.manager_approved_at,
+        employeeId: String(leave.employee), type: leave.leave_type_name || "Other", startDate: leave.start_date, endDate: leave.end_date, days: Number(leave.total_days || 0),
+        status: leave.status === "REJECTED" ? "Rejected" : leave.status === "CANCELLED" ? "Cancelled" : leave.status === "APPROVED" ? "Approved" : "Pending",
+        reason: leave.reason || "", submitted: leave.created_at, approvedBy: leave.hr_approved_by_name || leave.manager_approved_by_name, approvedDate: leave.hr_approved_at || leave.manager_approved_at,
       })));
       const byDate = new Map<string, AttendanceRecord>();
       attendance.forEach((record: any) => {
@@ -857,23 +886,46 @@ export default function BranchDashboardPage() {
   };
 
   // ==================== HANDLERS ====================
-  const handleApproveLeave = (id: string) => {
-    setLeaveRequests(prev => prev.map(l =>
-      l.id === id ? { ...l, status: "Approved", approvedBy: "Branch Manager", approvedDate: new Date().toISOString() } : l
-    ));
-    showToast("Leave request approved!", "success");
+  const handleApproveLeave = async (id: string) => {
+    try {
+      // Route to whichever gate the request is actually waiting on.
+      const action =
+        leaveApiStatus[id] === "PENDING_HR" ? "hr-approve" : "manager-approve";
+      await apiClient.post(`/leave/requests/${id}/${action}/`, { comment: "" });
+      await loadDashboard();
+      showToast("Leave request approved!", "success");
+    } catch (error: any) {
+      showToast(
+        error?.response?.data?.message ?? "Could not approve the leave request.",
+        "error",
+      );
+    }
   };
 
-  const handleRejectLeave = (id: string) => {
-    setLeaveRequests(prev => prev.map(l =>
-      l.id === id ? { ...l, status: "Rejected" } : l
-    ));
-    showToast("Leave request rejected.", "error");
+  const handleRejectLeave = async (id: string) => {
+    const reason = window.prompt("Reason for rejecting this leave request:");
+    if (!reason?.trim()) return;
+
+    try {
+      await apiClient.post(`/leave/requests/${id}/reject/`, { reason: reason.trim() });
+      await loadDashboard();
+      showToast("Leave request rejected.", "success");
+    } catch (error: any) {
+      showToast(
+        error?.response?.data?.message ?? "Could not reject the leave request.",
+        "error",
+      );
+    }
   };
 
-  const handleMarkAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    showToast("All notifications marked as read", "success");
+  const handleMarkAllRead = async () => {
+    try {
+      await apiClient.post("/notifications/notifications/read_all/");
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      showToast("All notifications marked as read", "success");
+    } catch {
+      showToast("Could not update notifications.", "error");
+    }
   };
 
   const handleProcessPayroll = () => {
@@ -901,11 +953,14 @@ export default function BranchDashboardPage() {
     }, 1500);
   };
 
-  const handleCompleteTask = (id: string) => {
-    setTasks(prev => prev.map(t =>
-      t.id === id ? { ...t, status: "Done" } : t
-    ));
-    showToast("Task marked as complete!", "success");
+  const handleCompleteTask = async (id: string) => {
+    try {
+      await apiClient.patch(`/hr-operations/branch-tasks/${id}/`, { status: "DONE" });
+      await loadDashboard();
+      showToast("Task marked as complete!", "success");
+    } catch {
+      showToast("Could not update the task.", "error");
+    }
   };
 
   const handleRefresh = () => {
@@ -918,14 +973,37 @@ export default function BranchDashboardPage() {
     setShowEditEmployeeModal(true);
   };
 
-  const handleSaveEmployeeEdit = () => {
-    if (editingEmployee) {
-      setTeamMembers(prev => prev.map(m =>
-        m.id === editingEmployee.id ? editingEmployee : m
-      ));
-      showToast("Employee updated successfully!", "success");
+  const handleSaveEmployeeEdit = async () => {
+    if (!editingEmployee) return;
+
+    const [firstName, ...rest] = editingEmployee.name.trim().split(/\s+/);
+    const employmentTypes: Record<string, string> = {
+      "Full-time": "PERMANENT",
+      Contract: "CONTRACT",
+      Intern: "INTERN",
+      "Part-time": "CASUAL",
+    };
+
+    try {
+      await apiClient.patch(`/employees/${editingEmployee.id}/`, {
+        first_name: firstName || editingEmployee.name,
+        last_name: rest.join(" "),
+        work_email: editingEmployee.email,
+        phone_number: editingEmployee.phone,
+        employment_type: employmentTypes[editingEmployee.employmentType] ?? "PERMANENT",
+      });
       setShowEditEmployeeModal(false);
       setEditingEmployee(null);
+      await loadDashboard();
+      showToast("Employee updated successfully!", "success");
+    } catch (error: any) {
+      const data = error?.response?.data;
+      showToast(
+        typeof data === "object" && data
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join("; ")
+          : "Could not update the employee.",
+        "error",
+      );
     }
   };
 
@@ -934,14 +1012,23 @@ export default function BranchDashboardPage() {
     setShowEditTaskModal(true);
   };
 
-  const handleSaveTaskEdit = () => {
-    if (editingTask) {
-      setTasks(prev => prev.map(t =>
-        t.id === editingTask.id ? editingTask : t
-      ));
-      showToast("Task updated successfully!", "success");
+  const handleSaveTaskEdit = async () => {
+    if (!editingTask) return;
+
+    try {
+      await apiClient.patch(`/hr-operations/branch-tasks/${editingTask.id}/`, {
+        title: editingTask.title,
+        description: editingTask.description,
+        priority: editingTask.priority.toUpperCase(),
+        status: TASK_STATUS_TO_API[editingTask.status] ?? "TODO",
+        due_date: editingTask.dueDate || null,
+      });
       setShowEditTaskModal(false);
       setEditingTask(null);
+      await loadDashboard();
+      showToast("Task updated successfully!", "success");
+    } catch {
+      showToast("Could not update the task.", "error");
     }
   };
 
@@ -950,78 +1037,134 @@ export default function BranchDashboardPage() {
     setShowEditAnnouncementModal(true);
   };
 
-  const handleSaveAnnouncementEdit = () => {
-    if (editingAnnouncement) {
-      setAnnouncements(prev => prev.map(a =>
-        a.id === editingAnnouncement.id ? editingAnnouncement : a
-      ));
-      showToast("Announcement updated successfully!", "success");
+  const handleSaveAnnouncementEdit = async () => {
+    if (!editingAnnouncement) return;
+
+    try {
+      await apiClient.patch(`/hr-operations/announcements/${editingAnnouncement.id}/`, {
+        title: editingAnnouncement.title,
+        body: editingAnnouncement.content,
+        is_pinned: editingAnnouncement.type === "Urgent",
+      });
       setShowEditAnnouncementModal(false);
       setEditingAnnouncement(null);
+      await loadDashboard();
+      showToast("Announcement updated successfully!", "success");
+    } catch {
+      showToast("Could not update the announcement.", "error");
     }
   };
 
-  const handleDeleteTask = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      setTasks(prev => prev.filter(t => t.id !== id));
+  const handleDeleteTask = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this task?")) return;
+
+    try {
+      await apiClient.delete(`/hr-operations/branch-tasks/${id}/`);
+      await loadDashboard();
       showToast("Task deleted successfully!", "success");
+    } catch {
+      showToast("Could not delete the task.", "error");
     }
   };
 
-  const handleDeleteAnnouncement = (id: string) => {
-    if (window.confirm("Are you sure you want to delete this announcement?")) {
-      setAnnouncements(prev => prev.filter(a => a.id !== id));
+  const handleDeleteAnnouncement = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this announcement?")) return;
+
+    try {
+      await apiClient.delete(`/hr-operations/announcements/${id}/`);
+      await loadDashboard();
       showToast("Announcement deleted successfully!", "success");
+    } catch {
+      showToast("Could not delete the announcement.", "error");
     }
   };
 
-  const handleDeleteEmployee = (id: string) => {
-    if (window.confirm("Are you sure you want to remove this employee?")) {
-      setTeamMembers(prev => prev.filter(m => m.id !== id));
+  const handleDeleteEmployee = async (id: string) => {
+    if (!window.confirm("Are you sure you want to remove this employee?")) return;
+
+    try {
+      await apiClient.delete(`/employees/${id}/`);
+      await loadDashboard();
       showToast("Employee removed successfully!", "success");
+    } catch {
+      showToast("Could not remove the employee.", "error");
     }
   };
 
-  const handleCreateTask = (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    
-    const newTask: BranchTask = {
-      id: `t${tasks.length + 1}`,
-      title: formData.get('title') as string,
-      description: formData.get('description') as string,
-      priority: formData.get('priority') as "High" | "Medium" | "Low",
-      status: "Todo",
-      dueDate: formData.get('dueDate') as string,
-      assignedTo: formData.get('assignedTo') as string,
-      department: teamMembers.find(m => m.name === formData.get('assignedTo'))?.department || "General",
-      createdBy: "Branch Manager",
-      createdAt: new Date().toISOString(),
-    };
-    
-    setTasks(prev => [...prev, newTask]);
-    showToast("Task created successfully!", "success");
-    setShowTaskModal(false);
+
+    const title = String(formData.get("title") ?? "").trim();
+    if (!title) {
+      showToast("A task title is required.", "error");
+      return;
+    }
+
+    const assignedName = String(formData.get("assignedTo") ?? "");
+    const assignee = teamMembers.find((member) => member.name === assignedName);
+    const dueDate = String(formData.get("dueDate") ?? "");
+
+    try {
+      await apiClient.post("/hr-operations/branch-tasks/", {
+        title,
+        description: String(formData.get("description") ?? ""),
+        priority: String(formData.get("priority") ?? "Medium").toUpperCase(),
+        status: "TODO",
+        due_date: dueDate || null,
+        assigned_to: assignee ? Number(assignee.id) : null,
+        branch: activeBranchName,
+        department: assignee?.department || "General",
+      });
+      form.reset();
+      await loadDashboard();
+      setShowTaskModal(false);
+      showToast("Task created successfully!", "success");
+    } catch (error: any) {
+      const data = error?.response?.data;
+      showToast(
+        typeof data === "object" && data
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join("; ")
+          : "Could not create the task.",
+        "error",
+      );
+    }
   };
 
-  const handleCreateAnnouncement = (e: React.FormEvent) => {
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
-    
-    const newAnnouncement: BranchAnnouncement = {
-      id: `a${announcements.length + 1}`,
-      title: formData.get('title') as string,
-      content: formData.get('content') as string,
-      type: formData.get('type') as "Info" | "Warning" | "Success" | "Urgent",
-      date: new Date().toISOString().split('T')[0],
-      author: "Branch Manager",
-    };
-    
-    setAnnouncements(prev => [...prev, newAnnouncement]);
-    showToast("Announcement posted successfully!", "success");
-    setShowAnnouncementModal(false);
+
+    const title = String(formData.get("title") ?? "").trim();
+    const content = String(formData.get("content") ?? "").trim();
+    if (!title || !content) {
+      showToast("Title and content are required.", "error");
+      return;
+    }
+
+    try {
+      await apiClient.post("/hr-operations/announcements/", {
+        title,
+        body: content,
+        audience: "BRANCH",
+        target_branch: activeBranchName,
+        is_pinned: formData.get("type") === "Urgent",
+      });
+      setShowAnnouncementModal(false);
+      form.reset();
+      await loadDashboard();
+      showToast("Announcement posted successfully!", "success");
+    } catch (error: any) {
+      const data = error?.response?.data;
+      showToast(
+        typeof data === "object" && data
+          ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join("; ")
+          : "Could not post the announcement.",
+        "error",
+      );
+    }
   };
 
   const departments = ["All", ...new Set(teamMembers.map(m => m.department))];

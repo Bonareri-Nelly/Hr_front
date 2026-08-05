@@ -162,26 +162,40 @@ export const onboardingService = {
   },
 
   async initiateOnboarding(data: OnboardingFormData): Promise<OnboardingCase> {
+    // Branch, department and designation are foreign keys, and basic salary must
+    // be greater than zero, so the form supplies real ids and an amount. Sending
+    // names or a zero salary is rejected with a 400.
+    const firstName = (data.employeeId || '').trim();
+    const lastName = (data.lastName || '').trim();
+    const emailSlug = [firstName, lastName]
+      .filter(Boolean)
+      .join('.')
+      .toLowerCase()
+      .replace(/\s+/g, '.');
+
     const payload: EmployeePayload = {
-      employee_number: `EMP-${Date.now()}`,
-      first_name: data.employeeId,
-      last_name: '',
-      personal_email: `${data.employeeId.toLowerCase().replace(/\s+/g, '.')}@optimum.local`,
-      work_email: `${data.employeeId.toLowerCase().replace(/\s+/g, '.')}@optimum.local`,
-      phone_number: '',
+      employee_number: `EMP-${Date.now().toString().slice(-6)}`,
+      first_name: firstName,
+      last_name: lastName,
+      personal_email: `${emailSlug}@optimum.local`,
+      work_email: `${emailSlug}@optimum.local`,
       hire_date: data.startDate,
       employment_status: 'ONBOARDING',
-      branch: data.branchId,
-      department: data.department,
-      designation: data.position,
-      manager: data.managerId,
-      is_active: true,
-      basic_salary: 0,
+      branch: Number(data.branchId),
+      department: Number(data.department),
+      designation: Number(data.position),
+      basic_salary: Number(data.basicSalary || 0),
       employment_type: 'CONTRACT',
     };
 
-    const created = await employeeApi.create(payload);
-    return toOnboardingCase(created as Record<string, unknown>);
+    // The manager field is an Employee id; omit it unless a numeric one is given.
+    const managerId = Number(data.managerId);
+    if (Number.isInteger(managerId) && managerId > 0) {
+      payload.manager = managerId;
+    }
+
+    const response = await employeeApi.create(payload);
+    return toOnboardingCase((response as any)?.data ?? response);
   },
 };
 

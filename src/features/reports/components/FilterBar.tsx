@@ -1,4 +1,6 @@
 import { Filter, Calendar } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { branchApi, departmentApi } from '../../../services/api/department';
 
 interface FilterBarProps {
   timeRange: 'monthly' | 'quarterly' | 'annual';
@@ -12,9 +14,6 @@ interface FilterBarProps {
   loading: boolean;
 }
 
-const branches = ['all', 'Nairobi HQ', 'Mombasa', 'Kisumu', 'Remote Units', 'Eldoret'];
-const departments = ['all', 'Engineering', 'Finance', 'HR', 'Sales', 'Operations', 'Legal', 'R&D', 'Customer Support'];
-
 export const FilterBar = ({
   timeRange,
   setTimeRange,
@@ -26,6 +25,34 @@ export const FilterBar = ({
   setDateRange,
   loading,
 }: FilterBarProps) => {
+  // The analytics endpoints filter by branch and department name, so the option
+  // values are the stored names rather than ids.
+  const { data: branchList } = useQuery({
+    queryKey: ['branches'],
+    queryFn: branchApi.list,
+  });
+  const { data: departmentList } = useQuery({
+    queryKey: ['departments'],
+    queryFn: departmentApi.list,
+  });
+
+  const branches = [
+    'all',
+    ...(branchList ?? [])
+      .map((branch) => branch.name)
+      .filter((name): name is string => Boolean(name)),
+  ];
+  const departments = [
+    'all',
+    ...Array.from(
+      new Set(
+        (departmentList ?? [])
+          .map((department) => department.name)
+          .filter((name): name is string => Boolean(name)),
+      ),
+    ),
+  ];
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
       <div className="flex flex-wrap items-center gap-4">

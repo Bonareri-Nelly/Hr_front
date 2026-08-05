@@ -94,6 +94,7 @@ import {
   BadgeDollarSign,
   BriefcaseBusiness,
 } from "lucide-react";
+import { apiClient } from "@/services/api";
 
 // ==================== INTERFACES ====================
 interface DeductionType {
@@ -1653,6 +1654,110 @@ export default function PayrollCreationPage() {
     };
   };
 
+  // Keep the established Payroll Creation interface, but source its employees
+  // from the HR database rather than the legacy sample list above.
+  useEffect(() => {
+    let active = true;
+
+    apiClient.get("/employees/")
+      .then(({ data }) => {
+        const records = Array.isArray(data) ? data : data?.results ?? [];
+        const liveEmployees: Employee[] = records.map((employee: Record<string, unknown>) => {
+          const employmentType = String(employee.employment_type ?? "PERMANENT");
+          const typeMap: Record<string, Employee["employmentType"]> = {
+            PERMANENT: "Full-time",
+            CONTRACT: "Contract",
+            INTERN: "Intern",
+            CASUAL: "Part-time",
+            CONSULTANT: "Contract",
+          };
+          const firstName = String(employee.first_name ?? "");
+          const lastName = String(employee.last_name ?? "");
+          const fullName = String(employee.full_name ?? `${firstName} ${lastName}`).trim();
+
+          return {
+            id: String(employee.id),
+            name: fullName || `Employee #${employee.id}`,
+            email: String(employee.work_email ?? employee.personal_email ?? ""),
+            department: String(employee.department_name ?? "Unassigned"),
+            position: String(employee.designation_name ?? "Unassigned"),
+            joinDate: String(employee.hire_date ?? ""),
+            employmentType: typeMap[employmentType] ?? "Full-time",
+            salary: Number(employee.basic_salary ?? 0),
+            bankDetails: {
+              accountName: String(employee.bank_account_name ?? fullName),
+              accountNumber: String(employee.bank_account_number ?? ""),
+              bankName: String(employee.bank_name ?? "Unassigned"),
+            },
+            taxInfo: {
+              ssn: "",
+              filingStatus: "",
+              allowances: 0,
+              nssfNumber: String(employee.social_security_number ?? ""),
+              nhifNumber: String(employee.health_insurance_number ?? ""),
+              kraPin: String(employee.tax_pin ?? ""),
+            },
+            leaveBalance: { annual: 0, sick: 0, personal: 0 },
+            attendance: { present: 0, absent: 0, late: 0, overtime: 0 },
+            deductions: [],
+            payrollHistory: [],
+          };
+        });
+
+        if (active) setEmployees(liveEmployees);
+      })
+      .catch(() => {
+        if (active) setEmployees([]);
+      });
+
+    return () => { active = false; };
+  }, []);
+
+  const toPayrollRun = (record: Record<string, unknown>): PayrollRun => {
+    const month = Number(record.month ?? 0);
+    const year = Number(record.year ?? new Date().getFullYear());
+    const statusMap: Record<string, PayrollRun["status"]> = {
+      DRAFT: "Draft",
+      PENDING_APPROVAL: "Ready for Review",
+      APPROVED: "Approved",
+      FINALIZED: "Completed",
+      CANCELLED: "Cancelled",
+    };
+    const createdAt = String(record.created_at ?? record.processed_at ?? new Date().toISOString());
+    const date = month ? new Date(year, month - 1, 1) : new Date();
+
+    return {
+      id: String(record.id),
+      name: `Payroll ${date.toLocaleString("en", { month: "long" })} ${year}`,
+      period: { start: `${year}-${String(month).padStart(2, "0")}-01`, end: "" },
+      paymentDate: "",
+      status: statusMap[String(record.status)] ?? "Draft",
+      employees: [],
+      totalGross: 0,
+      totalNet: 0,
+      totalDeductions: 0,
+      totalBonuses: 0,
+      createdBy: String(record.processed_by_name ?? "System"),
+      createdAt,
+      updatedAt: String(record.approved_at ?? createdAt),
+      approvedBy: record.approved_by ? String(record.approved_by) : undefined,
+      approvedAt: record.approved_at ? String(record.approved_at) : undefined,
+    };
+  };
+
+  useEffect(() => {
+    let active = true;
+    apiClient.get("/payroll/runs/")
+      .then(({ data }) => {
+        const records = Array.isArray(data) ? data : data?.results ?? [];
+        if (active) setPayrollRuns(records.map((record: Record<string, unknown>) => toPayrollRun(record)));
+      })
+      .catch(() => {
+        if (active) setPayrollRuns([]);
+      });
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     setPayrollStats(calculatePayrollStats());
   }, [employees, payrollData]);
@@ -1706,7 +1811,7 @@ export default function PayrollCreationPage() {
     );
   };
 
-  const handleCreatePayroll = () => {
+  const handleCreatePayroll = async () => {
     if (selectedEmployees.length === 0) {
       showToast("Please select at least one employee.", "error");
       return;
@@ -1716,38 +1821,63 @@ export default function PayrollCreationPage() {
       return;
     }
 
-    const newRun: PayrollRun = {
-      id: `pr${payrollRuns.length + 1}`,
-      name: runName,
-      period: { start: periodStart, end: periodEnd },
-      paymentDate: paymentDate,
-      status: "Draft",
-      employees: selectedEmployees,
-      totalGross: 0,
-      totalNet: 0,
-      totalDeductions: 0,
-      totalBonuses: 0,
-      createdBy: "Current User",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      notes: notes,
-      history: [
-        {
-          id: `h${Date.now()}`,
-          action: "Created",
-          timestamp: new Date().toISOString(),
-          user: "Current User",
-          note: "Payroll run created",
-        },
-      ],
-    };
+    const period = new Date(`${periodStart}T00:00:00`);
+    if (Number.isNaN(period.getTime())) {
+      showToast("Choose a valid payroll period.", "error");
+      return;
+    }
 
-    setPayrollRuns([newRun, ...payrollRuns]);
-    const calculatedData = calculatePayrollData(selectedEmployees);
-    setPayrollData(calculatedData);
-    setShowConfirmationModal(true);
-    setCurrentStep(2);
-    showToast("Payroll run created successfully!", "success");
+    try {
+      const { data } = await apiClient.post("/payroll/generate/", {
+        month: period.getMonth() + 1,
+        year: period.getFullYear(),
+        employee_ids: selectedEmployees.map(Number),
+      });
+      const savedRun = toPayrollRun(data?.payroll ?? data);
+      savedRun.name = runName || savedRun.name;
+      savedRun.period = { start: periodStart, end: periodEnd };
+      savedRun.paymentDate = paymentDate;
+      savedRun.employees = selectedEmployees;
+      savedRun.notes = notes;
+      savedRun.history = [{
+        id: `h${Date.now()}`,
+        action: "Created",
+        timestamp: savedRun.createdAt,
+        user: savedRun.createdBy,
+        note: "Payroll run created",
+      }];
+      setPayrollRuns((current) => [savedRun, ...current.filter((run) => run.id !== savedRun.id)]);
+      setPayrollData(calculatePayrollData(selectedEmployees));
+      showToast("Payroll run created and added to Recent Payroll Runs.", "success");
+      return savedRun;
+    } catch {
+      showToast("Payroll run could not be saved. Check your payroll permissions and try again.", "error");
+      return null;
+    }
+  };
+
+  const handleSubmitPayroll = async () => {
+    const savedRun = await handleCreatePayroll();
+    if (!savedRun) return;
+
+    try {
+      const { data } = await apiClient.post(`/payroll/runs/${savedRun.id}/submit/`, {});
+      const submittedRun = toPayrollRun(data?.payroll ?? data);
+      const updatedRun: PayrollRun = {
+        ...savedRun,
+        ...submittedRun,
+        name: savedRun.name,
+        period: savedRun.period,
+        paymentDate: savedRun.paymentDate,
+        employees: savedRun.employees,
+        notes: savedRun.notes,
+      };
+      setPayrollRuns((current) => [updatedRun, ...current.filter((run) => run.id !== updatedRun.id)]);
+      setCurrentStep(4);
+      showToast("Payroll run submitted for approval.", "success");
+    } catch {
+      showToast("Payroll was created as a draft but could not be submitted for approval.", "error");
+    }
   };
 
   const handleDeletePayrollRun = (id: string) => {
@@ -2814,10 +2944,10 @@ export default function PayrollCreationPage() {
               </button>
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (window.confirm("Are you sure you want to save this as a draft?")) {
-                      showToast("Payroll saved as draft!", "success");
-                      setCurrentStep(1);
+                      const savedRun = await handleCreatePayroll();
+                      if (savedRun) setCurrentStep(1);
                     }
                   }}
                   className="px-6 py-2.5 border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2"
@@ -2826,7 +2956,7 @@ export default function PayrollCreationPage() {
                   Save as Draft
                 </button>
                 <button
-                  onClick={() => setCurrentStep(4)}
+                  onClick={handleSubmitPayroll}
                   className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-green-200"
                 >
                   <Send className="w-4 h-4" />

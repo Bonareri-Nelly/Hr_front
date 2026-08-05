@@ -43,6 +43,9 @@ export default function EmployeeFinancialProfile() {
   const [adjustmentReason, setAdjustmentReason] = useState<string>('');
   const [newNoteText, setNewNoteText] = useState<string>('');
   const [feedbackMsg, setFeedbackMsg] = useState<string>('');
+  // The profile summary carries the staff number; keep the database id too since
+  // the notes and adjustment endpoints are keyed on it.
+  const [activeEmployeeId, setActiveEmployeeId] = useState<number | null>(null);
 
   // Handler 1: Secure search gateway backed by the employee financial APIs.
   const handleProfileSearch = async (e: React.FormEvent) => {
@@ -59,6 +62,7 @@ export default function EmployeeFinancialProfile() {
         apiClient.get(`/employees/${employee.id}/salary-history/`),
       ]);
       setActiveProfile(toFinancialProfile(employee, financialResponse.data, historyResponse.data || []));
+      setActiveEmployeeId(Number(employee.id));
       const timestamp = new Date().toLocaleString();
       setAuditLog(prev => [`AUDIT: Profile ${employeeNumber} accessed on ${timestamp}`, ...prev]);
       setFeedbackMsg('');
@@ -69,33 +73,44 @@ export default function EmployeeFinancialProfile() {
   };
 
   // Handler 2: Post New Internal Finance Note
-  const handleAddNote = (e: React.FormEvent) => {
+  const handleAddNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newNoteText.trim() || !activeProfile) return;
+    if (!newNoteText.trim() || !activeProfile || !activeEmployeeId) return;
 
-    const newNote = {
-      timestamp: new Date().toLocaleString(),
-      author: "Finance Admin (James M.)",
-      text: newNoteText.trim()
-    };
+    const text = newNoteText.trim();
 
-    setActiveProfile({
-      ...activeProfile,
-      notes: [newNote, ...activeProfile.notes],
-    });
-    setNewNoteText('');
+    try {
+      const response = await apiClient.post('/hr-operations/employee-notes/', {
+        employee: activeEmployeeId,
+        note: text,
+        category: 'FINANCE',
+      });
+      const saved = response.data ?? {};
+      setActiveProfile({
+        ...activeProfile,
+        notes: [
+          {
+            timestamp: saved.created_at
+              ? new Date(saved.created_at).toLocaleString()
+              : new Date().toLocaleString(),
+            author: saved.author_name || 'Finance',
+            text,
+          },
+          ...activeProfile.notes,
+        ],
+      });
+      setNewNoteText('');
+    } catch {
+      window.alert('Could not save the note. Please try again.');
+    }
   };
 
   // Handler 3: Routing Payroll Adjustment Request Workbench
   const handleInitiateAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adjustmentAmount || !adjustmentReason.trim() || !activeProfile) return;
+    if (!adjustmentAmount || !adjustmentReason.trim() || !activeProfile || !activeEmployeeId) return;
     try {
-      const employeesResponse = await apiClient.get('/employees/', { params: { search: activeProfile.summary.id } });
-      const employees = Array.isArray(employeesResponse.data) ? employeesResponse.data : employeesResponse.data.results || [];
-      const employee = employees.find((item: any) => item.employee_number === activeProfile.summary.id);
-      if (!employee) throw new Error('not-found');
-      await apiClient.post(`/employees/${employee.id}/salary-adjustment/`, {
+      await apiClient.post(`/employees/${activeEmployeeId}/salary-adjustment/`, {
         new_salary: adjustmentAmount,
         adjustment_type: adjustmentType.startsWith('Correction') ? 'INCREMENT' : adjustmentType.startsWith('One-off Deduction') ? 'DECREMENT' : 'OTHER',
         effective_date: new Date().toISOString().slice(0, 10), reason: adjustmentReason, update_active_contract: false,
