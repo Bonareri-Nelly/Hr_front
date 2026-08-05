@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PayrollPolicyViewSet, TaxBandViewSet,
     StatutoryRateViewSet, PayComponentViewSet, EmployeePayComponentViewSet,
-    PayrollRunViewSet, PayslipViewSet, AllowanceViewSet, DeductionViewSet, generate_payroll,
+    PayrollRunViewSet, PayslipViewSet, AllowanceViewSet, DeductionViewSet,
+    BankPaymentViewSet, generate_payroll,
 )
 
 router = DefaultRouter(trailing_slash=True)
@@ -17,6 +18,7 @@ router.register("payroll/tax-bands", TaxBandViewSet, basename="tax-band")
 router.register("payroll/statutory-rates", StatutoryRateViewSet, basename="statutory-rate")
 
 router.register("payroll/policies", PayrollPolicyViewSet, basename="payroll-policy")
+router.register("payroll/bank-payments", BankPaymentViewSet, basename="bank-payment")
 
 urlpatterns = router.urls + [
     path("payroll/generate/", generate_payroll),

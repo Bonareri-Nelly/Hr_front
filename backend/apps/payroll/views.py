@@ -8,12 +8,12 @@ from decimal import Decimal
 from .models import (
     PayrollPolicy, TaxBand, StatutoryRate,
     PayComponent, EmployeePayComponent, PayrollRun, Payslip,
-    Allowance, Deduction,
+    Allowance, Deduction, BankPayment,
 )
 from .serializers import (
     PayrollPolicySerializer, TaxBandSerializer, StatutoryRateSerializer,
     PayComponentSerializer, EmployeePayComponentSerializer, PayrollRunSerializer,
-    PayslipSerializer, AllowanceSerializer, DeductionSerializer,
+    PayslipSerializer, AllowanceSerializer, DeductionSerializer, BankPaymentSerializer,
 )
 from apps.authentication.access import scope_employee_relation, can_manage_payroll
 
@@ -155,6 +155,21 @@ class AllowanceViewSet(viewsets.ModelViewSet):
 class DeductionViewSet(viewsets.ModelViewSet):
     queryset = Deduction.objects.all()
     serializer_class = DeductionSerializer
+
+
+class BankPaymentViewSet(viewsets.ModelViewSet):
+    queryset = BankPayment.objects.select_related("employee", "payslip", "payroll_run").all()
+    serializer_class = BankPaymentSerializer
+
+    def get_queryset(self):
+        qs = scope_employee_relation(super().get_queryset(), self.request.user)
+        payroll_run = self.request.query_params.get("payroll_run")
+        employee = self.request.query_params.get("employee")
+        if payroll_run:
+            qs = qs.filter(payroll_run_id=payroll_run)
+        if employee:
+            qs = qs.filter(employee_id=employee)
+        return qs.order_by("-created_at")
 
 
 @api_view(["POST"])
