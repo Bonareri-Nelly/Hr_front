@@ -51,14 +51,17 @@ export default function EmployeeDashboardPage() {
     select: (data: ApiRecord[]) => data.find((e: ApiRecord) => Number(e.id) === employeeId),
   });
 
+  // FIX: Scope all queries to the logged-in employee where possible
   const leaveBalances = useQuery({
-    queryKey: ["leave-balances"],
-    queryFn: () => resources.leaveBalances.list(),
+    queryKey: ["leave-balances", employeeId],
+    queryFn: () => employeeId ? resources.leaveBalances.list({ employee: employeeId }) : Promise.resolve([]),
+    enabled: Boolean(employeeId),
   });
 
   const payslips = useQuery({
-    queryKey: ["payslips"],
-    queryFn: () => resources.payslips.list(),
+    queryKey: ["payslips", employeeId],
+    queryFn: () => employeeId ? resources.payslips.list({ employee: employeeId }) : Promise.resolve([]),
+    enabled: Boolean(employeeId),
   });
 
   const announcements = useQuery({
@@ -67,18 +70,21 @@ export default function EmployeeDashboardPage() {
   });
 
   const complaints = useQuery({
-    queryKey: ["complaints"],
-    queryFn: () => resources.complaints.list(),
+    queryKey: ["complaints", employeeId],
+    queryFn: () => employeeId ? resources.complaints.list({ employee: employeeId }) : Promise.resolve([]),
+    enabled: Boolean(employeeId),
   });
 
   const reviews = useQuery({
-    queryKey: ["performance-reviews"],
-    queryFn: () => resources.hrPerformanceReviews.list(),
+    queryKey: ["performance-reviews", employeeId],
+    queryFn: () => employeeId ? resources.hrPerformanceReviews.list({ employee: employeeId }) : Promise.resolve([]),
+    enabled: Boolean(employeeId),
   });
 
   const records = useQuery({
-    queryKey: ["attendance-records"],
-    queryFn: () => resources.attendanceRecords.list(),
+    queryKey: ["attendance-records", employeeId],
+    queryFn: () => employeeId ? resources.attendanceRecords.list({ employee: employeeId }) : Promise.resolve([]),
+    enabled: Boolean(employeeId),
   });
 
   const profData = profile.data as ApiRecord | undefined;

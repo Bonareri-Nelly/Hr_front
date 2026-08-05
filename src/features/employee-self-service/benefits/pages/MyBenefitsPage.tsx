@@ -25,6 +25,7 @@ export default function MyBenefitsPage() {
   const employeeId = user?.employee_id;
 
   const [selectedBenefit, setSelectedBenefit] = useState<ApiRecord | null>(null);
+  // FIX: enrollOpen starts false; the Enroll button opens the modal (was previously disabled when enrollOpen is false)
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState("");
@@ -36,6 +37,7 @@ export default function MyBenefitsPage() {
     select: (data: ApiRecord[]) => data.filter((p) => p.type === "benefit" || p.category === "benefit" || p.is_benefit) as ApiRecord[],
   });
 
+  // FIX: Scope enrollments to the logged-in employee
   const enrollments = useQuery({
     queryKey: ["employee-benefits", employeeId],
     queryFn: () => {
@@ -54,13 +56,34 @@ export default function MyBenefitsPage() {
       setNotice("Enrollment submitted for HR Admin review.");
       setEnrollOpen(false);
       setSelectedPlanId("");
+      setEnrolling(false);
       client.invalidateQueries({ queryKey: ["employee-benefits"] });
     },
-    onError: (err: Error) => setNotice(err.message),
+    onError: (err: Error) => {
+      setNotice(err.message);
+      setEnrolling(false);
+    },
   });
 
   const benefits = (enrollments.data ?? []) as ApiRecord[];
   const planList = (plans.data ?? []) as ApiRecord[];
+
+  // Guard: no employee profile linked
+  if (!employeeId) {
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-heading">
+          <div>
+            <p className="page-kicker">Employee self-service</p>
+            <h1 className="page-title">My Benefits</h1>
+          </div>
+        </div>
+        <div className="alert alert-error">
+          Your account is not linked to an employee profile. Ask HR to link your user account before you can view benefits.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-page">
@@ -71,7 +94,8 @@ export default function MyBenefitsPage() {
           <p className="page-subtitle">View enrolled plans, coverage, dependents and open-enrollment options connected to Benefits Management.</p>
         </div>
         <div className="action-row">
-          <button className="button button-primary" disabled={!enrollOpen || enrolling} onClick={() => setEnrollOpen(true)}>
+          {/* FIX: Button now correctly opens the modal (removed the broken disabled={!enrollOpen} condition) */}
+          <button className="button button-primary" onClick={() => setEnrollOpen(true)}>
             <Plus size={15} aria-hidden="true" /> Enroll
           </button>
         </div>
@@ -83,6 +107,7 @@ export default function MyBenefitsPage() {
 
       {notice && <div className="alert alert-success">{notice}</div>}
 
+      {/* Enroll Modal */}
       {enrollOpen && (
         <div className="modal-backdrop" role="presentation">
           <div className="module-modal" style={{ maxWidth: "520px" }}>
@@ -91,18 +116,30 @@ export default function MyBenefitsPage() {
                 <div className="page-kicker">Open enrollment</div>
                 <h2>Enroll in a plan</h2>
               </div>
-              <button className="panel-action" onClick={() => setEnrollOpen(false)}>Close</button>
+              <button className="panel-action" onClick={() => { setEnrollOpen(false); setSelectedPlanId(""); }}>Close</button>
             </div>
-            {planList.length === 0 ? (
+            {plans.isLoading ? (
               <div className="panel-body" style={{ textAlign: "center", padding: "32px" }}>
-                <p className="page-subtitle">No benefit plans currently available.</p>
+                <LoaderCircle className="mx-auto animate-spin" />
+                <p className="page-subtitle" style={{ marginTop: "12px" }}>Loading benefit plans…</p>
+              </div>
+            ) : planList.length === 0 ? (
+              <div className="panel-body" style={{ textAlign: "center", padding: "32px" }}>
+                <p className="page-subtitle">No benefit plans currently available. Contact HR to configure plans.</p>
               </div>
             ) : (
               <>
-                <select className="select-control" style={{ width: "100%", marginTop: "16px" }} value={selectedPlanId} onChange={(e) => setSelectedPlanId(e.target.value)}>
+                <select
+                  className="select-control"
+                  style={{ width: "100%", marginTop: "16px" }}
+                  value={selectedPlanId}
+                  onChange={(e) => setSelectedPlanId(e.target.value)}
+                >
                   <option value="">Select a plan…</option>
                   {planList.map((p: ApiRecord) => (
-                    <option key={p.id} value={String(p.id)}>{p.name ?? p.plan_name ?? p.component_name ?? "Plan"}</option>
+                    <option key={p.id} value={String(p.id)}>
+                      {p.name ?? p.plan_name ?? p.component_name ?? "Plan"}
+                    </option>
                   ))}
                 </select>
                 {selectedPlanId && (() => {
@@ -112,20 +149,26 @@ export default function MyBenefitsPage() {
                     <div className="note" style={{ marginTop: "12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "12px" }}>
                       <p style={{ fontWeight: 700, fontSize: "0.82rem", color: "var(--ink)", margin: "0 0 6px" }}>{plan.name ?? plan.plan_name}</p>
                       <p className="page-subtitle">{plan.description ?? plan.coverage ?? "No description available"}</p>
-                      <p className="page-subtitle" style={{ marginTop: "4px" }}>Cost: KES {Number(plan.monthly_cost ?? plan.amount ?? plan.cost ?? 0).toLocaleString()} / month</p>
+                      <p className="page-subtitle" style={{ marginTop: "4px" }}>
+                        Cost: KES {Number(plan.monthly_cost ?? plan.amount ?? plan.cost ?? 0).toLocaleString()} / month
+                      </p>
                     </div>
                   );
                 })()}
                 <div className="action-row payroll-modal-actions">
-                  <button className="button button-secondary" onClick={() => setEnrollOpen(false)}>Cancel</button>
-                  <button className="button button-primary" disabled={!selectedPlanId || enrolling} onClick={() => {
-                    if (selectedPlanId) {
-                      setEnrolling(true);
-                      enrollMutation.mutate(Number(selectedPlanId));
-                      setEnrolling(false);
-                    }
-                  }}>
-                    <Plus size={15} aria-hidden="true" /> Submit enrollment
+                  <button className="button button-secondary" onClick={() => { setEnrollOpen(false); setSelectedPlanId(""); }}>Cancel</button>
+                  <button
+                    className="button button-primary"
+                    disabled={!selectedPlanId || enrolling || enrollMutation.isPending}
+                    onClick={() => {
+                      if (selectedPlanId) {
+                        setEnrolling(true);
+                        enrollMutation.mutate(Number(selectedPlanId));
+                      }
+                    }}
+                  >
+                    <Plus size={15} aria-hidden="true" />
+                    {enrollMutation.isPending ? "Submitting…" : "Submit enrollment"}
                   </button>
                 </div>
               </>
@@ -134,6 +177,7 @@ export default function MyBenefitsPage() {
         </div>
       )}
 
+      {/* Enrolled Benefits */}
       <section className="panel">
         <div className="panel-header">
           <h3 className="panel-title">Enrolled Benefits</h3>
@@ -142,11 +186,11 @@ export default function MyBenefitsPage() {
           {enrollments.isLoading ? (
             <div style={{ textAlign: "center", padding: "48px" }}>
               <LoaderCircle className="mx-auto animate-spin" />
-              <p className="page-subtitle" style={{ marginTop: "12px" }}>Loading benefits…</p>
+              <p className="page-subtitle" style={{ marginTop: "12px" }}>Loading your benefits…</p>
             </div>
           ) : benefits.length === 0 ? (
             <div style={{ textAlign: "center", padding: "48px" }}>
-              <p className="page-subtitle">No benefits enrolled yet.</p>
+              <p className="page-subtitle">You have no benefits enrolled yet. Click <strong>Enroll</strong> to get started.</p>
             </div>
           ) : (
             <div className="grid-2col">
@@ -155,13 +199,21 @@ export default function MyBenefitsPage() {
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "10px" }}>
                     <div>
                       <p className="eyebrow">{benefit.plan_type ?? benefit.type ?? benefit.category ?? "benefit"}</p>
-                      <h4 style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--ink)", margin: "4px 0 0" }}>{benefit.plan_name ?? benefit.name ?? benefit.component_name ?? "Benefit"}</h4>
+                      <h4 style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--ink)", margin: "4px 0 0" }}>
+                        {benefit.plan_name ?? benefit.name ?? benefit.component_name ?? "Benefit"}
+                      </h4>
                     </div>
-                    <span className={`pill pill-${benefit.status === "active" ? "success" : benefit.status === "pending" ? "warning" : "info"}`}>{benefit.status ?? "active"}</span>
+                    <span className={`pill pill-${benefit.status === "active" ? "success" : benefit.status === "pending" ? "warning" : "info"}`}>
+                      {benefit.status ?? "active"}
+                    </span>
                   </div>
                   <p className="page-subtitle">{benefit.coverage ?? benefit.description ?? "No coverage details"}</p>
                   <p className="page-subtitle" style={{ marginTop: "4px" }}>Dependents: {benefit.dependents ?? 0}</p>
-                  <button className="button button-secondary button-sm" style={{ marginTop: "10px" }} onClick={() => setSelectedBenefit(benefit)}>
+                  <button
+                    className="button button-secondary button-sm"
+                    style={{ marginTop: "10px" }}
+                    onClick={() => setSelectedBenefit(benefit)}
+                  >
                     <Eye size={14} /> View details
                   </button>
                 </div>
@@ -171,6 +223,7 @@ export default function MyBenefitsPage() {
         </div>
       </section>
 
+      {/* Benefit Detail Modal */}
       {selectedBenefit && (
         <div className="modal-backdrop" role="presentation">
           <div className="module-modal" style={{ maxWidth: "520px" }}>
@@ -186,6 +239,7 @@ export default function MyBenefitsPage() {
               <div className="note"><p className="eyebrow">Status</p><p className="compact-metric">{selectedBenefit.status ?? "—"}</p></div>
               <div className="note"><p className="eyebrow">Coverage</p><p className="compact-metric">{selectedBenefit.coverage ?? selectedBenefit.description ?? "—"}</p></div>
               <div className="note"><p className="eyebrow">Cost</p><p className="compact-metric">KES {Number(selectedBenefit.monthly_cost ?? selectedBenefit.amount ?? 0).toLocaleString()} / month</p></div>
+              <div className="note"><p className="eyebrow">Dependents</p><p className="compact-metric">{selectedBenefit.dependents ?? 0}</p></div>
             </div>
             <div className="action-row payroll-modal-actions">
               <button className="button button-primary" onClick={() => setSelectedBenefit(null)}>Close</button>
@@ -194,7 +248,12 @@ export default function MyBenefitsPage() {
         </div>
       )}
 
-      <PageChatbotWidget page="my-benefits" role="Employee" contextSummary={`${benefits.length} plans enrolled.`} quickPrompts={["What benefits am I enrolled in?", "Can I add dependents?"]} />
+      <PageChatbotWidget
+        page="my-benefits"
+        role="Employee"
+        contextSummary={`${benefits.length} plans enrolled.`}
+        quickPrompts={["What benefits am I enrolled in?", "Can I add dependents?", "How do I enroll in a new plan?"]}
+      />
     </div>
   );
 }

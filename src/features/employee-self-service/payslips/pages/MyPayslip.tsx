@@ -35,7 +35,17 @@ const normalizePayslip = (item: PayslipDto): Payslip => {
 };
 const formatMoney = (amount: number) => `KES ${amount.toLocaleString()}`;
 
+const getCurrentUser = () => {
+  try {
+    return JSON.parse(localStorage.getItem("current_user") ?? localStorage.getItem("user") ?? "{}");
+  } catch {
+    return {};
+  }
+};
+
 export default function MyPayslip() {
+  const user = getCurrentUser();
+  const employeeId = user?.employee_id;
   const [query, setQuery] = useState("");
   const [selectedPayslip, setSelectedPayslip] = useState<Payslip | null>(null);
   const [queryPayslip, setQueryPayslip] = useState<Payslip | null>(null);
@@ -58,10 +68,17 @@ export default function MyPayslip() {
     };
   }, []);
 
-  const visiblePayslips = useMemo(
-    () => payslipRows.filter((payslip) => payslip.status === "Disbursed" && payslip.payPeriod.includes(query.trim())),
-    [payslipRows, query],
-  );
+  // FIX: Filter by logged-in employee's ID AND disbursed status
+  const visiblePayslips = useMemo(() => {
+    return payslipRows.filter((payslip) => {
+      const matchesEmployee = employeeId
+        ? String(payslip.employeeId) === String(employeeId)
+        : true;
+      const matchesStatus = payslip.status === "Disbursed";
+      const matchesQuery = !query.trim() || payslip.payPeriod.toLowerCase().includes(query.trim().toLowerCase());
+      return matchesEmployee && matchesStatus && matchesQuery;
+    });
+  }, [payslipRows, query, employeeId]);
 
   const handleDownload = async (payslip: Payslip) => {
     try {

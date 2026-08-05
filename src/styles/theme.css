@@ -2817,3 +2817,215 @@ a {
     justify-self: start;
   }
 }
+
+/* ─── Payroll page utility styles ─────────────────────────────────────────── */
+
+/* Toast notifications */
+.payroll-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 100;
+  min-width: 280px;
+  max-width: 420px;
+  border-radius: 8px;
+  padding: 12px 18px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: 0 14px 32px oklch(18% 0.02 255 / 18%);
+  animation: fadein 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.payroll-toast-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.payroll-toast-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.payroll-toast-info {
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info);
+}
+
+/* Table controls (search + filter bar) */
+.payroll-table-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 14px;
+}
+
+.payroll-search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  padding: 6px 12px;
+}
+
+.payroll-search-box input {
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.78rem;
+  outline: none;
+  min-width: 180px;
+}
+
+.payroll-search-box input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Button icon variants for approval/action tables */
+.button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.button-icon:hover {
+  background: var(--background);
+  color: var(--ink);
+}
+
+.button-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.button-icon-success {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.button-icon-success:hover {
+  background: var(--success-bg);
+}
+
+.button-icon-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.button-icon-danger:hover {
+  background: var(--danger-bg);
+}
+
+/* Summary card grid for employee self-service pages */
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  padding: 18px 20px;
+  box-shadow: 0 2px 8px oklch(18% 0.02 255 / 6%);
+}
+
+.summary-card span {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-card strong {
+  color: var(--ink);
+  font-family: var(--font-serif);
+  font-size: 1.55rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.summary-card small {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+}
+
+/* Alert styles used in payroll/employee pages */
+.alert {
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.alert-error {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.alert-success {
+  background: var(--success-bg);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.alert-info {
+  background: var(--info-bg);
+  color: var(--info);
+  border: 1px solid var(--info);
+}
+
+/* Table actions cell */
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 620px) {
+  .payroll-toast {
+    right: 12px;
+    left: 12px;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .payroll-table-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .payroll-search-box {
+    width: 100%;
+  }
+
+  .payroll-search-box input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

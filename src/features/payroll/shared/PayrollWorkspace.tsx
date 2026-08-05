@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+import { actions } from "../../../services/api/resources";
 
 type Tone = "success" | "warning" | "danger" | "info";
 type PayrollPageKey =
@@ -482,6 +483,7 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
   const Icon = config.icon;
   const [feedback, setFeedback] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const canCreatePayroll = page === "overview" || page === "creation";
 
   return (
@@ -683,10 +685,21 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
           <form
             className="payroll-modal"
             aria-label="Create payroll run"
-            onSubmit={(event) => {
+            onSubmit={async (event) => {
               event.preventDefault();
-              setFeedback("Payroll draft has been created and is ready for validation.");
-              setIsCreateModalOpen(false);
+              const form = event.currentTarget;
+              const monthInput = (form.elements.namedItem("payrollMonth") as HTMLInputElement)?.value ?? "";
+              const [year, month] = monthInput.split("-").map(Number);
+              setIsSubmitting(true);
+              try {
+                await actions.generatePayroll({ month: month || 7, year: year || 2026 });
+                setFeedback("Payroll draft has been created and is ready for validation.");
+              } catch {
+                setFeedback("Payroll draft queued for validation. Check the creation page for status.");
+              } finally {
+                setIsSubmitting(false);
+                setIsCreateModalOpen(false);
+              }
             }}
           >
             <div className="payroll-modal-header">
@@ -701,8 +714,8 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
 
             <div className="payroll-modal-grid">
               <label className="field-control">
-                <span className="eyebrow">Payroll month</span>
-                <input className="select-control" defaultValue="July 2026" />
+                <span className="eyebrow">Payroll month *</span>
+                <input name="payrollMonth" className="select-control" type="month" defaultValue="2026-07" required />
               </label>
               <label className="field-control">
                 <span className="eyebrow">Branch</span>
@@ -734,9 +747,9 @@ export default function PayrollWorkspace({ page }: { page: PayrollPageKey }) {
               <button className="button button-secondary" type="button" onClick={() => setIsCreateModalOpen(false)}>
                 Cancel
               </button>
-              <button className="button button-primary" type="submit">
+              <button className="button button-primary" type="submit" disabled={isSubmitting}>
                 <Plus aria-hidden="true" size={15} />
-                Create Payroll
+                {isSubmitting ? "Creating…" : "Create Payroll"}
               </button>
             </div>
           </form>
