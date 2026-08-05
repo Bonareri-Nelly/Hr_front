@@ -12,15 +12,15 @@ const toOnboardingCase = (employee: Record<string, unknown>): OnboardingCase => 
   const employeeName = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || 'Unnamed employee';
   const hireDate = String(employee.hire_date ?? '');
   const startDate = hireDate || new Date().toISOString().split('T')[0];
-  const departmentName = String(employee.department ?? 'Unassigned');
-  const designation = String(employee.designation ?? employee.job_title ?? '');
-  const branchName = String(employee.branch ?? 'Unassigned');
+  const departmentName = String(employee.department_name ?? 'Unassigned');
+  const designation = String(employee.designation_name ?? employee.job_title ?? '');
+  const branchName = String(employee.branch_name ?? 'Unassigned');
 
   return {
     id: `employee-${employee.id}`,
     employeeId: String(employee.id ?? ''),
     employeeName,
-    employeeEmail: String(employee.personal_email ?? employee.email ?? ''),
+    employeeEmail: String(employee.work_email ?? employee.personal_email ?? employee.email ?? ''),
     branchId: String(employee.branch_id ?? ''),
     branchName,
     department: departmentName,
@@ -28,11 +28,11 @@ const toOnboardingCase = (employee: Record<string, unknown>): OnboardingCase => 
     startDate,
     managerId: String(employee.manager_id ?? ''),
     managerName: String(employee.manager_name ?? 'TBD'),
-    status: employee.employment_status === 'ACTIVE' ? 'completed' : 'in-progress',
+    status: 'in-progress',
     progress: {
       totalSteps: 10,
-      completedSteps: employee.employment_status === 'ACTIVE' ? 10 : 3,
-      percentage: employee.employment_status === 'ACTIVE' ? 100 : 30,
+      completedSteps: 0,
+      percentage: 0,
     },
     caseCreated: String(employee.created_at ?? startDate),
     caseUpdated: String(employee.updated_at ?? startDate),
@@ -47,7 +47,7 @@ const toOnboardingCase = (employee: Record<string, unknown>): OnboardingCase => 
 
 export const onboardingService = {
   async getCases(filters: OnboardingFilter = {}): Promise<OnboardingCase[]> {
-    const employees = await employeeApi.list().catch(() => []);
+    const employees = await employeeApi.list({ employment_status: 'ONBOARDING', page_size: '100' }).catch(() => []);
 
     const cases = employees.map((employee) => toOnboardingCase(employee as Record<string, unknown>));
 
@@ -131,19 +131,19 @@ export const onboardingService = {
   },
 
   async getEmployees(query: string = ''): Promise<OnboardingEmployee[]> {
-    const employees = await employeeApi.list().catch(() => []);
+    const employees = await employeeApi.list({ employment_status: 'ONBOARDING', page_size: '100' }).catch(() => []);
 
     const normalized = employees.map((employee) => {
       const name = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || 'Unnamed employee';
       return {
         id: String(employee.id ?? ''),
         name,
-        email: String(employee.personal_email ?? employee.email ?? ''),
+        email: String(employee.work_email ?? employee.personal_email ?? employee.email ?? ''),
         phone: String(employee.phone_number ?? ''),
-        department: String(employee.department ?? 'Unassigned'),
-        position: String(employee.designation ?? employee.job_title ?? ''),
+        department: String(employee.department_name ?? 'Unassigned'),
+        position: String(employee.designation_name ?? employee.job_title ?? ''),
         branchId: String(employee.branch_id ?? ''),
-        branchName: String(employee.branch ?? 'Unassigned'),
+        branchName: String(employee.branch_name ?? 'Unassigned'),
         startDate: String(employee.hire_date ?? ''),
         managerId: String(employee.manager_id ?? ''),
         managerName: String(employee.manager_name ?? 'TBD'),

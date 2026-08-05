@@ -297,7 +297,7 @@ const payrollConfigs: Record<PayrollPageKey, PayrollConfig> = {
     },
     tableTitle: "Bank Batches",
     tableAction: "Open bank file",
-    tableActionPath: "/payroll/bank-integration",
+    tableActionPath: "/payroll/approval",
     tableHeaders: ["Batch", "Bank", "Employees", "Amount", "Status"],
     rows: [
       ["Batch A", "KCB", "112", "KES 6.8M", "Ready", "success"],
@@ -385,11 +385,11 @@ type PayrollTargetSlot = "primary" | "secondary" | "table" | "assign" | "checks"
 
 function getPayrollTarget(page: PayrollPageKey, slot: PayrollTargetSlot, label: string): ClickTarget {
   const routes: Record<PayrollPageKey, Partial<Record<PayrollTargetSlot, string>>> = {
-    overview: { primary: "/payroll/creation", table: "/payroll/creation", assign: "/payroll/bank-integration", checks: "/payroll/approval", evidence: "/payroll/history" },
+    overview: { primary: "/payroll/creation", table: "/payroll/creation", assign: "/payroll/approval", checks: "/payroll/approval", evidence: "/payroll/history" },
     creation: { primary: "/payroll/approval", assign: "/payroll/compensation", checks: "/payroll/approval", evidence: "/payroll/history" },
-    approval: { primary: "/payroll/bank-integration", assign: "/dashboard/branch?branch_id=eldoret", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
-    history: { checks: "/payroll/bank-integration" },
-    tax: { primary: "/payroll/bank-integration", assign: "/payroll/compensation", checks: "/payroll/approval", evidence: "/payroll/history" },
+    approval: { primary: "/payroll/approval", assign: "/dashboard/branch?branch_id=eldoret", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
+    history: { checks: "/payroll/approval" },
+    tax: { primary: "/payroll/approval", assign: "/payroll/compensation", checks: "/payroll/approval", evidence: "/payroll/history" },
     bank: { primary: "/dashboard/finance", assign: "/payroll/approval", checks: "/payroll/tax-compliance", evidence: "/payroll/history" },
     compensation: { primary: "/payroll/creation", assign: "/dashboard/executive?branch_id=eldoret", checks: "/payroll/creation", evidence: "/payroll/history" },
   };

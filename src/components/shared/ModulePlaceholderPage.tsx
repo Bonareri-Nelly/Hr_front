@@ -28,7 +28,7 @@ const routeHints: Record<string, string> = {
   offboarding: "/employees/offboarding",
   employee: "/employees/lifecycle",
   finance: "/dashboard/finance",
-  bank: "/finance/bank-integration",
+  bank: "/payroll/approval",
   benefits: "/benefits",
   training: "/training/announcements",
   performance: "/performance",

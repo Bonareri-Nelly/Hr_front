@@ -16,7 +16,6 @@ import {
   GraduationCap,
   HandCoins,
   Handshake,
-  Landmark,
   LayoutDashboard,
   MessageCircleQuestion,
   ReceiptText,
@@ -36,8 +35,6 @@ import type { ReactElement } from "react";
 import AiAssistant from "./ai-assistant";
 import AnnouncementsTraining from "./announcements-training";
 import AttendanceManagement from "./attendance-management";
-import BankIntegration from "./bank-integration";
-import BankIntegrationAccounts from "./bank-integration-accounts";
 import BenefitsManagement from "./benefits-management";
 import BenefitsManagementAccounts from "./benefits-management-accounts";
 import BranchDashboard from "./branch-dashboard";

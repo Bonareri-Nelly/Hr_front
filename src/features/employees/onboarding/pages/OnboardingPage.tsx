@@ -227,9 +227,9 @@ const InitiateOnboardingModal: React.FC<{
                   <SelectValue placeholder="Select Department" />
                 </SelectTrigger>
                 <SelectContent className="bg-navy-800 border-gold-500/20">
-                  {departments.map((dept) => (
-                    <SelectItem key={dept} value={dept} className="text-white hover:bg-navy-700">
-                      {dept}
+                  {options.departments.map((dept) => (
+                    <SelectItem key={dept.id} value={String(dept.id)} className="text-white hover:bg-navy-700">
+                      {dept.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -239,13 +239,21 @@ const InitiateOnboardingModal: React.FC<{
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Position <span className="text-red-400">*</span>
               </label>
-              <Input
-                required
-                placeholder="Enter position"
+              <Select
                 value={formData.position}
-                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                className="bg-navy-900/60 border-gold-500/20 text-white placeholder:text-gray-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
-              />
+                onValueChange={(value) => setFormData({ ...formData, position: value })}
+              >
+                <SelectTrigger className="bg-navy-900/60 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
+                  <SelectValue placeholder="Select Position" />
+                </SelectTrigger>
+                <SelectContent className="bg-navy-800 border-gold-500/20">
+                  {options.designations.map((designation) => (
+                    <SelectItem key={designation.id} value={String(designation.id)} className="text-white hover:bg-navy-700">
+                      {designation.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
@@ -259,8 +267,8 @@ const InitiateOnboardingModal: React.FC<{
                   <SelectValue placeholder="Select Branch" />
                 </SelectTrigger>
                 <SelectContent className="bg-navy-800 border-gold-500/20">
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id} className="text-white hover:bg-navy-700">
+                  {options.branches.map((branch) => (
+                    <SelectItem key={branch.id} value={String(branch.id)} className="text-white hover:bg-navy-700">
                       {branch.name}
                     </SelectItem>
                   ))}

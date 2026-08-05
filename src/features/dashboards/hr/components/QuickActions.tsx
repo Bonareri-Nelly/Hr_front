@@ -33,10 +33,7 @@ export const QuickActions = ({ onShowToast }: QuickActionsProps) => {
     {
       label: 'Run Payroll',
       icon: FileText,
-      action: () => {
-        if (onShowToast) onShowToast('Payroll run started!', 'success');
-        else alert('Payroll run started!');
-      },
+      action: () => navigate('/payroll/creation'),
     },
     {
       label: 'Send Announcement',

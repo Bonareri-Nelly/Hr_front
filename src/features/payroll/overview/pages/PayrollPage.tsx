@@ -96,7 +96,7 @@ export default function PayrollPage() {
           date: String(run.created_at ?? ''),
           amount: `KES ${Number(run.total_amount ?? 0).toLocaleString()}`,
           employees: Number(run.employee_count ?? 0),
-          status: (String(run.status ?? 'completed').toLowerCase() as PayrunStatus),
+          status: ({ DRAFT: "processing", PENDING_APPROVAL: "pending", APPROVED: "approved", FINALIZED: "completed", CANCELLED: "failed" }[String(run.status ?? "")] ?? "processing") as PayrunStatus,
           type: 'monthly' as const,
         }));
 

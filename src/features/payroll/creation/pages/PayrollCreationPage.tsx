@@ -1828,11 +1828,35 @@ export default function PayrollCreationPage() {
     }
 
     try {
-      const { data } = await apiClient.post("/payroll/generate/", {
-        month: period.getMonth() + 1,
-        year: period.getFullYear(),
-        employee_ids: selectedEmployees.map(Number),
-      });
+      const month = period.getMonth() + 1;
+      const year = period.getFullYear();
+      // Submitting again after an interrupted attempt must reuse the draft
+      // created for this period instead of trying to generate it a second time.
+      const existingResponse = await apiClient.get(
+        `/payroll/runs/?month=${month}&year=${year}`,
+      );
+      const existingRuns = Array.isArray(existingResponse.data)
+        ? existingResponse.data
+        : existingResponse.data?.results ?? [];
+      const existingRun = existingRuns[0];
+      if (existingRun && existingRun.status !== "DRAFT") {
+        const existing = toPayrollRun(existingRun);
+        setPayrollRuns((current) => [existing, ...current.filter((run) => run.id !== existing.id)]);
+        if (existingRun.status === "PENDING_APPROVAL") {
+          setCurrentStep(4);
+          showToast("This payrun is already submitted and is waiting for approval.", "info");
+        } else {
+          showToast(`A ${existing.status.toLowerCase()} payrun already exists for this period.`, "info");
+        }
+        return null;
+      }
+      const { data } = existingRun
+        ? { data: { payroll: existingRun } }
+        : await apiClient.post("/payroll/generate/", {
+            month,
+            year,
+            employee_ids: selectedEmployees.map(Number),
+          });
       const savedRun = toPayrollRun(data?.payroll ?? data);
       savedRun.name = runName || savedRun.name;
       savedRun.period = { start: periodStart, end: periodEnd };
@@ -1850,8 +1874,10 @@ export default function PayrollCreationPage() {
       setPayrollData(calculatePayrollData(selectedEmployees));
       showToast("Payroll run created and added to Recent Payroll Runs.", "success");
       return savedRun;
-    } catch {
-      showToast("Payroll run could not be saved. Check your payroll permissions and try again.", "error");
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      showToast(message || "Payroll run could not be saved. Check your payroll permissions and try again.", "error");
       return null;
     }
   };
@@ -1875,8 +1901,10 @@ export default function PayrollCreationPage() {
       setPayrollRuns((current) => [updatedRun, ...current.filter((run) => run.id !== updatedRun.id)]);
       setCurrentStep(4);
       showToast("Payroll run submitted for approval.", "success");
-    } catch {
-      showToast("Payroll was created as a draft but could not be submitted for approval.", "error");
+    } catch (error) {
+      const message = (error as { response?: { data?: { message?: string } } })
+        .response?.data?.message;
+      showToast(message || "Payroll was created as a draft but could not be submitted for approval.", "error");
     }
   };
 

@@ -10,7 +10,7 @@ export const roleModuleMap: Record<RoleName, string[]> = {
   Manager: withProfile(["branch-dashboard", "branch-reports", "candidate-applications", "department-dashboard", "payroll-approval", "payroll-history", "employee-lifecycle", "contract-management", "performance-oversight", "leave-approvals", "attendance-management", "disciplinary-cases", "announcements-training"]),
   HR: withProfile(["hr-dashboard", "candidate-applications", "department-dashboard", "employee-lifecycle", "contract-management", "performance-oversight", "offboarding", "onboarding", "attendance-management", "leave-workflow", "leave-approvals", "disciplinary-cases", "disciplinary-management", "announcements-training", "benefits-management"]),
   "Department Head": withProfile(["department-dashboard", "employee-lifecycle", "performance-oversight", "leave-approvals", "attendance-management", "announcements-training"]),
-  Finance: withProfile(["finance-dashboard", "bank-integration-accounts", "tax-compliance-accounts", "benefits-management-accounts", "employee-finance", "finance-grievances", "payroll", "payroll-creation", "payroll-history", "compensation-data"]),
+  Finance: withProfile(["finance-dashboard", "tax-compliance-accounts", "benefits-management-accounts", "employee-finance", "finance-grievances", "payroll", "payroll-creation", "payroll-history", "compensation-data"]),
   Employee: withProfile(["employee-dashboard", "my-attendance", "my-performance", "my-benefits", "my-payslips", "my-documents", "my-announcements", "complaints"]),
 };
 

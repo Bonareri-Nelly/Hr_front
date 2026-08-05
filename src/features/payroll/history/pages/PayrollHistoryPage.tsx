@@ -551,18 +551,24 @@ export default function PayrollHistoryPage() {
   ]; */
 
   useEffect(() => {
-    const unwrap = (payload: any) => Array.isArray(payload) ? payload : payload?.results ?? [];
     setIsLoading(true);
-    Promise.all([apiClient.get("/payroll/runs/"), apiClient.get("/payroll/payslips/")]).then(([runsResponse, payslipsResponse]) => {
-      const payslips = unwrap(payslipsResponse.data);
-      setPayrollHistory(unwrap(runsResponse.data).map((run: any): PayrollHistoryRecord => {
-        const runPayslips = payslips.filter((payslip: any) => String(payslip.payroll_run) === String(run.id));
+    apiClient.get("/payroll/history/").then(({ data }) => {
+      const records = Array.isArray(data) ? data : data?.results ?? [];
+      setPayrollHistory(records.map(({ run, payslips: runPayslips = [], bank_payments: bankPayments = [], history = [] }: any): PayrollHistoryRecord => {
         const gross = runPayslips.reduce((sum: number, item: any) => sum + Number(item.gross_pay || 0), 0);
         const net = runPayslips.reduce((sum: number, item: any) => sum + Number(item.net_pay || 0), 0);
         const deductions = runPayslips.reduce((sum: number, item: any) => sum + Number(item.total_deductions || 0), 0);
         const taxes = runPayslips.reduce((sum: number, item: any) => sum + Number(item.tax_amount || 0), 0);
         const statusMap: Record<string, PayrollHistoryRecord["status"]> = { FINALIZED: "Completed", APPROVED: "Processing", PENDING_APPROVAL: "Processing", CANCELLED: "Cancelled", DRAFT: "Processing" };
-        return { id: String(run.id), runName: `Payroll ${run.month}/${run.year}`, period: { start: `${run.year}-${String(run.month).padStart(2, "0")}-01`, end: `${run.year}-${String(run.month).padStart(2, "0")}-28` }, paymentDate: run.approved_at || run.processed_at || run.created_at, processedDate: run.processed_at || run.created_at, status: statusMap[run.status] || "Processing", totalEmployees: runPayslips.length, totalGross: gross, totalNet: net, totalDeductions: deductions, totalBonuses: 0, totalTaxes: taxes, totalBenefits: 0, department: "All Departments", processedBy: run.processed_by_name || "", approvedBy: run.approved_by_name, paymentMethod: "Bank Transfer", metrics: { averageSalary: runPayslips.length ? gross / runPayslips.length : 0, highestPay: Math.max(0, ...runPayslips.map((item: any) => Number(item.gross_pay || 0))), lowestPay: runPayslips.length ? Math.min(...runPayslips.map((item: any) => Number(item.gross_pay || 0))) : 0, payrollCostRatio: 0, overtimeTotal: 0, leaveAdjustments: 0 }, breakdown: { byDepartment: [], byEmploymentType: [] }, history: [], employees: runPayslips.map((item: any) => ({ id: String(item.employee), name: item.employee_name || `Employee ${item.employee}`, position: "", department: "", grossPay: Number(item.gross_pay || 0), netPay: Number(item.net_pay || 0), deductions: Number(item.total_deductions || 0), status: "Paid" })) };
+        const departmentTotals = new Map<string, { count: number; amount: number }>();
+        runPayslips.forEach((item: any) => {
+          const name = item.department_name || "Unassigned";
+          const current = departmentTotals.get(name) || { count: 0, amount: 0 };
+          departmentTotals.set(name, { count: current.count + 1, amount: current.amount + Number(item.net_pay || 0) });
+        });
+        const failedEmployeeIds = new Set(bankPayments.filter((item: any) => item.status === "FAILED").map((item: any) => String(item.employee)));
+        const paidEmployeeIds = new Set(bankPayments.filter((item: any) => item.status === "PAID").map((item: any) => String(item.employee)));
+        return { id: String(run.id), runName: `Payroll ${run.month}/${run.year}`, period: { start: `${run.year}-${String(run.month).padStart(2, "0")}-01`, end: `${run.year}-${String(run.month).padStart(2, "0")}-28` }, paymentDate: run.approved_at || run.processed_at || run.created_at, processedDate: run.processed_at || run.created_at, status: statusMap[run.status] || "Processing", totalEmployees: runPayslips.length, totalGross: gross, totalNet: net, totalDeductions: deductions, totalBonuses: 0, totalTaxes: taxes, totalBenefits: 0, department: "All Departments", processedBy: run.processed_by_name || "", approvedBy: run.approved_by_name, paymentMethod: "Bank Transfer", metrics: { averageSalary: runPayslips.length ? gross / runPayslips.length : 0, highestPay: Math.max(0, ...runPayslips.map((item: any) => Number(item.gross_pay || 0))), lowestPay: runPayslips.length ? Math.min(...runPayslips.map((item: any) => Number(item.gross_pay || 0))) : 0, payrollCostRatio: gross ? net / gross : 0, overtimeTotal: 0, leaveAdjustments: 0 }, breakdown: { byDepartment: Array.from(departmentTotals, ([name, values]) => ({ name, ...values })), byEmploymentType: [] }, history, employees: runPayslips.map((item: any) => ({ id: String(item.employee), name: item.employee_name || `Employee ${item.employee}`, position: item.designation_name || "", department: item.department_name || "", grossPay: Number(item.gross_pay || 0), netPay: Number(item.net_pay || 0), deductions: Number(item.total_deductions || 0), status: failedEmployeeIds.has(String(item.employee)) ? "Failed" : paidEmployeeIds.has(String(item.employee)) ? "Paid" : "Pending" })) };
       }));
     }).catch(() => setPayrollHistory([])).finally(() => setIsLoading(false));
   }, []);
@@ -635,12 +641,12 @@ export default function PayrollHistoryPage() {
   const summary: PayrollSummary = {
     totalRuns: payrollHistory.length,
     totalPaid: payrollHistory.reduce((sum, r) => sum + r.totalNet, 0),
-    totalEmployees: payrollHistory.reduce((sum, r) => sum + r.totalEmployees, 0) / payrollHistory.length,
-    averageRunAmount: payrollHistory.reduce((sum, r) => sum + r.totalNet, 0) / payrollHistory.length,
+    totalEmployees: payrollHistory.length ? payrollHistory.reduce((sum, r) => sum + r.totalEmployees, 0) / payrollHistory.length : 0,
+    averageRunAmount: payrollHistory.length ? payrollHistory.reduce((sum, r) => sum + r.totalNet, 0) / payrollHistory.length : 0,
     totalTaxes: payrollHistory.reduce((sum, r) => sum + r.totalTaxes, 0),
     totalDeductions: payrollHistory.reduce((sum, r) => sum + r.totalDeductions, 0),
     totalBonuses: payrollHistory.reduce((sum, r) => sum + r.totalBonuses, 0),
-    successRate: (payrollHistory.filter(r => r.status === "Completed").length / payrollHistory.length) * 100,
+    successRate: payrollHistory.length ? (payrollHistory.filter(r => r.status === "Completed").length / payrollHistory.length) * 100 : 0,
     byPeriod: payrollHistory.map(r => ({
       period: r.runName,
       amount: r.totalNet,

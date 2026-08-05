@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   CheckCircle,
   XCircle,
@@ -69,7 +69,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import PayrollBatchApprovalModal from "../components/PayrollBatchApprovalModal";
-import { apiClient } from "@/services/api";
+import { apiClient } from "@/services/api/client";
 
 // ==================== INTERFACES ====================
 interface DeductionType {
@@ -858,57 +858,80 @@ export default function PayrollApprovalPage() {
     });
   };
 
-  const [payrollData, setPayrollData] = useState<PayrollItem[]>(generatePayrollRecords());
+  const [payrollData, setPayrollData] = useState<PayrollItem[]>([]);
 
-  const loadLivePayrollData = async () => {
-    const { data } = await apiClient.get("/payroll/payslips/");
-    const payslips = Array.isArray(data) ? data : data?.results ?? [];
-    const statusMap: Record<string, PayrollItem["status"]> = {
-      DRAFT: "Draft",
-      PENDING_APPROVAL: "Pending",
-      APPROVED: "Approved",
-      FINALIZED: "Paid",
-      CANCELLED: "Rejected",
-    };
-
-    setPayrollData(payslips.map((payslip: Record<string, any>) => {
-      const allowances = Number(payslip.total_allowances ?? 0);
-      const deductions = Number(payslip.total_deductions ?? 0);
-      const generatedAt = String(payslip.generated_at ?? new Date().toISOString());
-      const month = Number(payslip.payroll_month ?? 1);
-      const year = Number(payslip.payroll_year ?? new Date().getFullYear());
-      const periodStart = `${year}-${String(month).padStart(2, "0")}-01`;
-      const employeeDeductions = (payslip.deductions ?? []).map((item: Record<string, any>) => ({
-        id: String(item.id), employeeId: String(payslip.employee), deductionTypeId: String(item.name), amount: Number(item.amount ?? 0),
-        isFixed: true, startDate: generatedAt.slice(0, 10), isActive: true, isMandatory: false,
-      }));
-      return {
-        id: String(payslip.id),
-        payrollRunId: String(payslip.payroll_run),
-        employeeId: String(payslip.employee),
-        employee: {
-          id: String(payslip.employee), name: String(payslip.employee_name ?? `Employee #${payslip.employee}`),
-          email: String(payslip.employee_email ?? ""), department: String(payslip.department_name ?? "Unassigned"),
-          position: String(payslip.designation_name ?? "Unassigned"), joinDate: "", employmentType: "Full-time",
-          salary: Number(payslip.basic_salary ?? 0), deductions: employeeDeductions,
-        },
-        baseSalary: Number(payslip.basic_salary ?? 0),
-        allowances: { housing: allowances, transport: 0, medical: 0, education: 0, others: 0 },
-        bonuses: { performance: 0, attendance: 0, project: 0, holiday: 0, other: 0 },
-        deductions: { tax: Number(payslip.tax_amount ?? 0), pension: 0, insurance: 0, loan: 0, other: Math.max(0, deductions - Number(payslip.tax_amount ?? 0)) },
-        employeeDeductions, totalEmployeeDeductions: deductions,
-        overtime: { hours: 0, rate: 0, amount: 0 }, leave: { taken: 0, remaining: 0, unpaid: 0 },
-        netPay: Number(payslip.net_pay ?? 0), grossPay: Number(payslip.gross_pay ?? 0),
-        payPeriod: { start: periodStart, end: periodStart }, status: statusMap[String(payslip.payroll_status)] ?? "Draft",
-        submittedDate: generatedAt, paymentMethod: "Bank Transfer", bankDetails: { accountName: "", accountNumber: "", bankName: "" },
-        history: [{ id: `created-${payslip.id}`, payrollId: String(payslip.payroll_run), action: "Created", timestamp: generatedAt, user: "System", userRole: "Payroll", status: statusMap[String(payslip.payroll_status)] ?? "Draft" }],
-      } as PayrollItem;
-    }));
-  };
-
-  useEffect(() => {
-    loadLivePayrollData().catch(() => setPayrollData([]));
+  // Payroll Creation persists a run and its payslips.  The approval workspace
+  // deliberately reads those records instead of maintaining a second mock list.
+  const loadPayrollData = useCallback(async () => {
+    try {
+      const response = await apiClient.get("/payroll/approval-queue/");
+      const queue = response.data?.results ?? [];
+      const recordGroups = queue.map(({ run, payslips }: { run: any; payslips: any[] }) => {
+        return payslips.map((payslip: any): PayrollItem => {
+          const approvalStatus: PayrollItem["status"] = run.status === "APPROVED" || run.status === "FINALIZED"
+            ? "Approved"
+            : payslip.approval_status === "APPROVED"
+              ? "Approved"
+              : payslip.approval_status === "REJECTED"
+                ? "Rejected"
+                : payslip.approval_status === "PENDING"
+                  ? "Pending"
+                  : "Draft";
+          const reviewedHistory: PayrollHistory[] = payslip.reviewed_at ? [{
+            id: `review-${payslip.id}`,
+            payrollId: String(payslip.id),
+            action: payslip.approval_status === "REJECTED" ? "Rejected" : "Approved",
+            timestamp: payslip.reviewed_at,
+            user: payslip.reviewed_by_name || "Approver",
+            userRole: "Approver",
+            status: approvalStatus,
+            notes: payslip.approval_comment || undefined,
+          }] : [];
+          return {
+            id: String(payslip.id),
+            payrollRunId: String(run.id),
+            employeeId: String(payslip.employee),
+            employee: {
+              id: String(payslip.employee),
+              name: payslip.employee_name || "Employee",
+              email: payslip.employee_email || "",
+              department: payslip.department_name || "Unassigned",
+              position: payslip.designation_name || "",
+              joinDate: "",
+              employmentType: "Full-time",
+              salary: Number(payslip.basic_salary || 0),
+            },
+            baseSalary: Number(payslip.basic_salary || 0),
+            allowances: { housing: 0, transport: 0, medical: 0, education: 0, others: Number(payslip.total_allowances || 0) },
+            bonuses: { performance: 0, attendance: 0, project: 0, holiday: 0, other: 0 },
+            deductions: { tax: Number(payslip.tax_amount || 0), pension: 0, insurance: 0, loan: 0, other: Math.max(0, Number(payslip.total_deductions || 0) - Number(payslip.tax_amount || 0)) },
+            employeeDeductions: [],
+            totalEmployeeDeductions: Number(payslip.total_deductions || 0),
+            overtime: { hours: 0, rate: 0, amount: 0 },
+            leave: { taken: 0, remaining: 0, unpaid: 0 },
+            netPay: Number(payslip.net_pay || 0),
+            grossPay: Number(payslip.gross_pay || 0),
+            payPeriod: { start: `${run.year}-${String(run.month).padStart(2, "0")}-01`, end: `${run.year}-${String(run.month).padStart(2, "0")}-28` },
+            status: approvalStatus,
+            submittedDate: run.processed_at || run.created_at,
+            approvedDate: payslip.reviewed_at || run.approved_at,
+            approvedBy: payslip.reviewed_by_name || run.approved_by_name,
+            paymentMethod: "Bank Transfer",
+            bankDetails: { accountName: payslip.employee_name || "", accountNumber: "", bankName: "" },
+            notes: payslip.approval_comment || undefined,
+            reviewedBy: payslip.reviewed_by_name,
+            reviewDate: payslip.reviewed_at,
+            history: [{ id: `created-${payslip.id}`, payrollId: String(payslip.id), action: "Created", timestamp: run.created_at, user: run.processed_by_name || "System", userRole: "Payroll", status: "Draft", notes: "Created from payroll run" }, ...reviewedHistory],
+          };
+        });
+      });
+      setPayrollData(recordGroups.flat());
+    } catch {
+      showToast("Unable to load payroll items from Payroll Creation.", "error");
+    }
   }, []);
+
+  useEffect(() => { void loadPayrollData(); }, [loadPayrollData]);
 
   // ==================== TOAST NOTIFICATION ====================
   const showToast = (message: string, type: "success" | "error" | "info") => {
@@ -1124,26 +1147,40 @@ export default function PayrollApprovalPage() {
     setShowApprovalModal(true);
   };
 
+  const reviewItems = async (ids: string[], action: "APPROVE" | "REJECT", comment = "") => {
+    const selected = payrollData.filter((record) => ids.includes(record.id));
+    const groups = selected.reduce<Record<string, string[]>>((all, record) => {
+      if (record.payrollRunId) (all[record.payrollRunId] ??= []).push(record.id);
+      return all;
+    }, {});
+    await Promise.all(Object.entries(groups).map(async ([runId, payslipIds]) => {
+      await apiClient.post(`/payroll/runs/${runId}/payslips/review/`, {
+        payslip_ids: payslipIds.map(Number),
+        action,
+        comment,
+      });
+      if (action === "APPROVE") {
+        try { await apiClient.post(`/payroll/runs/${runId}/approve/`, { comment }); } catch { /* Remaining items still need review. */ }
+      }
+    }));
+    await loadPayrollData();
+  };
+
   const handleConfirmBatchApproval = async (ids: string[]) => {
-    const runIds = [...new Set(payrollData.filter((record) => ids.includes(record.id)).map((record) => record.payrollRunId))];
     try {
-      await Promise.all(runIds.map((runId) => apiClient.post(`/payroll/runs/${runId}/approve/`, {})));
-      await loadLivePayrollData();
-      showToast(`${runIds.length} payroll batch${runIds.length === 1 ? "" : "es"} approved successfully`, "success");
+      await reviewItems(ids, "APPROVE", "Approved in batch approval workflow");
+      showToast(`${ids.length} payroll record${ids.length === 1 ? "" : "s"} approved successfully`, "success");
     } catch {
-      showToast("Approval failed. Payroll must be pending approval and you need approval permission.", "error");
+      showToast("Unable to approve the selected payroll items.", "error");
     }
   };
 
   const handleBatchReject = async (id: string, reason: string) => {
-    const record = payrollData.find((item) => item.id === id);
-    if (!record) return;
     try {
-      await apiClient.post(`/payroll/runs/${record.payrollRunId}/cancel/`, { reason });
-      await loadLivePayrollData();
-      showToast("Payroll batch cancelled with the supplied reason.", "info");
+      await reviewItems([id], "REJECT", reason);
+      showToast("Payroll record rejected with a reason", "info");
     } catch {
-      showToast("Unable to cancel this payroll batch.", "error");
+      showToast("Unable to reject the payroll item.", "error");
     }
   };
   const handleConfirmApproval = async (approved: boolean) => {
@@ -1151,13 +1188,11 @@ export default function PayrollApprovalPage() {
       const record = payrollData.find(r => r.id === selectedForAction);
       if (record) {
         try {
-          const endpoint = approved ? "approve" : "cancel";
-          const payload = approved ? { comment: approvalNote } : { reason: approvalNote || "Cancelled during payroll review" };
-          await apiClient.post(`/payroll/runs/${record.payrollRunId}/${endpoint}/`, payload);
-          await loadLivePayrollData();
-          showToast(`Payroll batch ${approved ? "approved" : "cancelled"} successfully.`, approved ? "success" : "info");
+          await reviewItems([selectedForAction], approved ? "APPROVE" : "REJECT", approvalNote);
+          showToast(`Payroll ${approved ? "approved" : "rejected"} successfully for ${record.employee.name}`, approved ? "success" : "error");
         } catch {
-          showToast(`Unable to ${approved ? "approve" : "cancel"} this payroll batch.`, "error");
+          showToast(`Unable to ${approved ? "approve" : "reject"} payroll for ${record.employee.name}.`, "error");
+          return;
         }
       }
       setShowApprovalModal(false);
@@ -1285,9 +1320,7 @@ export default function PayrollApprovalPage() {
 
   // ==================== REFRESH HANDLER ====================
   const handleRefresh = () => {
-    const newData = generatePayrollRecords();
-    setPayrollData(newData);
-    showToast("Payroll data refreshed!", "success");
+    void loadPayrollData().then(() => showToast("Payroll data refreshed!", "success"));
   };
 
   // ==================== GENERATE REPORT HANDLER ====================
@@ -1321,11 +1354,92 @@ export default function PayrollApprovalPage() {
 
   // ==================== RENDER ====================
   return (
-    // ... rest of your JSX (the large return statement)
-    // I've omitted the JSX for brevity since it's very long,
-    // but you can copy it from your original file
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30 p-6">
-      {/* Your existing JSX content */}
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">Payroll operations</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-900">Payroll Approval Center</h1>
+            <p className="mt-2 text-slate-600">Review payroll items generated from Payroll Creation before authorising a payroll run.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <button onClick={handleRefresh} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" />Refresh</button>
+            <button onClick={() => void handleConfirmBatchApproval(payrollData.filter((item) => item.status === "Pending").map((item) => item.id))} disabled={!getStatusCount("Pending")} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><CheckCircle className="h-4 w-4" />Approve pending</button>
+          </div>
+        </header>
+
+        {toast && <div className={`rounded-lg border p-4 text-sm font-medium ${toast.type === "error" ? "border-red-200 bg-red-50 text-red-800" : toast.type === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-blue-200 bg-blue-50 text-blue-800"}`}>{toast.message}</div>}
+
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            ["Payroll items", summary.totalEmployees, "text-slate-900"],
+            ["Awaiting review", getStatusCount("Pending"), "text-amber-600"],
+            ["Approved", getStatusCount("Approved"), "text-emerald-600"],
+            ["Total net pay", formatCurrency(summary.totalNetPay), "text-blue-700"],
+          ].map(([label, value, tone]) => <div key={String(label)} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-medium text-slate-500">{label}</p><p className={`mt-2 text-2xl font-bold ${tone}`}>{value}</p></div>)}
+        </section>
+
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
+            <div><h2 className="text-lg font-bold text-slate-900">Payroll review queue</h2><p className="text-sm text-slate-500">Each item is tied to its payroll run and retains the reviewer decision.</p></div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search employee" className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 sm:w-52" /></div>
+              <select value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm"><option>All</option><option>Pending</option><option>Approved</option><option>Rejected</option><option>Draft</option></select>
+              <select value={filterDepartment} onChange={(event) => setFilterDepartment(event.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">{departments.map((department) => <option key={department}>{department}</option>)}</select>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Employee</th><th className="px-5 py-3">Department</th><th className="px-5 py-3 text-right">Gross pay</th><th className="px-5 py-3 text-right">Net pay</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Review details</th><th className="px-5 py-3 text-right">Action</th></tr></thead>
+              <tbody className="divide-y divide-slate-100">
+                {sortedRecords.map((record) => <tr key={record.id} className="hover:bg-slate-50/70">
+                  <td className="px-5 py-4"><p className="font-semibold text-slate-900">{record.employee.name}</p><p className="text-xs text-slate-500">{record.employee.email || "No email"}</p></td>
+                  <td className="px-5 py-4 text-slate-600">{record.employee.department}</td>
+                  <td className="px-5 py-4 text-right font-medium text-slate-700">{formatCurrency(record.grossPay)}</td>
+                  <td className="px-5 py-4 text-right font-semibold text-slate-900">{formatCurrency(record.netPay)}</td>
+                  <td className="px-5 py-4"><span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold ${getStatusColor(record.status)}`}>{getStatusIcon(record.status)}{record.status}</span></td>
+                  <td className="px-5 py-4 text-xs text-slate-500">{record.reviewedBy ? <><p>{record.reviewedBy}</p><p>{record.reviewDate ? formatDateTime(record.reviewDate) : ""}</p>{record.notes && <p className="mt-1 max-w-48 truncate">{record.notes}</p>}</> : "Not reviewed"}</td>
+                  <td className="px-5 py-4 text-right">{record.status === "Pending" ? <div className="inline-flex gap-2"><button onClick={() => void handleConfirmBatchApproval([record.id])} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700">Approve</button><button onClick={() => { const reason = window.prompt("Reason for rejection:"); if (reason?.trim()) void handleBatchReject(record.id, reason.trim()); }} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50">Reject</button></div> : <button onClick={() => handleViewHistory(record.id)} className="text-xs font-semibold text-blue-600 hover:text-blue-800">View history</button>}</td>
+                </tr>)}
+                {!sortedRecords.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-500">No payroll items match these filters. Create and submit a payroll run from Payroll Creation to start reviewing it here.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {showHistoryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+            <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+              <div className="flex items-start justify-between border-b border-slate-200 p-5">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Payroll item history</h2>
+                  <p className="mt-1 text-sm text-slate-500">Creation and approval decisions recorded for this payroll item.</p>
+                </div>
+                <button onClick={() => setShowHistoryModal(false)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+              </div>
+              <div className="flex gap-2 border-b border-slate-100 px-5 py-3">
+                {["All", "Created", "Approved", "Rejected"].map((filter) => <button key={filter} onClick={() => setHistoryFilter(filter)} className={`rounded-full px-3 py-1.5 text-xs font-semibold ${historyFilter === filter ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>{filter}</button>)}
+              </div>
+              <div className="max-h-[55vh] overflow-y-auto p-5">
+                {getFilteredHistory().length ? (
+                  <ol className="space-y-5 border-l-2 border-slate-200 pl-5">
+                    {getFilteredHistory().map((entry) => (
+                      <li key={entry.id} className="relative">
+                        <span className="absolute -left-[31px] top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-white ring-2 ring-slate-200">{getActionIcon(entry.action)}</span>
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div><p className="font-semibold text-slate-900">{entry.action}</p><p className="text-sm text-slate-600">{entry.user} · {entry.userRole}</p></div>
+                          <time className="text-xs text-slate-500">{formatDateTime(entry.timestamp)}</time>
+                        </div>
+                        {entry.notes && <p className="mt-2 rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{entry.notes}</p>}
+                      </li>
+                    ))}
+                  </ol>
+                ) : <p className="py-8 text-center text-sm text-slate-500">No history entries match this filter.</p>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
