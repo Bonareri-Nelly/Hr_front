@@ -14,11 +14,11 @@ const readUser = (): CurrentUser | null => {
 };
 
 const getBranchLabel = (user: CurrentUser | null) => {
-  if (!user) return "All branches";
+  if (!user) return "My workspace";
   if (user.branch_name) return user.branch_name;
   if (typeof user.branch === "string") return user.branch;
   if (user.branch?.name) return user.branch.name;
-  return "All branches";
+  return "My workspace";
 };
 
 export default function Navbar() {

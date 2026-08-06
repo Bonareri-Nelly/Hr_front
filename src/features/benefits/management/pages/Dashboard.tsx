@@ -762,7 +762,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <Card>
           <CardHeader>
             <CardTitle>Detailed Branch Comparison</CardTitle>
-            <CardDescription>All branches with key metrics</CardDescription>
+            <CardDescription>Eligibility and enrollment overview for your assigned branches</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>

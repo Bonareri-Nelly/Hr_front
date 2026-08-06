@@ -21,7 +21,7 @@ export const StatutoryCompliance = ({ data }: { data: ComplianceData }) => {
               Statutory Compliance
             </h3>
             <p className="text-sm text-gray-500 mt-1">
-              Company-wide compliance status across all branches
+              Compliance status for your assigned branches
             </p>
           </div>
           <button
@@ -79,7 +79,7 @@ export const StatutoryCompliance = ({ data }: { data: ComplianceData }) => {
             Branch Compliance Alerts
           </p>
           {data.flags.length === 0 ? (
-            <p className="text-sm text-green-600">✓ All branches compliant</p>
+            <p className="text-sm text-green-600">✓ Required branches compliant</p>
           ) : (
             <div className="space-y-2">
               {data.flags.map((flag, idx) => (
