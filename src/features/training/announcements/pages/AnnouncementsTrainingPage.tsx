@@ -4,7 +4,7 @@ import { resources, actions, type ApiRecord } from "../../../../services/api/res
 import { getCurrentUserRole } from "../../../../services/permissions";
 
 const text = (item: ApiRecord, field: string) => String(item[field] ?? "—");
-const publishers = new Set(["System Admin", "Executive", "HR", "Manager"]);
+const publishers = new Set(["System Admin", "Executive", "HR", "Manager", "Finance"]);
 
 function PriorityBadge({ priority }: { priority: string }) {
   const color = {

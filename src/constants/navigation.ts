@@ -51,6 +51,7 @@ export const navigationItems: NavigationItem[] = [
   { id: "my-payslips", label: "My Payslips", path: "/self-service/payslips", section: "Employee", icon: "ReceiptText" },
   { id: "my-documents", label: "My Documents", path: "/self-service/documents", section: "Employee", icon: "FolderOpen" },
   { id: "my-announcements", label: "My Announcements", path: "/self-service/announcements", section: "Employee", icon: "Bell" },
+  { id: "announcements-training", label: "Announcements & Training", path: "/training/announcements", section: "Employee", icon: "GraduationCap" },
   { id: "complaints", label: "Complaints", path: "/complaints", section: "Employee", icon: "MessageCircleQuestion" },
   // The assistant is deliberately a common workspace: its API responses must
   // still be scoped by the signed-in user's role on the server.
