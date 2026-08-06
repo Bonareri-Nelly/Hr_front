@@ -1,11 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { resources } from "../../../../services/api/resources";
 
 export interface PayrollRun {
   id: number;
   name: string;
+  period_start: string;
+  period_end: string;
   period: string;
   status: string;
+  total_gross: number;
+  total_deductions: number;
+  total_net: number;
   total_amount: number;
   employee_count: number;
   created_at: string;
@@ -13,46 +18,52 @@ export interface PayrollRun {
   notes?: string;
 }
 
+type PayrollRunInput = {
+  name: string;
+  period_start: string;
+  period_end: string;
+  notes?: string;
+  currency_code?: string;
+};
+
+const mapRun = (run: Record<string, unknown>): PayrollRun => ({
+  id: Number(run.id),
+  name: String(run.name ?? "Payroll run"),
+  period_start: String(run.period_start ?? ""),
+  period_end: String(run.period_end ?? ""),
+  period: `${String(run.period_start ?? "")} – ${String(run.period_end ?? "")}`,
+  status: String(run.status ?? "Draft"),
+  total_gross: Number(run.total_gross ?? 0),
+  total_deductions: Number(run.total_deductions ?? 0),
+  total_net: Number(run.total_net ?? 0),
+  total_amount: Number(run.total_net ?? 0),
+  employee_count: Number(run.employee_count ?? 0),
+  created_at: String(run.created_at ?? ""),
+  updated_at: String(run.updated_at ?? ""),
+  notes: run.notes ? String(run.notes) : undefined,
+});
+
 export function usePayrollCreation() {
   const queryClient = useQueryClient();
-
-  const { data: runs = [], isLoading: runsLoading, error: runsError } = useQuery<PayrollRun[]>({
+  const query = useQuery<PayrollRun[]>({
     queryKey: ["payroll-runs"],
-    queryFn: async () => {
-      const data = await resources.payrollRuns.list();
-      return (data as any[]).map((run: any) => ({
-        id: run.id,
-        name: run.name,
-        period: run.period,
-        status: run.status,
-        total_amount: run.total_amount,
-        employee_count: run.employee_count,
-        created_at: run.created_at,
-        updated_at: run.updated_at,
-        notes: run.notes,
-      }));
-    },
+    queryFn: async () => (await resources.payrollRuns.list()).map((run) => mapRun(run as Record<string, unknown>)),
   });
 
   const createMutation = useMutation({
-    mutationFn: (payload: Partial<PayrollRun>) => resources.payrollRuns.create(payload as any),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payroll-runs"] });
-    },
+    mutationFn: (payload: PayrollRunInput) => resources.payrollRuns.create(payload as never),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payroll-runs"] }),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: Partial<PayrollRun> }) =>
-      resources.payrollRuns.patch(id, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["payroll-runs"] });
-    },
+    mutationFn: ({ id, payload }: { id: number; payload: Partial<PayrollRunInput> }) => resources.payrollRuns.patch(id, payload as never),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["payroll-runs"] }),
   });
 
   return {
-    runs,
-    isLoading: runsLoading,
-    error: runsError,
+    runs: query.data ?? [],
+    isLoading: query.isLoading,
+    error: query.error,
     createRun: createMutation.mutate,
     updateRun: updateMutation.mutate,
   };

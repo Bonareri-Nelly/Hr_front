@@ -35,12 +35,19 @@ class ContractViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         renewal = serializer.save()
         contract.status = "Renewed"
-        if renewal.new_end_date:
-            contract.end_date = renewal.new_end_date
-        if renewal.new_salary:
-            contract.gross_salary = renewal.new_salary
-        contract.save()
-        return Response(ContractSerializer(contract).data)
+        contract.save(update_fields=["status", "updated_at"])
+        renewed_contract = Contract.objects.create(
+            employee=contract.employee,
+            contract_type=contract.contract_type,
+            start_date=renewal.new_start_date,
+            end_date=renewal.new_end_date,
+            status="Active",
+            gross_salary=renewal.new_salary if renewal.new_salary is not None else contract.gross_salary,
+            job_title=contract.job_title,
+            department=contract.department,
+            terms=contract.terms,
+        )
+        return Response(ContractSerializer(renewed_contract).data)
 
     @action(detail=True, methods=["post"])
     def terminate(self, request, pk=None):

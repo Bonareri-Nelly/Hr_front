@@ -6,6 +6,11 @@ import Login from "../../pages/login";
 import { canViewModule, getDefaultRouteForRole, hasActiveSession } from "../../services/permissions";
 import { appRoutes, CandidateApplicationRoute, type AppRoute } from "./routes";
 
+function LoginRoute() {
+  if (hasActiveSession()) return <Navigate to={getDefaultRouteForRole()} replace />;
+  return <Login />;
+}
+
 function DashboardRedirect() {
   if (!hasActiveSession()) return <Navigate to="/" replace />;
   return <Navigate to={getDefaultRouteForRole()} replace />;
@@ -24,7 +29,7 @@ export function AppRouter() {
     <BrowserRouter>
       <Suspense fallback={<div className="app-main">Loading...</div>}>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<LoginRoute />} />
           <Route path="/apply/:slug" element={<CandidateApplicationRoute />} />
 
           <Route element={<DashboardLayout />}>

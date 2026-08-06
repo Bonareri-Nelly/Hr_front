@@ -34,6 +34,7 @@ class AttendanceRecord(models.Model):
         ("Late", "Late"), ("Half Day", "Half Day"), ("On Leave", "On Leave"),
     ]
     employee = models.ForeignKey(Employee, on_delete=models.CASCADE, related_name="attendance_records")
+    contract = models.ForeignKey("contracts.Contract", on_delete=models.SET_NULL, null=True, blank=True, related_name="attendance_records")
     date = models.DateField()
     check_in = models.DateTimeField(null=True, blank=True)
     check_out = models.DateTimeField(null=True, blank=True)

@@ -90,25 +90,34 @@ export default function PayrollPage() {
           payrollApi.listPayslips().catch(() => []),
         ]);
 
+        const statusForUi = (status: unknown): PayrunStatus => {
+          const value = String(status ?? "Draft").toLowerCase();
+          if (value === "finalized") return "completed";
+          if (value === "approved") return "approved";
+          if (value === "cancelled") return "failed";
+          if (value === "submitted") return "processing";
+          return "pending";
+        };
+        const sumItems = (value: unknown) => Array.isArray(value) ? value.reduce((sum, item) => sum + Number((item as Record<string, unknown>).amount ?? 0), 0) : Number(value ?? 0);
         const mappedPayruns: Payrun[] = (runs as Array<Record<string, unknown>>).map((run) => ({
-          id: String(run.id ?? ''),
-          period: run.pay_period ? String(run.pay_period) : `${run.month ?? ''}/${run.year ?? ''}`,
-          date: String(run.created_at ?? ''),
-          amount: `KES ${Number(run.total_amount ?? 0).toLocaleString()}`,
+          id: String(run.id ?? ""),
+          period: `${String(run.period_start ?? "")} – ${String(run.period_end ?? "")}`,
+          date: String(run.created_at ?? ""),
+          amount: `KES ${Number(run.total_net ?? 0).toLocaleString()}`,
           employees: Number(run.employee_count ?? 0),
-          status: (String(run.status ?? 'completed').toLowerCase() as PayrunStatus),
-          type: 'monthly' as const,
+          status: statusForUi(run.status),
+          type: "monthly" as const,
         }));
 
         const mappedPayrolls: EmployeePayroll[] = (payslips as Array<Record<string, unknown>>).map((payslip) => ({
-          id: String(payslip.id ?? ''),
-          name: String(payslip.employee_name ?? 'Employee'),
-          department: String(payslip.department ?? 'Operations'),
+          id: String(payslip.id ?? ""),
+          name: String(payslip.employee_name ?? "Employee"),
+          department: String(payslip.department ?? "Operations"),
           basicPay: `KES ${Number(payslip.gross_pay ?? 0).toLocaleString()}`,
-          allowances: `KES ${Number(payslip.allowances ?? 0).toLocaleString()}`,
-          deductions: `KES ${Number(payslip.deductions ?? 0).toLocaleString()}`,
+          allowances: `KES ${sumItems(payslip.allowances).toLocaleString()}`,
+          deductions: `KES ${sumItems(payslip.deductions).toLocaleString()}`,
           netPay: `KES ${Number(payslip.net_pay ?? 0).toLocaleString()}`,
-          status: (payslip.status === 'processed' ? 'processed' : 'pending') as EmployeePayroll['status'],
+          status: "processed" as EmployeePayroll["status"],
         }));
 
         setPayruns(mappedPayruns);

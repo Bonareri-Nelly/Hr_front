@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from django.http import HttpResponse
+from django.db import models
 from decimal import Decimal
 from .models import (
     PayrollPolicy, TaxBand, StatutoryRate,
@@ -176,6 +177,8 @@ class BankPaymentViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def generate_payroll(request):
     from apps.employees.models import Employee
+    from apps.contracts.models import Contract
+    from apps.attendance.models import AttendanceRecord
     from apps.benefits.models import BenefitEnrollment, BenefitContribution
     from django.db import transaction
 
@@ -207,13 +210,21 @@ def generate_payroll(request):
         total_gross = total_deductions = total_net = Decimal("0")
         tax_bands = list(TaxBand.objects.filter(is_active=True).order_by("min_income"))
         statutory_rates = list(StatutoryRate.objects.filter(is_active=True))
+        payroll_policy = PayrollPolicy.objects.filter(is_active=True).order_by("-created_at").first()
+        overtime_rate = Decimal(payroll_policy.overtime_rate if payroll_policy else "1.5")
         for emp in employees:
-            base_salary = Decimal(emp.gross_salary or 0)
-            employee_components = EmployeePayComponent.objects.filter(employee=emp, is_active=True)
+            contract = Contract.objects.filter(
+                employee=emp, start_date__lte=period_end
+            ).filter(models.Q(end_date__isnull=True) | models.Q(end_date__gte=period_start)).order_by("-start_date", "-created_at").first()
+            base_salary = Decimal((contract.gross_salary if contract else emp.gross_salary) or 0)
+            attendance_records = AttendanceRecord.objects.filter(employee=emp, date__range=(period_start, period_end))
+            overtime_hours = sum((max(Decimal(record.hours_worked or 0) - Decimal("8"), Decimal("0")) for record in attendance_records), Decimal("0"))
+            overtime_amount = (base_salary / Decimal("173.33")) * overtime_hours * overtime_rate if base_salary and overtime_hours else Decimal("0")
+            employee_components = EmployeePayComponent.objects.filter(employee=emp, is_active=True).select_related("component")
             allowances = [component for component in employee_components if component.component.component_type == "Allowance"]
             component_deductions = [component for component in employee_components if component.component.component_type in ("Deduction", "Statutory")]
             allowance_total = sum((Decimal(component.amount) for component in allowances), Decimal("0"))
-            gross = base_salary + allowance_total
+            gross = base_salary + allowance_total + overtime_amount
             payslip = Payslip.objects.create(
                 payroll_run=run,
                 employee=emp,
@@ -222,6 +233,8 @@ def generate_payroll(request):
             )
             for component in allowances:
                 Allowance.objects.create(payslip=payslip, name=component.component.name, amount=component.amount, is_taxable=component.component.is_taxable)
+            if overtime_amount:
+                Allowance.objects.create(payslip=payslip, name="Overtime", amount=overtime_amount, is_taxable=True)
 
             deduction_total = Decimal("0")
             for component in component_deductions:

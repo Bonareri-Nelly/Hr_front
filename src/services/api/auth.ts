@@ -18,6 +18,12 @@ export type CurrentUser = {
   department?: string | { id?: number; name?: string } | null;
   is_approved?: boolean;
   is_active?: boolean;
+  is_staff?: boolean;
+  is_superuser?: boolean;
+  first_name?: string;
+  last_name?: string;
+  full_name?: string;
+  date_joined?: string;
 };
 
 type LoginResponse = {

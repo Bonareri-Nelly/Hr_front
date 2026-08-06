@@ -56,6 +56,7 @@ class EmployeeAttendanceAssignmentViewSet(viewsets.ModelViewSet):
 @permission_classes([IsAuthenticated])
 def check_in_view(request):
     from apps.employees.models import Employee
+    from apps.contracts.models import Contract
     # Never let a self-service user clock in on behalf of someone else.
     employee_id = getattr(request.user, "employee_id", None)
     if not employee_id:
@@ -65,9 +66,15 @@ def check_in_view(request):
     except Employee.DoesNotExist:
         return Response({"detail": "Employee not found."}, status=404)
 
+    today = timezone.now().date()
+    contract = Contract.objects.filter(
+        employee=employee, status="Active", start_date__lte=today
+    ).filter(models.Q(end_date__isnull=True) | models.Q(end_date__gte=today)).order_by("-start_date", "-created_at").first()
+    if not contract:
+        return Response({"detail": "No active employment contract found for today."}, status=400)
     assignment = EmployeeAttendanceAssignment.objects.filter(
-        employee=employee, is_active=True, effective_from__lte=timezone.now().date()
-    ).filter(models.Q(effective_to__isnull=True) | models.Q(effective_to__gte=timezone.now().date())).select_related("work_location").order_by("-effective_from").first()
+        employee=employee, is_active=True, effective_from__lte=today
+    ).filter(models.Q(effective_to__isnull=True) | models.Q(effective_to__gte=today)).select_related("work_location").order_by("-effective_from").first()
     location = assignment.work_location if assignment else None
     try:
         latitude, longitude = float(request.data["latitude"]), float(request.data["longitude"])
@@ -80,8 +87,9 @@ def check_in_view(request):
         distance = 2 * earth_radius * atan2(sqrt(sin(lat_delta / 2) ** 2 + cos(radians(latitude)) * cos(radians(location.latitude)) * sin(lon_delta / 2) ** 2), sqrt(1 - (sin(lat_delta / 2) ** 2 + cos(radians(latitude)) * cos(radians(location.latitude)) * sin(lon_delta / 2) ** 2)))
         if distance > location.radius_meters:
             return Response({"detail": f"You are outside the {location.name} attendance area."}, status=400)
-    today = timezone.now().date()
-    record, _ = AttendanceRecord.objects.get_or_create(employee=employee, date=today)
+    record, _ = AttendanceRecord.objects.get_or_create(employee=employee, date=today, defaults={"contract": contract})
+    if record.contract_id is None:
+        record.contract = contract
     if record.check_in:
         return Response({"detail": "Already checked in today."}, status=400)
     record.check_in = timezone.now()

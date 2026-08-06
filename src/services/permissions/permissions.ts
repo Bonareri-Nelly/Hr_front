@@ -97,5 +97,14 @@ export function getModulePermissions(role = getCurrentUserRole()): ModulePermiss
 }
 
 export function hasActiveSession(): boolean {
-  return Boolean(localStorage.getItem("hr_payroll_access_token") ?? localStorage.getItem("access_token"));
+  const token = localStorage.getItem("hr_payroll_access_token") ?? localStorage.getItem("access_token");
+  const user = readCurrentUser();
+  if (!token || !user) return false;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1] ?? "")) as { exp?: number };
+    if (payload.exp && payload.exp * 1000 <= Date.now()) return false;
+  } catch {
+    // Access tokens may be opaque in some deployments; presence is enough in that case.
+  }
+  return true;
 }
