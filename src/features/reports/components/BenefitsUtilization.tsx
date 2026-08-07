@@ -54,12 +54,6 @@ export const BenefitsUtilization = ({ data }: { data: BenefitsData }) => {
         <div className="space-y-3">
           {data.summary.map((item) => {
             const width = Math.min((item.utilization / 100) * 100, 100);
-            const color = item.utilization > 70 ? 'green' : item.utilization > 40 ? 'yellow' : 'blue';
-            const colorClasses = {
-              green: 'bg-green-500',
-              yellow: 'bg-yellow-500',
-              blue: 'bg-blue-600',
-            };
             return (
               <div key={item.category} className="bg-gray-50 rounded-lg p-3">
                 <div className="flex justify-between items-center mb-2">
@@ -74,7 +68,7 @@ export const BenefitsUtilization = ({ data }: { data: BenefitsData }) => {
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className={`${colorClasses[color]} h-2 rounded-full transition-all duration-500`}
+                    className="bg-[var(--gold)] h-2 rounded-full transition-all duration-500"
                     style={{ width: `${width}%` }}
                   />
                 </div>

@@ -712,7 +712,7 @@ const ActionButton: React.FC<ActionButtonProps> = ({ onClick, children, variant 
 // CHART COMPONENTS
 // ============================================================
 
-const COLORS = ['#d4a843', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#60a5fa'];
+const COLORS = ['var(--gold)', 'var(--bronze)', '#d9bc78', '#9d7a3c', '#f1d99b', '#c8a45d'];
 
 const ChartCard: React.FC<{ title: string; children: React.ReactNode; action?: React.ReactNode; icon?: React.ComponentType<{ size?: number }> }> = ({ title, children, action, icon: Icon }) => (
   <div className="panel">

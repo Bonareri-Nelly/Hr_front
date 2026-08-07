@@ -7,6 +7,65 @@ import type {
   OnboardingFormData,
 } from '../types';
 import { employeeApi, type EmployeePayload } from '../../../../services/api/employee';
+import { apiClient } from '@/services/api/client';
+
+const getOnboardingEmployees = async (): Promise<Record<string, unknown>[]> => {
+  const { data } = await apiClient.get('/employees/', {
+    params: { employment_status: 'ONBOARDING', page_size: 100 },
+  });
+  return Array.isArray(data) ? data : data?.results ?? [];
+};
+
+const slug = (value: string, prefix: string) =>
+  `${prefix}-${value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 14) || Date.now()}`;
+
+const list = (payload: any) => Array.isArray(payload) ? payload : payload?.results ?? [];
+
+const resolveOnboardingReferences = async (data: OnboardingFormData) => {
+  const [branchResponse, departmentResponse, designationResponse] = await Promise.all([
+    apiClient.get('/branches/', { params: { page_size: 100 } }),
+    apiClient.get('/departments/', { params: { page_size: 100 } }),
+    apiClient.get('/designations/', { params: { page_size: 100 } }),
+  ]);
+
+  const branchInput = data.branchId.trim();
+  let branch = list(branchResponse.data).find((item: any) =>
+    String(item.id) === branchInput || item.name.toLowerCase() === branchInput.toLowerCase(),
+  );
+  if (!branch) {
+    ({ data: branch } = await apiClient.post('/branches/', {
+      name: branchInput,
+      code: slug(branchInput, 'BR'),
+    }));
+  }
+
+  const departmentInput = data.department.trim();
+  let department = list(departmentResponse.data).find((item: any) =>
+    (String(item.id) === departmentInput || item.name.toLowerCase() === departmentInput.toLowerCase())
+    && String(item.branch) === String(branch.id),
+  );
+  if (!department) {
+    ({ data: department } = await apiClient.post('/departments/', {
+      branch: branch.id,
+      name: departmentInput,
+      code: slug(departmentInput, 'DEPT'),
+    }));
+  }
+
+  const designationInput = data.position.trim();
+  let designation = list(designationResponse.data).find((item: any) =>
+    (String(item.id) === designationInput || item.title.toLowerCase() === designationInput.toLowerCase())
+    && String(item.department) === String(department.id),
+  );
+  if (!designation) {
+    ({ data: designation } = await apiClient.post('/designations/', {
+      department: department.id,
+      title: designationInput,
+    }));
+  }
+
+  return { branchId: Number(branch.id), departmentId: Number(department.id), designationId: Number(designation.id) };
+};
 
 const toOnboardingCase = (employee: Record<string, unknown>): OnboardingCase => {
   const employeeName = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || 'Unnamed employee';
@@ -47,7 +106,7 @@ const toOnboardingCase = (employee: Record<string, unknown>): OnboardingCase => 
 
 export const onboardingService = {
   async getCases(filters: OnboardingFilter = {}): Promise<OnboardingCase[]> {
-    const employees = await employeeApi.list({ employment_status: 'ONBOARDING', page_size: '100' }).catch(() => []);
+    const employees = await getOnboardingEmployees().catch(() => []);
 
     const cases = employees.map((employee) => toOnboardingCase(employee as Record<string, unknown>));
 
@@ -131,7 +190,7 @@ export const onboardingService = {
   },
 
   async getEmployees(query: string = ''): Promise<OnboardingEmployee[]> {
-    const employees = await employeeApi.list({ employment_status: 'ONBOARDING', page_size: '100' }).catch(() => []);
+    const employees = await getOnboardingEmployees().catch(() => []);
 
     const normalized = employees.map((employee) => {
       const name = [employee.first_name, employee.last_name].filter(Boolean).join(' ') || 'Unnamed employee';
@@ -173,6 +232,7 @@ export const onboardingService = {
       .toLowerCase()
       .replace(/\s+/g, '.');
 
+    const references = await resolveOnboardingReferences(data);
     const payload: EmployeePayload = {
       employee_number: `EMP-${Date.now().toString().slice(-6)}`,
       first_name: firstName,
@@ -181,9 +241,9 @@ export const onboardingService = {
       work_email: `${emailSlug}@optimum.local`,
       hire_date: data.startDate,
       employment_status: 'ONBOARDING',
-      branch: Number(data.branchId),
-      department: Number(data.department),
-      designation: Number(data.position),
+      branch: references.branchId,
+      department: references.departmentId,
+      designation: references.designationId,
       basic_salary: Number(data.basicSalary || 0),
       employment_type: 'CONTRACT',
     };

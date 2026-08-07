@@ -31,6 +31,35 @@
   --font-sans: "Inter", system-ui, sans-serif;
   --sidebar-width: 264px;
   --topbar-height: 62px;
+
+  /* Compatibility aliases used by independently built feature modules. */
+  --primary: var(--navy-deepest);
+  --primary-bg: var(--gold-light);
+  --background-secondary: var(--background);
+  --surface-hover: oklch(96% 0.008 78);
+  --text-primary: var(--ink);
+  --bg: var(--background);
+  --bg-surface: var(--surface);
+  --bg-soft: var(--background);
+  --bg-hover: var(--gold-light);
+  --border-light: var(--border-subtle);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--navy-deepest);
+  --color-primary-dark: var(--navy-dark);
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--text-secondary);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-hover: var(--gold-light);
+  --gold-bg: var(--gold-light);
+  --gold-border: var(--gold);
+  --gold-dark: var(--bronze);
+  --success-soft: var(--success-bg);
+  --warning-soft: var(--warning-bg);
+  --danger-soft: var(--danger-bg);
+  --info-soft: var(--info-bg);
 }
 
 /*
@@ -2254,6 +2283,28 @@ a {
   color: var(--ink) !important;
 }
 
+/* Match independently styled actions to the Executive Dashboard buttons. */
+.app-main :is(button, a, [role="button"]):is(.btn-primary, [class~="bg-blue-500"], [class~="bg-blue-600"], [class~="bg-blue-700"], [class~="bg-indigo-500"], [class~="bg-indigo-600"], [class~="bg-indigo-700"]) {
+  border-color: var(--navy-deepest) !important;
+  background-color: var(--navy-deepest) !important;
+  color: white !important;
+}
+
+.app-main :is(button, a, [role="button"]):is(.btn-primary, [class~="bg-blue-500"], [class~="bg-blue-600"], [class~="bg-blue-700"], [class~="bg-indigo-500"], [class~="bg-indigo-600"], [class~="bg-indigo-700"]):hover {
+  border-color: var(--navy-dark) !important;
+  background-color: var(--navy-dark) !important;
+}
+
+.app-main :is(button, a, [role="button"]):is(.btn-secondary, .btn-outline) {
+  border-color: var(--border) !important;
+  background-color: var(--background) !important;
+  color: var(--ink) !important;
+}
+
+.app-main :is(button, a, [role="button"]):is([class~="text-blue-600"], [class~="text-indigo-600"], [class~="text-indigo-700"]) {
+  color: var(--bronze) !important;
+}
+
 .app-main :is(.panel, .content-card, .metric-card, .table-card),
 .executive-consistent-page :is(.panel, .content-card, .metric-card, .table-card),
 .candidate-executive-page :is(.panel, .content-card, .metric-card, .table-card) {
@@ -2765,4 +2816,120 @@ a {
     grid-column: 2;
     justify-self: start;
   }
+}
+
+/* Final button palette override: local module styles must match Executive actions. */
+.app-main :is(button, a, [role="button"])[class*="bg-"]:not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-emerald-"]):not([class*="bg-green-"]) {
+  border-color: var(--navy-deepest) !important;
+  background-color: var(--navy-deepest) !important;
+  color: white !important;
+}
+
+.app-main :is(button, a, [role="button"])[class*="bg-"]:not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-emerald-"]):not([class*="bg-green-"]):hover {
+  border-color: var(--navy-dark) !important;
+  background-color: var(--navy-dark) !important;
+}
+
+.app-main :is(button, a, [role="button"]):is(.btn-primary, .action-button, .alert-action) {
+  border-color: var(--navy-deepest) !important;
+  background-color: var(--navy-deepest) !important;
+  color: white !important;
+}
+
+.app-main :is(button, a, [role="button"]):is(.btn-primary, .action-button, .alert-action):hover {
+  border-color: var(--navy-dark) !important;
+  background-color: var(--navy-dark) !important;
+}
+
+.app-main :is(button, a, [role="button"]):is(.btn-outline, .btn-secondary) {
+  border-color: var(--border) !important;
+  background-color: var(--background) !important;
+  color: var(--ink) !important;
+}
+
+/* Executive Dashboard chart palette: gold is the shared data emphasis. */
+.app-main .recharts-bar-rectangle :is(path, rect),
+.app-main .recharts-area-area,
+.app-main .recharts-pie-sector path {
+  fill: var(--gold) !important;
+}
+
+.app-main :is(.recharts-line-curve, .recharts-area-curve, .recharts-radar-polygon) {
+  stroke: var(--gold) !important;
+}
+
+.app-main :is(.recharts-cartesian-grid line, .recharts-cartesian-axis-line, .recharts-cartesian-axis-tick-line) {
+  stroke: var(--border) !important;
+}
+
+.app-main .recharts-text {
+  fill: var(--text-secondary) !important;
+}
+
+/* Hand-built bar and progress graphics across feature pages use Executive gold. */
+.app-main :is([style*="width"], [style*="height"]):is(
+  [class*="bg-blue-"], [class*="bg-indigo-"], [class*="bg-purple-"],
+  [class*="bg-teal-"], [class*="bg-cyan-"], [class*="bg-yellow-"]
+) {
+  background-color: var(--gold) !important;
+}
+
+.app-main :is([style*="width"], [style*="height"]):is([class*="from-blue-"], [class*="to-blue-"], [class*="from-indigo-"], [class*="to-indigo-"]) {
+  background-image: linear-gradient(to top, var(--bronze), var(--gold)) !important;
+}
+
+/* Executive actions are intentionally two-tone: navy primary, neutral grey secondary. */
+.app-main :is(button, [role="button"], a.button, a.btn-primary, a.btn-secondary, a.btn-outline, a[class*="bg-"]) {
+  border-color: var(--border) !important;
+  background-color: #e5e7eb !important;
+  background-image: none !important;
+  color: var(--ink) !important;
+}
+
+.app-main :is(button, [role="button"], a.button, a.btn-primary, a.btn-secondary, a.btn-outline, a[class*="bg-"]):hover {
+  border-color: var(--text-muted) !important;
+  background-color: #d1d5db !important;
+  color: var(--ink) !important;
+}
+
+.app-main :is(.button-primary, .btn-primary) {
+  border-color: var(--navy-deepest) !important;
+  background-color: var(--navy-deepest) !important;
+  color: white !important;
+}
+
+.app-main :is(.button-primary, .btn-primary):hover {
+  border-color: var(--navy-dark) !important;
+  background-color: var(--navy-dark) !important;
+  color: white !important;
+}
+
+/* Selection state: active controls use the Executive navy instead of grey. */
+.app-main :is(button, [role="button"], a.button, a.btn-primary, a.btn-secondary, a.btn-outline, a[class*="bg-"]):is(
+  .active, .selected, .is-active, .is-selected,
+  [aria-pressed="true"], [aria-selected="true"], [data-state="active"], [data-active="true"]
+) {
+  border-color: var(--navy-deepest) !important;
+  background-color: var(--navy-deepest) !important;
+  color: white !important;
+}
+
+.app-main :is(button, [role="button"], a.button, a.btn-primary, a.btn-secondary, a.btn-outline, a[class*="bg-"]):is(
+  .active, .selected, .is-active, .is-selected,
+  [aria-pressed="true"], [aria-selected="true"], [data-state="active"], [data-active="true"]
+):hover {
+  border-color: var(--navy-dark) !important;
+  background-color: var(--navy-dark) !important;
+}
+
+/* Many page-level toggles encode their selected state as a coloured background plus white text. */
+.app-main :is(button, [role="button"], a)[class*="text-white"][class*="bg-"] {
+  border-color: var(--navy-deepest) !important;
+  background-color: var(--navy-deepest) !important;
+  color: white !important;
+}
+
+.app-main :is(button, [role="button"], a)[class*="text-white"][class*="bg-"]:hover {
+  border-color: var(--navy-dark) !important;
+  background-color: var(--navy-dark) !important;
 }

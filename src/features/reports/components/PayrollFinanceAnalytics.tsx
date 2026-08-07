@@ -115,7 +115,7 @@ export const PayrollFinanceAnalytics = ({ data }: { data: PayrollData }) => {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                     <div
-                      className="bg-blue-600 h-1.5 rounded-full"
+                      className="bg-[var(--gold)] h-1.5 rounded-full"
                       style={{ width: `${item.percentage}%` }}
                     />
                   </div>

@@ -49,7 +49,7 @@ export const PerformanceRollup = ({ data }: { data: PerformanceData }) => {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
                     <div
-                      className="bg-blue-600 h-1.5 rounded-full"
+                      className="bg-[var(--gold)] h-1.5 rounded-full"
                       style={{ width: `${item.percentage}%` }}
                     />
                   </div>
@@ -67,7 +67,7 @@ export const PerformanceRollup = ({ data }: { data: PerformanceData }) => {
                   <div className="flex items-center gap-3">
                     <div className="w-24 bg-gray-200 rounded-full h-1.5">
                       <div
-                        className="bg-blue-600 h-1.5 rounded-full"
+                        className="bg-[var(--gold)] h-1.5 rounded-full"
                         style={{ width: `${(dept.avgScore / 5) * 100}%` }}
                       />
                     </div>
@@ -87,7 +87,7 @@ export const PerformanceRollup = ({ data }: { data: PerformanceData }) => {
               return (
                 <div key={idx} className="flex-1 flex flex-col items-center">
                   <div
-                    className="w-full bg-gradient-to-t from-blue-200 to-blue-400 rounded-t"
+                    className="w-full bg-gradient-to-t from-[var(--bronze)] to-[var(--gold)] rounded-t"
                     style={{ height: `${Math.max(height * 0.8, 10)}px` }}
                   />
                   <span className="text-[10px] text-gray-500 mt-1">{item.cycle}</span>

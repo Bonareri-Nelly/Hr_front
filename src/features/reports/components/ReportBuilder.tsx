@@ -20,7 +20,7 @@ interface ReportBuilderProps {
   data: any;
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899'];
+const COLORS = ['var(--gold)', 'var(--bronze)', '#d9bc78', '#9d7a3c', '#f1d99b', '#c8a45d'];
 
 export const ReportBuilder = ({ data }: ReportBuilderProps) => {
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);

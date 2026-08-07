@@ -193,13 +193,25 @@ const InitiateOnboardingModal: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                Employee Name <span className="text-red-400">*</span>
+                First Name <span className="text-red-400">*</span>
               </label>
               <Input
                 required
-                placeholder="Enter employee name"
+                placeholder="Enter first name"
                 value={formData.employeeId}
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                className="bg-navy-900/60 border-gold-500/20 text-white placeholder:text-gray-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                Last Name <span className="text-red-400">*</span>
+              </label>
+              <Input
+                required
+                placeholder="Enter last name"
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                 className="bg-navy-900/60 border-gold-500/20 text-white placeholder:text-gray-500 focus:border-gold-500 focus:ring-1 focus:ring-gold-500"
               />
             </div>
@@ -219,61 +231,22 @@ const InitiateOnboardingModal: React.FC<{
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Department <span className="text-red-400">*</span>
               </label>
-              <Select
-                value={formData.department}
-                onValueChange={(value) => setFormData({ ...formData, department: value })}
-              >
-                <SelectTrigger className="bg-navy-900/60 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
-                  <SelectValue placeholder="Select Department" />
-                </SelectTrigger>
-                <SelectContent className="bg-navy-800 border-gold-500/20">
-                  {options.departments.map((dept) => (
-                    <SelectItem key={dept.id} value={String(dept.id)} className="text-white hover:bg-navy-700">
-                      {dept.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input required list="onboarding-departments" placeholder="Select or type a department" value={formData.department} onChange={(e) => setFormData({ ...formData, department: e.target.value })} className="bg-navy-900/60 border-gold-500/20 text-white placeholder:text-gray-500" />
+              <datalist id="onboarding-departments">{options.departments.map((dept) => <option key={dept.id} value={dept.name} />)}</datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Position <span className="text-red-400">*</span>
               </label>
-              <Select
-                value={formData.position}
-                onValueChange={(value) => setFormData({ ...formData, position: value })}
-              >
-                <SelectTrigger className="bg-navy-900/60 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
-                  <SelectValue placeholder="Select Position" />
-                </SelectTrigger>
-                <SelectContent className="bg-navy-800 border-gold-500/20">
-                  {options.designations.map((designation) => (
-                    <SelectItem key={designation.id} value={String(designation.id)} className="text-white hover:bg-navy-700">
-                      {designation.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input required list="onboarding-designations" placeholder="Select or type a position" value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} className="bg-navy-900/60 border-gold-500/20 text-white placeholder:text-gray-500" />
+              <datalist id="onboarding-designations">{options.designations.map((designation) => <option key={designation.id} value={designation.title} />)}</datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">
                 Branch <span className="text-red-400">*</span>
               </label>
-              <Select
-                value={formData.branchId}
-                onValueChange={(value) => setFormData({ ...formData, branchId: value })}
-              >
-                <SelectTrigger className="bg-navy-900/60 border-gold-500/20 text-white focus:border-gold-500 focus:ring-1 focus:ring-gold-500">
-                  <SelectValue placeholder="Select Branch" />
-                </SelectTrigger>
-                <SelectContent className="bg-navy-800 border-gold-500/20">
-                  {options.branches.map((branch) => (
-                    <SelectItem key={branch.id} value={String(branch.id)} className="text-white hover:bg-navy-700">
-                      {branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input required list="onboarding-branches" placeholder="Select or type a branch" value={formData.branchId} onChange={(e) => setFormData({ ...formData, branchId: e.target.value })} className="bg-navy-900/60 border-gold-500/20 text-white placeholder:text-gray-500" />
+              <datalist id="onboarding-branches">{options.branches.map((branch) => <option key={branch.id} value={branch.name} />)}</datalist>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1.5">

@@ -71,7 +71,7 @@ export const WorkforceAnalytics = ({ data }: { data: WorkforceData }) => {
               return (
                 <div key={idx} className="flex-1 flex flex-col items-center">
                   <div
-                    className="w-full bg-blue-300 rounded-t hover:bg-blue-400 transition"
+                    className="w-full bg-[var(--gold)] rounded-t hover:bg-[var(--bronze)] transition"
                     style={{ height: `${Math.max(height * 0.7, 10)}px` }}
                   />
                   <span className="text-[10px] text-gray-500 mt-1">{item.month.slice(0, 3)}</span>
@@ -138,7 +138,7 @@ export const WorkforceAnalytics = ({ data }: { data: WorkforceData }) => {
                       <span>{item.value}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-1.5">
-                      <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: `${item.value}%` }} />
+                      <div className="bg-[var(--gold)] h-1.5 rounded-full" style={{ width: `${item.value}%` }} />
                     </div>
                   </div>
                 ))}

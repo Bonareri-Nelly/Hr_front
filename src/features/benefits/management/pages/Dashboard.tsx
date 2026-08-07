@@ -74,16 +74,16 @@ interface DashboardProps {
 
 // Color palette
 const CHART_COLORS = {
-  primary: 'var(--navy-dark)',
-  secondary: 'var(--gold)',
+  primary: 'var(--gold)',
+  secondary: 'var(--bronze)',
   success: 'var(--success)',
   warning: 'var(--warning)',
   danger: 'var(--danger)',
   info: 'var(--info)',
-  purple: 'var(--bronze)',
-  pink: 'var(--text-secondary)',
-  orange: 'var(--warning)',
-  teal: 'var(--success)',
+  purple: 'var(--gold)',
+  pink: 'var(--bronze)',
+  orange: 'var(--gold)',
+  teal: 'var(--bronze)',
 };
 
 // Utility functions
