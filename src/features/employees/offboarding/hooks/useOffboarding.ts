@@ -56,7 +56,6 @@ export const useOffboarding = (initialFilters?: OffboardingFilter) => {
     attachments?: UploadedFile[];
   }) => {
     try {
-      setLoading(true);
       const newCase = await offboardingService.initiateOffboarding(data);
       setCases(prev => [newCase, ...prev]);
       // Refresh stats
@@ -66,8 +65,6 @@ export const useOffboarding = (initialFilters?: OffboardingFilter) => {
     } catch (err) {
       setError(err as Error);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 

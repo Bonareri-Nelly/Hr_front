@@ -63,6 +63,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { useOffboarding } from '../hooks/useOffboarding';
+import { OffboardingCaseDetails } from '../components/OffboardingCaseDetails';
 import type { OffboardingCase, Employee, UploadedFile } from '../types';
 import { apiClient } from '@/services/api/client';
 
@@ -121,14 +122,14 @@ const EmployeeSearch: React.FC<{
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    apiClient.get('/employees/').then((response) => {
+    apiClient.get('/employees/', { params: { page_size: 100, employment_status: 'ACTIVE' } }).then((response) => {
       const records = Array.isArray(response.data) ? response.data : response.data?.results ?? [];
       setEmployees(records.map((employee: any): Employee => ({
         id: String(employee.id),
         name: employee.full_name || `${employee.first_name ?? ''} ${employee.last_name ?? ''}`.trim() || employee.employee_number || `Employee ${employee.id}`,
-        email: employee.email || employee.user?.email || '',
+        email: employee.work_email || employee.email || employee.user?.email || '',
         department: employee.department_name || employee.department?.name || '',
-        position: employee.position_name || employee.position?.title || employee.job_title || '',
+        position: employee.designation_name || employee.position_name || employee.position?.title || employee.job_title || '',
         branchId: String(employee.branch_id || employee.branch?.id || ''),
         branchName: employee.branch_name || employee.branch?.name || '',
       })));
@@ -350,7 +351,7 @@ const FileUpload: React.FC<{
 const InitiateOffboardingModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  onInitiate: (data: any) => void;
+  onInitiate: (data: any) => Promise<void>;
 }> = ({ isOpen, onClose, onInitiate }) => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState({
@@ -359,6 +360,8 @@ const InitiateOffboardingModal: React.FC<{
     lastWorkingDay: '',
   });
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleEmployeeSelect = (employee: Employee | null) => {
     setSelectedEmployee(employee);
@@ -372,7 +375,7 @@ const InitiateOffboardingModal: React.FC<{
     setUploadedFiles(uploadedFiles.filter(f => f.id !== fileId));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEmployee) return;
     
@@ -381,11 +384,20 @@ const InitiateOffboardingModal: React.FC<{
       ...formData,
       attachments: uploadedFiles,
     };
-    onInitiate(data);
-    onClose();
-    setSelectedEmployee(null);
-    setFormData({ exitType: 'resignation', reason: '', lastWorkingDay: '' });
-    setUploadedFiles([]);
+    setSubmitError('');
+    setIsSubmitting(true);
+    try {
+      await onInitiate(data);
+      onClose();
+      setSelectedEmployee(null);
+      setFormData({ exitType: 'resignation', reason: '', lastWorkingDay: '' });
+      setUploadedFiles([]);
+    } catch (error: any) {
+      const details = error?.response?.data;
+      setSubmitError(typeof details === 'object' ? Object.values(details).flat().join(' ') : 'Unable to initiate offboarding.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -412,6 +424,7 @@ const InitiateOffboardingModal: React.FC<{
               selectedEmployee={selectedEmployee}
             />
           </div>
+          {submitError && <p className="text-sm text-red-400">{submitError}</p>}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -482,11 +495,11 @@ const InitiateOffboardingModal: React.FC<{
             </Button>
             <Button
               type="submit"
-              disabled={!selectedEmployee}
+              disabled={!selectedEmployee || isSubmitting}
               className="bg-gold-500 text-navy-900 hover:bg-gold-400 font-semibold px-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="mr-2 h-4 w-4" />
-              Initiate Offboarding
+              {isSubmitting ? 'Creating...' : 'Initiate Offboarding'}
             </Button>
           </DialogFooter>
         </form>
@@ -1137,7 +1150,7 @@ const OffboardingDashboard: React.FC = () => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<OffboardingCase | null>(null);
 
-  const { cases, stats, loading, refetch } = useOffboarding({});
+  const { cases, stats, loading, refetch, initiateOffboarding } = useOffboarding({});
 
   const departments = useMemo(() => {
     if (!cases) return [];
@@ -1172,8 +1185,8 @@ const OffboardingDashboard: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
-  const handleInitiateOffboarding = (data: any) => {
-    console.log('Initiating offboarding for:', data);
+  const handleInitiateOffboarding = async (data: any) => {
+    await initiateOffboarding(data);
     refetch();
   };
 
@@ -1394,14 +1407,26 @@ const OffboardingDashboard: React.FC = () => {
         onInitiate={handleInitiateOffboarding}
       />
 
-      <EmployeeDetailsModal
-        isOpen={isDetailsModalOpen}
-        onClose={() => {
-          setIsDetailsModalOpen(false);
+      <Dialog open={isDetailsModalOpen} onOpenChange={(open) => {
+        setIsDetailsModalOpen(open);
+        if (!open) {
           setSelectedCase(null);
-        }}
-        caseData={selectedCase}
-      />
+          refetch();
+        }
+      }}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          {selectedCase && (
+            <OffboardingCaseDetails
+              caseId={selectedCase.id}
+              onClose={() => {
+                setIsDetailsModalOpen(false);
+                setSelectedCase(null);
+                refetch();
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
