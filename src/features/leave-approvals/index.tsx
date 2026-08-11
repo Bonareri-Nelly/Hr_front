@@ -36,7 +36,7 @@ const STATUS_MAP: Record<string, { status: LeaveStatus; stage: WorkflowStage; ap
   PENDING_MANAGER: {
     status: LEAVE_STATUS.PENDING,
     stage: WORKFLOW_STAGES.PENDING_DEPARTMENT_HEAD_APPROVAL,
-    approver: ROLES.DEPARTMENT_HEAD,
+    approver: ROLES.BRANCH_MANAGER,
   },
   PENDING_HR: {
     status: LEAVE_STATUS.PENDING,
@@ -91,6 +91,7 @@ export default function LeaveApprovals() {
     role: UserRole;
     department: string;
   }>({ id: null, name: "", role: ROLES.EMPLOYEE, department: "" });
+  const [canApproveAllStages, setCanApproveAllStages] = useState(false);
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -121,12 +122,14 @@ export default function LeaveApprovals() {
       ]);
 
       const me = meResponse.data ?? {};
+      const apiRole = roleName(me.role);
       setCurrentUser({
         id: me.id ?? null,
         name: me.username ?? "",
-        role: ROLE_BY_API_NAME[roleName(me.role)] ?? ROLES.EMPLOYEE,
+        role: ROLE_BY_API_NAME[apiRole] ?? ROLES.EMPLOYEE,
         department: me.department_name ?? me.department ?? "",
       });
+      setCanApproveAllStages(["SUPER_ADMIN", "ADMIN"].includes(apiRole));
 
       const approvals = unwrap(approvalsResponse.data);
       const historyByRequest = new Map<number, ApprovalHistory[]>();
@@ -213,7 +216,7 @@ export default function LeaveApprovals() {
       }
 
       // Wrong approver
-      if (
+      if (!canApproveAllStages &&
         request.currentApprover.role !==
         currentUser.role
       ) {
@@ -233,7 +236,7 @@ export default function LeaveApprovals() {
 
       return true;
     });
-  }, [requests, currentUser.department, currentUser.role]);
+  }, [requests, canApproveAllStages, currentUser.department, currentUser.role]);
 
   const selectedRequest = visibleRequests.find(
     (r) => r.id === selectedId
@@ -297,7 +300,13 @@ export default function LeaveApprovals() {
         .toLowerCase()
         .includes(selectedLeaveType.toLowerCase());
 
-    return matchesSearch && matchesLeaveType;
+    const matchesDepartment = departmentFilter === "All" || request.department === departmentFilter;
+    return matchesSearch && matchesLeaveType && matchesDepartment;
+  }).sort((left, right) => {
+    if (sortBy === "Oldest") return left.id - right.id;
+    if (sortBy === "Most Days") return right.days - left.days;
+    if (sortBy === "Least Days") return left.days - right.days;
+    return right.id - left.id;
   });
 
 
@@ -706,7 +715,7 @@ export default function LeaveApprovals() {
                 <th>Department</th>
                 <th>Leave Type</th>
                 <th>Days</th>
-
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -784,7 +793,7 @@ export default function LeaveApprovals() {
                           fontWeight: 600,
                         }}
                       >
-
+                        {request.workflowStage}
                       </span>
                     </td>
 

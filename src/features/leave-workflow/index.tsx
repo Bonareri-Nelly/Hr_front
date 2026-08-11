@@ -6,6 +6,7 @@ import HRLeaveEntitlementsCard from "./components/HRLeaveEntitlementsCard";
 import ReplacementDecisionPanel from "./components/ReplacementDecisionPanel";
 import { employeeApi } from "../../services/api/employee";
 import { leaveApi } from "../../services/api/leave";
+import { apiClient } from "../../services/api/client";
 import type {
   LeaveEntitlements,
   LeaveTypeKey,
@@ -85,16 +86,24 @@ export default function LeaveWorkflow() {
 
   const loadData = async () => {
       try {
-        const [employees, leaveTypes, leaveRequests, balances] = await Promise.all([
+        const [employees, leaveTypes, leaveRequests, balances, meResponse] = await Promise.all([
           employeeApi.list({ page_size: "200" }).catch(() => []),
           leaveApi.listTypes().catch(() => []),
           leaveApi.listRequests().catch(() => []),
           leaveApi.listBalances().catch(() => []),
+          apiClient.get("/auth/me/").catch(() => ({ data: {} })),
         ]);
 
         const employeeRecords = employees as Array<Record<string, unknown>>;
         const balanceRecords = balances as Array<Record<string, unknown>>;
-        const currentEmployee = employeeRecords.find((employee) => String(employee.id) === String(balanceRecords[0]?.employee)) ?? employeeRecords[0];
+        const linkedEmployeeId = Number(meResponse.data?.employee_profile_id ?? 0);
+        let currentEmployee = linkedEmployeeId
+          ? await employeeApi.get(linkedEmployeeId).catch(() => undefined) as Record<string, unknown> | undefined
+          : employeeRecords.find((employee) => String(employee.id) === String(balanceRecords[0]?.employee));
+        if (!currentEmployee && balanceRecords[0]?.employee) {
+          currentEmployee = await employeeApi.get(Number(balanceRecords[0].employee)).catch(() => undefined) as Record<string, unknown> | undefined;
+        }
+        currentEmployee ??= employeeRecords[0];
         if (!currentEmployee) return;
         setLoggedInEmployee({
           id: Number(currentEmployee.id),
