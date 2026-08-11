@@ -23,8 +23,10 @@ const initialEntitlements: LeaveEntitlements = {
 };
 
 export default function LeaveWorkflow() {
-  const [loggedInEmployee, setLoggedInEmployee] = useState<{ name: string; department: string; gender?: "Male" | "Female" } | null>(null);
+  const [loggedInEmployee, setLoggedInEmployee] = useState<{ id: number; name: string; department: string; gender?: "Male" | "Female" } | null>(null);
   const [recentRequests, setRecentRequests] = useState<Array<{ id: number; type: string; period: string; days: number; status: string }>>([]);
+  const [requestSummary, setRequestSummary] = useState({ pending: 0, approved: 0 });
+  const [leaveTypeIds, setLeaveTypeIds] = useState<Record<string, number>>({});
   const [openModal, setOpenModal] = useState(false);
   const [openEntitlements, setOpenEntitlements] = useState(false);
   const [openReplacementDemo, setOpenReplacementDemo] = useState(false);
@@ -81,26 +83,46 @@ export default function LeaveWorkflow() {
 
   const [actingAsReplacement, setActingAsReplacement] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
+  const loadData = async () => {
       try {
-        const [employees, leaveTypes, leaveRequests] = await Promise.all([
-          employeeApi.list().catch(() => []),
+        const [employees, leaveTypes, leaveRequests, balances] = await Promise.all([
+          employeeApi.list({ page_size: "200" }).catch(() => []),
           leaveApi.listTypes().catch(() => []),
           leaveApi.listRequests().catch(() => []),
+          leaveApi.listBalances().catch(() => []),
         ]);
 
-        const currentEmployee = (employees as Array<Record<string, unknown>>)[0];
+        const employeeRecords = employees as Array<Record<string, unknown>>;
+        const balanceRecords = balances as Array<Record<string, unknown>>;
+        const currentEmployee = employeeRecords.find((employee) => String(employee.id) === String(balanceRecords[0]?.employee)) ?? employeeRecords[0];
+        if (!currentEmployee) return;
         setLoggedInEmployee({
+          id: Number(currentEmployee.id),
           name: [currentEmployee?.first_name, currentEmployee?.last_name].filter(Boolean).join(' ') || 'Employee',
-          department: String(currentEmployee?.department ?? 'Operations'),
+          department: String(currentEmployee?.department_name ?? currentEmployee?.department ?? 'Operations'),
           gender: (currentEmployee?.gender === 'F' || currentEmployee?.gender === 'Female' ? 'Female' : 'Male') as "Male" | "Female",
         });
 
-        const mappedRequests = (leaveRequests as Array<Record<string, unknown>>).slice(0, 4).map((request) => {
+        const ids: Record<string, number> = {};
+        (leaveTypes as Array<Record<string, unknown>>).forEach((type) => {
+          const key = String(type.code ?? '').toLowerCase();
+          if (["annual", "sick", "maternity", "paternity", "compassionate", "study", "unpaid"].includes(key) && type.id) ids[key] = Number(type.id);
+        });
+        setLeaveTypeIds(ids);
+
+        const nextEntitlements = { ...initialEntitlements };
+        balanceRecords.filter((balance) => String(balance.employee) === String(currentEmployee.id)).forEach((balance) => {
+          const leaveType = (leaveTypes as Array<Record<string, unknown>>).find((type) => String(type.id) === String(balance.leave_type));
+          const key = String(leaveType?.code ?? '').toLowerCase();
+          if (key === "annual" || key === "sick" || key === "compassionate" || key === "study") nextEntitlements[key] = Number(balance.remaining_days ?? 0);
+        });
+        setEntitlements(nextEntitlements);
+
+        const employeeRequests = (leaveRequests as Array<Record<string, unknown>>).filter((request) => String(request.employee) === String(currentEmployee.id));
+        const mappedRequests = employeeRequests.slice(0, 4).map((request) => {
           const start = String(request.start_date ?? '');
           const end = String(request.end_date ?? '');
-          const type = (leaveTypes as Array<Record<string, unknown>>).find((item) => String(item.id) === String(request.leave_type_id ?? ''))?.name ?? 'Leave';
+          const type = String(request.leave_type_name ?? (leaveTypes as Array<Record<string, unknown>>).find((item) => String(item.id) === String(request.leave_type ?? ''))?.name ?? 'Leave');
           const days = start && end ? Math.max(1, Math.round((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24)) + 1) : 1;
 
           return {
@@ -112,30 +134,21 @@ export default function LeaveWorkflow() {
           };
         });
 
-        setRecentRequests(mappedRequests.length ? mappedRequests : [
-          {
-            id: 1,
-            type: 'Annual Leave',
-            period: 'No requests yet',
-            days: 0,
-            status: 'Pending',
-          },
-        ]);
+        setRecentRequests(mappedRequests);
+        setRequestSummary({ pending: employeeRequests.filter((request) => String(request.status).startsWith("PENDING")).length, approved: employeeRequests.filter((request) => request.status === "APPROVED").length });
       } catch {
-        setRecentRequests([
-          {
-            id: 1,
-            type: 'Annual Leave',
-            period: 'Unable to load requests',
-            days: 0,
-            status: 'Pending',
-          },
-        ]);
+        setRecentRequests([]);
       }
     };
 
-    loadData();
-  }, []);
+  useEffect(() => { void loadData(); }, []);
+
+  const handleLeaveRequest = async (data: { leaveType: string; leaveTypeId: number; reason: string; startDate: string; endDate: string }) => {
+    if (!loggedInEmployee) throw new Error("Employee profile is unavailable.");
+    await leaveApi.createRequest({ employee_id: loggedInEmployee.id, leave_type_id: data.leaveTypeId, start_date: data.startDate, end_date: data.endDate, reason: data.reason });
+    setSelectedLeave({ startDate: data.startDate, endDate: data.endDate, leaveType: data.leaveType, status: "pending" });
+    await loadData();
+  };
 
   return (
     <div className="dashboard-page">
@@ -210,7 +223,7 @@ export default function LeaveWorkflow() {
             Pending Requests
           </div>
           <div style={{ fontSize: "1.35rem", fontWeight: 700 }}>
-            1
+            {requestSummary.pending}
           </div>
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
             Awaiting Approval
@@ -222,7 +235,7 @@ export default function LeaveWorkflow() {
             Approved
           </div>
           <div style={{ fontSize: "1.35rem", fontWeight: 700 }}>
-            3
+            {requestSummary.approved}
           </div>
           <div style={{ fontSize: "0.72rem", color: "var(--text-muted)" }}>
             This Year
@@ -256,7 +269,7 @@ export default function LeaveWorkflow() {
               </thead>
 
               <tbody>
-                {recentRequests.map((leave) => (
+                {recentRequests.length ? recentRequests.map((leave) => (
                   <tr key={leave.id}>
                     <td>{leave.type}</td>
                     <td>{leave.period}</td>
@@ -269,11 +282,11 @@ export default function LeaveWorkflow() {
                           fontSize: "0.65rem",
                           fontWeight: 700,
                           background:
-                            leave.status === "Approved"
+                            leave.status === "APPROVED"
                               ? "var(--success-bg)"
                               : "var(--warning-bg)",
                           color:
-                            leave.status === "Approved"
+                            leave.status === "APPROVED"
                               ? "var(--success)"
                               : "var(--warning)",
                         }}
@@ -282,7 +295,7 @@ export default function LeaveWorkflow() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                )) : <tr><td colSpan={4} style={{ color: "var(--text-secondary)", textAlign: "center", padding: 20 }}>No leave requests yet.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -317,6 +330,8 @@ export default function LeaveWorkflow() {
                 open={openModal}
                 onClose={() => setOpenModal(false)}
                 employeeGender={(loggedInEmployee?.gender as "Male" | "Female") ?? "Female"}
+                leaveTypeIds={leaveTypeIds}
+                onSubmit={handleLeaveRequest}
                 setSelectedLeave={setSelectedLeave}
               />
             </div>

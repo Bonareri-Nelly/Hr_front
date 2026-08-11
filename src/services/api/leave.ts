@@ -26,6 +26,7 @@ const unwrapList = <T>(data: T[] | { results: T[] }) => (Array.isArray(data) ? d
 
 export const leaveApi = {
   listTypes: async () => unwrapList((await api.get("leave/types/")).data),
+  listBalances: async () => unwrapList((await api.get("leave/balances/")).data),
   createType: async (payload: LeaveTypePayload) => (await api.post("leave/types/", payload)).data,
   listRequests: async () => unwrapList((await api.get("leave/requests/")).data),
   createRequest: async (payload: LeaveRequestPayload) => (await api.post("leave/requests/create/", payload)).data,
